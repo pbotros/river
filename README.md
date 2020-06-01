@@ -1,6 +1,6 @@
 # River
 
-A high-throughput, structured streaming framework built atop Redis Streams. Designed to stream megabytes/sec of data from one writer to multiple readers, as found in IoT and research applications. Supports "ingestion" of streams via a separate binary that persists past & present River streams to disk for immediate offline analysis.
+A high-throughput, structured streaming framework built atop Redis Streams. Capable of streaming large-volume, high-bandwidth data from one producer to multiple consumers; suitable for use in many IoT and research applications. Supports "ingestion" of streams via a separate binary that persists past & present River streams to disk for immediate offline analysis.
 
 Written in C++ with bindings in Python.
 
@@ -119,7 +119,7 @@ while r:
 
 ## Ingester
 
-River comes with an "Ingester" binary that streams data to disk and then subsequently deletes any persisted data from the in-memory cache in Redis once it is considered sufficiently "stale". This allows streams to continue without being constrained by memory of the Redis server.
+River comes with an "Ingester" binary that streams data to disk and then subsequently deletes any persisted data from Redis once it is considered sufficiently "stale". This allows streams to continue indefinitely, without being constrained by memory of the Redis server.
 
 By default, building the ingester is *NOT* enabled, as a typical system configuration will have many readers and writers distributed across a variety of computers but a single instance of ingestion running on a local computer.
 
@@ -131,14 +131,14 @@ make
 sudo make install
 ```
 
-This will install the binary, `river-ingester`, in your default installation path (e.g. /usr/local/bin by default on Mac/Unix systems). `river-ingester` takes a number of parameters that control its behavior that are documented in its `--help` option.
+This will install the binary, `river-ingester`, in your default installation path (e.g. /usr/local/bin by default on Mac/Unix systems). `river-ingester` takes a number of parameters that control its behavior that are documented in its `--help` option. These parameters control the amount of time to wait before deleting data, the size of the batches written to disk, and the speed at which to consume data in the ingester.
 
-The Ingester is an almost-vanilla reader of the stream, reading alongside any other River StreamReaders. It reads some number of chunks of data and writes them to disk in these chunks to an intermediate parquet file.  Intermediate parquet files are written in the ingestion directory as the stream is still going, with filenames in the pattern `data_0001.parquet`, `data_0002.parquet`, etc. Once the stream is terminated (i.e. whenever a StreamWriter#stop() is called for the stream), the ingester will combine each intermediate file into a single combined file, `data.parquet`, and delete the intermediate files. Note that the intermediate files are themselves wholly contained parquet files and can be read individually if desired.
+Under the hood, the Ingester is an almost-vanilla reader of the stream, reading alongside any other River StreamReaders. It reads some number of chunks of data and writes them to disk in these chunks to an intermediate parquet file.  Intermediate parquet files are written in the ingestion directory as the stream is still going, with filenames in the pattern `data_0001.parquet`, `data_0002.parquet`, etc. Once the stream is terminated (i.e. whenever a StreamWriter#stop() is called for the stream), the ingester will combine each intermediate file into a single combined file, `data.parquet`, and delete the intermediate files. Note that the intermediate files are themselves wholly contained parquet files and can be read individually if desired.
 
 
 ## Performance
 
-On a 2019 16-inch Macbook Pro with 2.6 GHz i7 and 16GB ram, writing/reading to Redis at localhost, and with no data in Redis before testing, performance varies as a function of sample size:
+On a 2019 16-inch Macbook Pro with 2.6 GHz i7 and 16GB ram, writing/reading to Redis at localhost, and with no data in Redis before testing, performance varies as a function of sample size and batch size:
 
 ![Graph](https://raw.githubusercontent.com/pbotros/river/master/docs/performance.png)
 
