@@ -140,22 +140,12 @@ The Ingester is an almost-vanilla reader of the stream, reading alongside any ot
 
 On a 2019 16-inch Macbook Pro with 2.6 GHz i7 and 16GB ram, writing/reading to Redis at localhost, and with no data in Redis before testing, performance varies as a function of sample size:
 
-
-| Sample Size (bytes) | Samples/sec, Writing (Hz) | Throughput, Writing (MB/s) | Samples/sec, Reading (Hz) | Throughput, Reading (MB/s)
-| --- | --- | --- | --- | --- |
-| 8 | 32864.150 | 0.251 | 26647.573 | 0.203 |
-| 32 | 31458.211 | 0.960 | 24169.149 | 0.738 |
-| 128 | 31262.547 | 3.816 | 25718.370 | 3.139 |
-| 512 | 30897.317 | 15.087 | 27827.574 | 13.588 |
-| 2048 | 30412.374 | 59.399 | 27261.411 | 53.245 |
-| 8192 | 26668.753 | 208.350 | 25193.926 | 196.828 |
-| 32768 | 12981.937 | 405.686 | 13893.308 | 434.166 |
-
+![Graph](https://raw.githubusercontent.com/pbotros/river/master/docs/performance.png)
 
 Above performance tests were run with:
 
 ```
-build/release/src/river_benchmark -h 127.0.0.1 --num_samples 300000 --sample_size <sample size> --batch_size 1
+build/release/src/river_benchmark -h 127.0.0.1 --num_samples 300000 --sample_size <sample size> --batch_size <batch size>
 ```
 
 
