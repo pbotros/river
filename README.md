@@ -148,6 +148,7 @@ Above performance tests were run with:
 build/release/src/river_benchmark -h 127.0.0.1 --num_samples 300000 --sample_size <sample size> --batch_size <batch size>
 ```
 
+The above parameter "batch size" controls how many samples at a time to write to River (i.e., `StreamWriter`'s `num_samples` parameter in `Write`). As can be seen in the above graphs, batching writes drastically improves performance and can be used where appropriate.
 
 For an example application where performance is more than enough: River was developed in an electrical engineering / neuroscience lab in order to power a soft-realtime, multi-device system that takes as input multi-channel neural data and outputs data to a Raspberry Pi, a computing machine, and to a graphing computer for experimenter monitoring. River's Ingester then makes data available immediately after experimentation for post-hoc analysis.
 
