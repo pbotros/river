@@ -283,7 +283,7 @@ TEST_F(StreamReaderTest, TestEofEmpty) {
 
     // Try to read again - no elements left to read
     num_read = reader_->Read(read_data, NUM_ELEMENTS);
-    ASSERT_EQ(num_read, 0);
+    ASSERT_EQ(num_read, -1);
     ASSERT_FALSE(reader_->Good());
 
     // EOF key got set when EOF was hit
@@ -559,10 +559,10 @@ TEST_F(StreamReaderTest, TestInitialize) {
     ASSERT_FALSE(reader->is_initialized());
 
     std::thread writer_thread([](StreamReaderTest *test) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
         test->set_necessary_metadata<int>(FieldDefinition::Type::INT32);
     }, this);
-    reader->Initialize(stream_name, 2000);
+    reader->Initialize(stream_name, 5000);
     writer_thread.join();
     ASSERT_TRUE(reader->is_initialized());
 }

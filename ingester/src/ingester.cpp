@@ -235,28 +235,26 @@ StreamIngestionResult SingleStreamIngester::Ingest() {
             auto samples_to_read = remaining_samples_in_row_group > SAMPLES_PER_READ ? SAMPLES_PER_READ
                                                                                      : remaining_samples_in_row_group;
 
-            int64_t num_read;
-            if (!reader->Good()) {
+            int *sizes_ptr = &sizes[row_group_size];
+            string *keys_ptr = &keys[row_group_size];
+            int64_t num_read = reader->ReadBytes(&read_buffer[row_group_size * sample_size],
+                                                 samples_to_read,
+                                                 &sizes_ptr,
+                                                 &keys_ptr,
+                                                 static_cast<int>(_stalled_timeout_ms));
+            if (num_read == 0) {
+                LOG(INFO) << fmt::format("Stream {} has stalled; no responses after {} ms [file index {}].",
+                                         stream_name_, _stalled_timeout_ms, file_data_index);
+                should_ingest = false;
+                break;
+            } else if (num_read < 0) {
                 should_ingest = false;
                 ingestion_status = StreamIngestionResult::COMPLETED;
                 eof_key = reader->eof_key().value();
-                LOG(INFO) << fmt::format("EOF encountered in stream {}, num_read={}, global_offset={}",
+                LOG(INFO) << fmt::format("EOF encountered in stream {}, num_read=0, global_offset={}",
                                          stream_name_,
-                                         num_read, global_offset);
-                num_read = 0;
-            } else {
-                int *sizes_ptr = &sizes[row_group_size];
-                string *keys_ptr = &keys[row_group_size];
-                num_read = reader->ReadBytes(&read_buffer[row_group_size * sample_size],
-                                             samples_to_read,
-                                             &sizes_ptr,
-                                             &keys_ptr,
-                                             static_cast<int>(_stalled_timeout_ms));
-                if (num_read == 0 && reader->Good()) {
-                    LOG(INFO) << fmt::format("Stream {} has stalled; no responses after {} ms [file index {}].",
-                                             stream_name_, _stalled_timeout_ms, file_data_index);
-                    should_ingest = false;
-                }
+                                         global_offset);
+                break;
             }
 
             for (int64_t i = 0; i < num_read; i++) {

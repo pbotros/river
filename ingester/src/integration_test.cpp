@@ -18,7 +18,7 @@ static const int STD_JITTER_MS = 10;
 class IntegrationTest;
 void ingest_data(IntegrationTest *test, const string &stream_name);
 
-void write_data(shared_ptr<StreamWriter> writer, double* write_data, int num_write_data, int64_t *num_written, bool call_stop) {
+void write_data(shared_ptr<StreamWriter> writer, double* write_data, int num_write_data, int64_t *num_written) {
     std::random_device rd;
     std::mt19937 mt(rd());
     std::normal_distribution<float> dist(MEAN_JITTER_MS, STD_JITTER_MS);
@@ -31,18 +31,19 @@ void write_data(shared_ptr<StreamWriter> writer, double* write_data, int num_wri
         std::this_thread::sleep_for(std::chrono::milliseconds(max(0, (int) dist(mt))));
     }
 
-    if (call_stop) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(max(0, (int) dist(mt))));
-        writer->Stop();
-    }
+      std::this_thread::sleep_for(std::chrono::milliseconds(max(0, (int) dist(mt))));
+      writer->Stop();
 }
 
 void read_data(shared_ptr<StreamReader> reader, double *expected_data, int64_t size_expected_data, int64_t *num_read) {
     *num_read = 0;
     unsigned int num_read_data = 4000;
     vector<double> read_data(num_read_data);
-    while (reader->Good()) {
+    while (true) {
         auto num_read_this_time = reader->Read(&read_data.front(), num_read_data);
+        if (num_read_this_time < 0) {
+            break;
+        }
         *num_read += num_read_this_time;
 
         for (int64_t i = 0; i < num_read_this_time; i++) {
@@ -82,7 +83,6 @@ protected:
         stringstream ss;
         ss << uuid;
         stream_name = ss.str();
-        call_stop = true;
         bool terminated = false;
 
         // Set our stalling timeout as 1 STD above the mean, i.e. ~16% of requests should timeout. In reality, this
@@ -125,7 +125,7 @@ protected:
         int64_t num_written = 0;
         int64_t num_read = 0;
 
-        std::thread writer_thread(write_data, writer, &data.front(), NUM_ELEMENTS, &num_written, call_stop);
+        std::thread writer_thread(write_data, writer, &data.front(), NUM_ELEMENTS, &num_written);
         std::thread reader_thread(read_data, reader, &data.front(), NUM_ELEMENTS, &num_read);
         std::thread tail_thread(tail_data, reader_tail);
         std::thread ingest_thread(ingest_data, this, stream_name);
@@ -171,7 +171,6 @@ protected:
     shared_ptr<StreamWriter> writer;
     string stream_name;
     string tmp_directory;
-    bool call_stop;
 public:
     boost::function<unique_ptr<StreamIngester>()> ingester_factory;
 };
@@ -192,11 +191,5 @@ void ingest_data(IntegrationTest *test, const string &stream_name) {
 }
 
 TEST_F(IntegrationTest, TestFull) {
-    run();
-}
-
-TEST_F(IntegrationTest, TestStale) {
-    // Test the "stale" stream handling, where an EOF is forcibly added to the stream after some time.
-    call_stop = false;
     run();
 }

@@ -50,9 +50,9 @@ inline void DecodeCursor(const char *key, uint64_t *left, uint64_t *right) {
 }
 
 inline std::chrono::system_clock::time_point KeyTimestamp(const char *key) {
-    unsigned long long left, right;
+    uint64_t left, right;
     DecodeCursor(key, &left, &right);
-    return std::chrono::system_clock::time_point(std::chrono::milliseconds(left));
+    return std::chrono::system_clock::time_point(std::chrono::milliseconds(static_cast<int64_t>(left)));
 }
 
 class RedisException : public exception {

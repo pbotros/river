@@ -36,8 +36,11 @@ void read_data(shared_ptr<StreamReader> reader, double expected_data[], int size
     *num_read = 0;
     unsigned int num_read_data = 4000;
     vector<double> read_data(num_read_data);
-    while (reader) {
+    while (true) {
         auto num_read_this_time = reader->Read(&read_data.front(), num_read_data);
+        if (num_read_this_time < 0) {
+          break;
+        }
         *num_read += num_read_this_time;
 
         for (unsigned int i = 0; i < num_read_this_time; i++) {

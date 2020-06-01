@@ -109,10 +109,10 @@ int64_t StreamReader::ReadBytes(
 
         int num_elements_fetched;
         if (should_xread) {
-            int to_block = max(1LL, min(remaining_us / 1000 - redis_resolution_ms, 1000LL));
+            int64_t to_block = max(int64_t{1LL}, min(remaining_us / 1000 - redis_resolution_ms, int64_t{1000LL}));
             reply = redis_->Xread(
                 num_to_fetch,
-                to_block,
+                static_cast<int>(to_block),
                 current_stream_key_, // streams
                 cursor_.right == 0 && cursor_.left != 0 ? cursor_.left - 1 : cursor_.left, // cursor
                 cursor_.right == 0 ? uint64_t{UINT64_MAX} : cursor_.right - 1);
@@ -200,7 +200,12 @@ int64_t StreamReader::ReadBytes(
             FireStreamKeyChange(current_stream_key_, "");
             is_eof_ = true;
             eof_key_ = string(last_element->element[0]->str);
-            return samples_fetched;
+            // Ensure we can't get caught in a "stalling" loop where we've actually returned EOF but return no data.
+            if (samples_fetched == 0) {
+              return -1;
+            } else {
+              return samples_fetched;
+            }
         }
 
         const char *tombstone_str = FindField(last_element->element[1], "tombstone");
@@ -325,11 +330,11 @@ int64_t StreamReader::TailBytes(char *buffer, int timeout_ms, char *key, int64_t
         const char *eof_str = FindField(values, "eof");
 
         if (tombstone_str == nullptr && eof_str == nullptr) {
-            IncrementCursorFrom(key);
+            IncrementCursorFrom(this_key);
             int len;
             const char *val_str = FindField(values, "val", &len);
 
-            if (this_key != nullptr) {
+            if (key != nullptr) {
                 strcpy(key, this_key);
             }
             if (sample_index != nullptr) {

@@ -38,7 +38,7 @@ typedef struct FieldDefinition {
     } Type;
     Type type;
 
-    FieldDefinition& operator=(const FieldDefinition& t) = default;;
+    FieldDefinition& operator=(const FieldDefinition& t) = default;
 
     FieldDefinition(string name_, Type type_, int size_) : name(std::move(name_)), size(size_), type(type_) {}
 } FieldDefinition;
@@ -58,7 +58,7 @@ public:
        field_definitions = field_definitions_;
     }
 
-    StreamSchema& operator=(const StreamSchema& t) = default;;
+    StreamSchema& operator=(const StreamSchema& t) = default;
 
     int sample_size() const {
         int total = 0;
