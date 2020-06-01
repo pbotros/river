@@ -4,6 +4,18 @@ A high-throughput, structured streaming framework built atop Redis Streams. Desi
 
 Written in C++ with bindings in Python.
 
+## Premise
+
+Research and Internet-of-Things (IoT) applications often require the need for several devices to communicate with one another in near-realtime - for example, a temperature sensor relays data to a microcontroller that controls a thermostat. While communicating from point-to-point with a custom protocol is a manageable solution in smaller systems, as system complexity increases data inevitably needs to be read by multiple sources, often simultaneously (that temperature sensor might need to also relay its data to a computer for displaying the realtime temperature). Crafting a multi-reader system with existing low-level protocols such as TCP quickly becomes untenable.
+
+Enter streaming frameworks: libraries designed to "produce" data to many "consumers". There are many robust and industry-standard streaming frameworks out there such as RabbitMQ, Kafka, and ZeroMQ; however, they are cumbersome to install & manage (e.g. Kafka), have limited single-stream throughput (e.g. RabbitMQ's ~50k messages/sec), or require non-trivial application-level code (e.g. ZeroMQ).
+
+Luckily, for research and IoT applications, requirements are a bit different than a typical industry queue: horizontal scaling & distributed-ness are typically not big concerns; _some_ data often can be dropped in the case of disaster; and throughput requirements from a single producer can be fairly high (e.g. a device sampling voltage at 50 kHz).
+
+River was created to meet these needs, prioritizing minimal setup and utilizing existing open-source technology. Redis Streams, released in Redis 5.0, are very high-throughput and support some classic and useful Pub/Sub notions for streaming. River provides a schema on top of Redis Streams, as well as a light layer of management state & metadata.
+
+Additionally, River supports "ingestion": persisting data that was streamed via River to disk, in order to enable post-hoc analysis of data. This feature is critical for research applications that have both online and offline applications. The ingester is packaged in a separate binary that is designed to be a long-running process; it monitors for any newly created streams via River, reads the stream in batches, and writes each batch to disk. On-disk format is Apache Parquet, a performant columnar data storage format.
+
 ## Installation
 
 Compilation by source is currently the only way to install. The below steps will compile the C++ library and install both the C++ library/headers and the Python bindings. This project uses CMake.
