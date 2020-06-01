@@ -1,6 +1,6 @@
 # River
 
-A high-throughput, structured streaming framework built atop Redis Streams. Designed to stream megabytes/sec of data from one writer to multiple readers, as found in IoT and research applications. Supports "ingestion" of streams via a separate long-running binary that persists existing (i.e., even ongoing) streams to disk via the Apache Parquet format.
+A high-throughput, structured streaming framework built atop Redis Streams. Designed to stream megabytes/sec of data from one writer to multiple readers, as found in IoT and research applications. Supports "ingestion" of streams via a separate binary that persists past & present River streams to disk for immediate offline analysis.
 
 Written in C++ with bindings in Python.
 
