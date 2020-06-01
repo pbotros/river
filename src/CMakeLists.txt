@@ -134,7 +134,6 @@ set(MY_CXX_DEBUG_OPTIONS "-Wall" "-g" "-fno-inline" "-O0")
 set(MY_CXX_RELEASE_OPTIONS "-Wall" "-O3")
 
 if(MSVC)
-    target_compile_options(${TARGET_NAME} PRIVATE /W4 /WX)
     set(MY_CXX_DEBUG_OPTIONS ${MY_CXX_DEBUG_OPTIONS} /W4 /WX)
     set(MY_CXX_RELEASE_OPTIONS ${MY_CXX_RELEASE_OPTIONS} /W4 /WX)
 else()
