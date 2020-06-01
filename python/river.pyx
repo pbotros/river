@@ -264,7 +264,7 @@ cdef class StreamWriter:
     cdef shared_ptr[criver.StreamWriter] _writer
 
     def __cinit__(self, RedisConnection connection,
-                  unsigned long keys_per_redis_stream = -1,
+                  int64_t keys_per_redis_stream = -1,
                   int batch_size = -1):
         if keys_per_redis_stream > 0 and batch_size > 0:
             self._writer = shared_ptr[criver.StreamWriter](new criver.StreamWriter(
