@@ -1,0 +1,14 @@
+[Unit]
+Description=River Ingester
+Before=dhcpcd5.service
+
+[Service]
+User=${username}
+Environment=FLAGS_alsologtostderr=1
+ExecStart=river-ingester -h 127.0.0.1 -f /etc/redis/password -o /media/data/river_streams
+KillMode=process
+Restart=always
+Type=simple
+
+[Install]
+WantedBy=multi-user.target

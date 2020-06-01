@@ -1,0 +1,16 @@
+[Unit]
+Description=River Ingester
+Before=dhcpcd5.service
+
+[Service]
+User=carmena
+Environment=GLOG_alsologtostderr=1
+Environment=GLOG_log_dir=/tmp/log/river-ingester
+ExecStartPre=/bin/mkdir -p /tmp/log/river-ingester
+ExecStart=/usr/local/bin/river-ingester -h 127.0.0.1 -f /etc/redis/password -o /media/data/river_streams
+KillMode=process
+Restart=always
+Type=simple
+
+[Install]
+WantedBy=multi-user.target
