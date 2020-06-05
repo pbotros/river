@@ -6,10 +6,9 @@ find_package(Python3 COMPONENTS Interpreter Development)
 find_package(PythonLibs 3.7 REQUIRED)
 
 if (${MSVC})
-	# https://github.com/boostorg/system/issues/32
-	add_compile_definitions(HAVE_SNPRINTF)
+    # https://github.com/boostorg/system/issues/32
+    add_compile_definitions(HAVE_SNPRINTF)
     find_package(Boost 1.68 COMPONENTS program_options filesystem system thread REQUIRED)
-    set(BOOST_INCLUDE_DIRS "C:\\Boost\\include\\boost-1_71")
 else()
     # Boost >= 1.68 required: includes a needed fix https://github.com/boostorg/python/pull/218
     find_package(Boost 1.68 COMPONENTS program_options filesystem system thread REQUIRED)
@@ -18,12 +17,6 @@ endif()
 
 # ===== External Dependency: glog
 find_package(glog REQUIRED)
-
-if (${MSVC})
-    # For some reason, need to see ARROW_HOME manually here when Arrow is installed
-    # C:\Users\Carmena\Anaconda3\Library
-    set(ARROW_HOME "${PYTHON_EXECUTABLE}\\..\\Library")
-endif()
 
 find_package(Arrow REQUIRED)
 add_library(arrow SHARED IMPORTED)
