@@ -23,8 +23,9 @@ int main(int argc, char **argv) {
     string redis_password_file;
     string output_directory;
     string stream_name;
+    int samples_per_row_group;
 
-    po::options_description desc("Allowed options");
+  po::options_description desc("Allowed options");
     desc.add_options()
             ("help", "produce help message")
             ("redis_hostname,h", po::value<string>(&redis_hostname)->required(), "Redis hostname [required]")
@@ -34,13 +35,15 @@ int main(int argc, char **argv) {
             ("output_directory,o", po::value<string>(&output_directory)->required(),
              "Output directory for all files [required]")
             ("stream_name", po::value<string>(&stream_name),
-             "Single stream to process directly [optional]");
+             "Single stream to process directly [optional]")
+            ("samples_per_row_group", po::value<int>(&samples_per_row_group)->default_value(128 * 1024),
+             "Number of samples to read at a time before persisting to disk [optional]");
 
-    po::variables_map vm;
+  po::variables_map vm;
     po::store(po::parse_command_line(argc, argv, desc), vm);
 
     if (vm.count("help")) {
-        LOG(INFO) << desc << endl;
+        cerr << desc << endl;
         return 1;
     }
 
@@ -63,7 +66,12 @@ int main(int argc, char **argv) {
 
     river::RedisConnection rc(redis_hostname, redis_port, redis_password);
     {
-        river::StreamIngester ingester(rc, output_directory, &terminated, stream_name);
+        river::StreamIngester ingester(
+            rc,
+            output_directory,
+            &terminated,
+            stream_name,
+            samples_per_row_group);
         LOG(INFO) << "Beginning ingestion forever." << endl;
         while (!terminated) {
             ingester.Ingest();
