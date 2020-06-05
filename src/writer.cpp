@@ -238,6 +238,8 @@ void StreamWriter::Stop() {
         return;
     }
 
+    redis_->SetMetadata(stream_name_, {{"total_samples", fmt::format_int(total_samples_written_).str()}});
+
     string stream_key = fmt::format("{}-{}", stream_name_, last_stream_key_idx_);
     redis_->Xadd(stream_key,
                  {{"eof", "1"},
@@ -246,8 +248,6 @@ void StreamWriter::Stop() {
 
     LOG(INFO) << "Adding eof entry for stream " << stream_name_ << ", idx " << std::to_string(last_stream_key_idx_)
               << " at samples " << std::to_string(total_samples_written_) << endl;
-
-    redis_->SetMetadata(stream_name_, {{"total_samples", fmt::format_int(total_samples_written_).str()}});
 
     is_stopped_ = true;
 }
