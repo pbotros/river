@@ -55,8 +55,8 @@ void tail_data(shared_ptr<StreamReader> reader) {
     // seen the element right before the EOF. So, there's not too much we can assert on here.
     double element;
     while (reader) {
-        int num_read = reader->Tail(&element);
-        if (num_read < 0) {
+        int num_skipped = reader->Tail(&element);
+        if (num_skipped < 0) {
             return;
         }
         ASSERT_GE(element, 0);

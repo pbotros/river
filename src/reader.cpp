@@ -9,7 +9,7 @@
 namespace river {
 
 StreamReader::StreamReader(const RedisConnection &connection, const int max_fetch_size)
-        : max_fetch_size_(max_fetch_size), cursor_(RedisCursor()), num_samples_read_(0) {
+        : max_fetch_size_(max_fetch_size), cursor_(RedisCursor()), current_sample_idx_(0), num_samples_read_(0) {
     this->redis_ = internal::Redis::Create(connection);
 
     this->cursor_.left = 0;
@@ -101,9 +101,8 @@ int64_t StreamReader::ReadBytes(
         int64_t samples_remaining = num_samples - samples_fetched;
         int64_t num_to_fetch = samples_remaining > max_fetch_size_ ? max_fetch_size_ : samples_remaining;
 
-        // NB: carefully *free* `reply` and *use* data_reply; `reply` refers to the object that needs to be freed but
-        // not necessarily the element that has the data structures we need due to differences between XREAD and
-        // XRANGE.
+        // NB: depending whether we XREAD or XRANGE, the data in reply is shaped differently, hence the need to split
+        // out a separate "data_reply" pointer.
         internal::Redis::UniqueRedisReplyPtr reply;
         redisReply *data_reply;
 
@@ -226,10 +225,14 @@ int64_t StreamReader::ReadBytes(
             current_stream_key_ = s;
             cursor_.left = 0;
             cursor_.right = 0;
+            continue;
         }
+
+        // If it's neither tombstone or EOF, then it's a data element; use its "i" field for sample index.
+        current_sample_idx_ = GetSampleIndexOrThrow(last_element->element[1]);
     }
 
-    return samples_fetched;
+  return samples_fetched;
 }
 
 int64_t StreamReader::TailBytes(char *buffer, int timeout_ms, char *key, int64_t *sample_index) {
@@ -337,13 +340,11 @@ int64_t StreamReader::TailBytes(char *buffer, int timeout_ms, char *key, int64_t
             if (key != nullptr) {
                 strcpy(key, this_key);
             }
+            int64_t old_sample_index = current_sample_idx_;
+            current_sample_idx_ = GetSampleIndexOrThrow(values);
+
             if (sample_index != nullptr) {
-                const char *this_sample_index = FindField(values, "i");
-                if (this_sample_index == nullptr) {
-                    string message = fmt::format("Sample_index not found in key {} in stream {}", key, stream_name_);
-                    throw StreamReaderException(message);
-                }
-                *sample_index = strtoll(this_sample_index, nullptr, 10);
+                *sample_index = current_sample_idx_;
             }
 
             if (!this->has_variable_width_field_) {
@@ -351,7 +352,7 @@ int64_t StreamReader::TailBytes(char *buffer, int timeout_ms, char *key, int64_t
             } else {
                 memcpy(buffer, val_str, len);
             }
-            return 1;
+            return current_sample_idx_ - old_sample_index + 1;
         }
 
         if (eof_str != nullptr) {
@@ -435,11 +436,17 @@ int64_t StreamReader::Seek(const string &key) {
 
         const char *tombstone = FindField(data_reply->element[1], "tombstone");
         if (tombstone == nullptr) {
-            // If it's not a tombstone, then we've found the key that's immediately less than or equal to this key. We can
-            // then set the cursor to a incremented copy of the given key.
+            // If it's not a tombstone, then we've found the greatest key that's immediately less than or equal to this
+            // key. We can then set the cursor to a incremented copy of the given key.
             IncrementCursorFrom(last_key);
-            LOG(INFO) << fmt::format("Seeked successfully. New cursor {}-{}", cursor_.left, cursor_.right) << endl;
-            return 1;
+            int64_t old_sample_index = current_sample_idx_;
+            current_sample_idx_ = GetSampleIndexOrThrow(data_reply->element[1]);
+            int64_t ret = current_sample_idx_ - old_sample_index;
+            LOG(INFO) << fmt::format("Seeked successfully; skipped {} elements. New cursor {}-{}",
+                                     ret,
+                                     cursor_.left,
+                                     cursor_.right) << endl;
+            return ret;
         }
 
         // Tombstone found before this key, meaning we need to follow the chain to the next stream and repeat the process.
