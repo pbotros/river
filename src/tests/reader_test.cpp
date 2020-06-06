@@ -25,7 +25,7 @@ public:
 };
 
 class StreamReaderTest : public ::testing::Test {
-protected:
+public:
     void SetUp() override {
         regenerate_stream_name();
         struct timeval timeout = {1, 500000};
@@ -65,6 +65,24 @@ protected:
     redisContext *redis;
 
     template <class T>
+    void xadd_sample(int stream_key_suffix, int i, T *val_bytes, size_t val_size) {
+        xadd_sample(stream_key_suffix, i, val_bytes, val_size, "*");
+    }
+
+    template <class T>
+    void xadd_sample(int stream_key_suffix, int i, T *val_bytes, size_t val_size, const string& key) {
+        redisCommand(redis,
+                     "XADD %s-%d %s i %d val %b",
+                     stream_name.c_str(),
+                     stream_key_suffix,
+                     key.c_str(),
+                     i,
+                     reinterpret_cast<char *>(val_bytes),
+                     val_size);
+    }
+
+
+    template <class T>
     void assert_read_works(T *data, size_t size, void (*checker)(T, int)) {
         assert_read_works(NewStreamReader<T>(), data, size, checker);
     }
@@ -72,8 +90,7 @@ protected:
     template <class T>
     void assert_read_works(shared_ptr<StreamReader> reader, T *data, size_t size, void (*checker)(T, int)) {
         for (int i = 0; i < NUM_ELEMENTS; i++) {
-            redisCommand(redis, "XADD %s-0 * val %b", stream_name.c_str(),
-                         reinterpret_cast<char *>(&data[i]), size);
+            xadd_sample(0, i, reinterpret_cast<char *>(&data[i]), size);
         }
 
         reader->Initialize(stream_name);
@@ -187,7 +204,7 @@ TEST_F(StreamReaderTest, TestVariableBinary) {
         for (int j = 0; j <= i; j++) {
             data[j] = (char) j;
         }
-        redisCommand(redis, "XADD %s-0 * val %b", stream_name.c_str(), &data.front(), sizes[i]);
+        xadd_sample(0, i, &data.front(), sizes[i]);
     }
 
     shared_ptr<StreamReader> r = NewStreamReader<char>(10000, FieldDefinition::VARIABLE_WIDTH_BYTES);
@@ -226,13 +243,11 @@ TEST_F(StreamReaderTest, TestTombstone) {
     }
 
     for (int i = 0; i < NUM_ELEMENTS / 2; i++) {
-        redisCommand(redis, "XADD %s-0 * val %b", stream_name.c_str(),
-                     reinterpret_cast<char *>(&data[i]), sizeof(int));
+        xadd_sample(0, i, reinterpret_cast<char *>(&data[i]), sizeof(int));
     }
     write_tombstone(NUM_ELEMENTS / 2 - 1);
     for (int i = NUM_ELEMENTS / 2; i < NUM_ELEMENTS; i++) {
-        redisCommand(redis, "XADD %s-1 * val %b", stream_name.c_str(),
-                     reinterpret_cast<char *>(&data[i]), sizeof(int));
+        xadd_sample(1, i, reinterpret_cast<char *>(&data[i]), sizeof(int));
     }
 
     auto listener = new TestStreamReaderListener();
@@ -263,8 +278,7 @@ TEST_F(StreamReaderTest, TestEofEmpty) {
 
     // EOF occurs just after the first batch, and so the remaining items should be empty.
     for (int i = 0; i < NUM_ELEMENTS; i++) {
-        redisCommand(redis, "XADD %s-0 * val %b", stream_name.c_str(),
-                     reinterpret_cast<char *>(&data[i]), sizeof(int));
+        xadd_sample(0, i, reinterpret_cast<char *>(&data[i]), sizeof(int));
     }
     write_eof(NUM_ELEMENTS - 1);
 
@@ -311,8 +325,7 @@ TEST_F(StreamReaderTest, TestEofContainsSome) {
     // Place EOF at half
     int num_elements_written = NUM_ELEMENTS / 2;
     for (int i = 0; i < num_elements_written; i++) {
-        redisCommand(redis, "XADD %s-0 * val %b", stream_name.c_str(),
-                     reinterpret_cast<char *>(&data[i]), sizeof(int));
+        xadd_sample(0, i, reinterpret_cast<char *>(&data[i]), sizeof(int));
     }
     write_eof(num_elements_written - 1);
 
@@ -336,17 +349,17 @@ TEST_F(StreamReaderTest, TestXRead) {
     reader_->Initialize(stream_name);
 
     int first = 0;
-    redisCommand(redis, "XADD %s-0 * val %b", stream_name.c_str(), &first, sizeof(int));
+    xadd_sample(0, 0, &first, sizeof(int));
 
-    std::thread t([](redisContext *c, const string& stream_name) {
+    std::thread t([](StreamReaderTest *self) {
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
         int x = 1;
-        redisCommand(c, "XADD %s-0 * val %b", stream_name.c_str(), &x, sizeof(int));
+        self->xadd_sample(0, 1, &x, sizeof(int));
 
         std::this_thread::sleep_for(std::chrono::milliseconds(1100));
         int y = 2;
-        redisCommand(c, "XADD %s-0 * val %b", stream_name.c_str(), &y, sizeof(int));
-    }, redis, stream_name);
+        self->xadd_sample(0, 2, &y, sizeof(int));
+    }, this);
 
     int read_data[3];
     reader_->Read(read_data, 3);
@@ -369,7 +382,7 @@ TEST_F(StreamReaderTest, TestTimeout_TimesOut) {
     ASSERT_EQ(read_data[2], -1);
 
     int first = 100;
-    redisCommand(redis, "XADD %s-0 * val %b", stream_name.c_str(), &first, sizeof(int));
+    xadd_sample(0, 0, &first, sizeof(int));
 
     num_read = reader_->Read(read_data, 3, nullptr, nullptr, 500);
     ASSERT_EQ(num_read, 1);
@@ -429,7 +442,7 @@ TEST_F(StreamReaderTest, DISABLED_TestTimeout_Precision) {
 
 TEST_F(StreamReaderTest, TestTail_Simple) {
     for (int i = 0; i < NUM_ELEMENTS; i++) {
-        redisCommand(redis, "XADD %s-0 * val %b", stream_name.c_str(), reinterpret_cast<char *>(&i), sizeof(int));
+        xadd_sample(0, i, reinterpret_cast<char *>(&i), sizeof(int));
     }
 
     shared_ptr<StreamReader> r = NewStreamReader<int>(10000, FieldDefinition::INT32);
@@ -438,16 +451,34 @@ TEST_F(StreamReaderTest, TestTail_Simple) {
     int64_t ret = r->Tail(&readout);
 
     ASSERT_EQ(readout, NUM_ELEMENTS - 1);
-    ASSERT_EQ(ret, 1);
+    ASSERT_EQ(ret, NUM_ELEMENTS);
+}
+
+TEST_F(StreamReaderTest, TestTail_SingleElement) {
+    shared_ptr<StreamReader> r = NewStreamReader<int>(10000, FieldDefinition::INT32);
+    r->Initialize(stream_name);
+    int readout;
+
+    // Initial read times out with zero
+    ASSERT_EQ(r->Tail(&readout, 100), 0);
+
+    // Add a single element and assert that it says we skipped 1 element.
+    int value = 10;
+    xadd_sample(0, 0, reinterpret_cast<char *>(&value), sizeof(int));
+    ASSERT_EQ(r->Tail(&readout, 100), 1);
+    ASSERT_EQ(readout, value);
+
+    // Then it times out with zero returns again
+    ASSERT_EQ(r->Tail(&readout, 100), 0);
 }
 
 TEST_F(StreamReaderTest, TestTail_Tombstone) {
     for (int i = 0; i < NUM_ELEMENTS; i++) {
-        redisCommand(redis, "XADD %s-0 * val %b", stream_name.c_str(), reinterpret_cast<char *>(&i), sizeof(int));
+        xadd_sample(0, i, reinterpret_cast<char *>(&i), sizeof(int));
     }
     write_tombstone(NUM_ELEMENTS - 1);
     for (int i = NUM_ELEMENTS; i < 2 * NUM_ELEMENTS; i++) {
-        redisCommand(redis, "XADD %s-1 * val %b", stream_name.c_str(), reinterpret_cast<char *>(&i), sizeof(int));
+        xadd_sample(1, i, reinterpret_cast<char *>(&i), sizeof(int));
     }
 
     shared_ptr<StreamReader> r = NewStreamReader<int>(10000, FieldDefinition::INT32);
@@ -456,25 +487,25 @@ TEST_F(StreamReaderTest, TestTail_Tombstone) {
     size_t ret = r->Tail(&readout);
 
     ASSERT_EQ(readout, 2 * NUM_ELEMENTS - 1);
-    ASSERT_EQ(ret, 1);
+    ASSERT_EQ(ret, 2 * NUM_ELEMENTS);
 }
 
 TEST_F(StreamReaderTest, TestTail_EmptyUsesXRead) {
-    std::thread writer_thread([](redisContext *redis, const string& stream_name) {
+    std::thread writer_thread([](StreamReaderTest *self) {
         // Wait a second for (presumingly) it to be blocking on XREAD. Can be verified with log statements.
         std::this_thread::sleep_for(std::chrono::seconds(1));
         int i = 10;
-        redisCommand(redis, "XADD %s-0 * val %b", stream_name.c_str(), reinterpret_cast<char *>(&i), sizeof(int));
-    }, redis, stream_name);
+        self->xadd_sample(0, 0, reinterpret_cast<char *>(&i), sizeof(int));
+    }, this);
 
     shared_ptr<StreamReader> r = NewStreamReader<int>(10000, FieldDefinition::INT32);
     r->Initialize(stream_name);
     int readout;
     int64_t ret = r->Tail(&readout);
+    writer_thread.join();
 
     ASSERT_EQ(readout, 10);
     ASSERT_EQ(ret, 1);
-    writer_thread.join();
 }
 
 TEST_F(StreamReaderTest, TestTail_MovesCursor) {
@@ -482,18 +513,18 @@ TEST_F(StreamReaderTest, TestTail_MovesCursor) {
     r->Initialize(stream_name);
 
     for (int i = 0; i < NUM_ELEMENTS; i++) {
-        redisCommand(redis, "XADD %s-0 * val %b", stream_name.c_str(), reinterpret_cast<char *>(&i), sizeof(int));
+        xadd_sample(0, i, reinterpret_cast<char *>(&i), sizeof(int));
     }
 
     int readout;
     int64_t ret = r->Tail(&readout);
 
     ASSERT_EQ(readout, NUM_ELEMENTS - 1);
-    ASSERT_EQ(ret, 1);
+    ASSERT_EQ(ret, NUM_ELEMENTS);
 
     // THEN add another round of elements and make sure the read() picks up after the tail().
     for (int i = NUM_ELEMENTS; i < 2 * NUM_ELEMENTS; i++) {
-        redisCommand(redis, "XADD %s-0 * val %b", stream_name.c_str(), reinterpret_cast<char *>(&i), sizeof(int));
+        xadd_sample(0, i, reinterpret_cast<char *>(&i), sizeof(int));
     }
 
     int read_buf[NUM_ELEMENTS];
@@ -510,7 +541,7 @@ TEST_F(StreamReaderTest, TestTail_HandlesEof) {
     r->Initialize(stream_name);
 
     for (int i = 0; i < NUM_ELEMENTS; i++) {
-        redisCommand(redis, "XADD %s-0 * val %b", stream_name.c_str(), reinterpret_cast<char *>(&i), sizeof(int));
+        xadd_sample(0, i, reinterpret_cast<char *>(&i), sizeof(int));
     }
     write_eof(NUM_ELEMENTS - 1);
 
@@ -532,19 +563,19 @@ TEST_F(StreamReaderTest, TestTail_BlocksForData) {
     shared_ptr<StreamReader> r = NewStreamReader<int>(10000, FieldDefinition::INT32);
     r->Initialize(stream_name);
 
-    std::thread writer_thread([](redisContext *redis, const string& stream_name) {
+    std::thread writer_thread([](StreamReaderTest *self) {
         // Wait a second for (presumingly) it to be blocking on XREAD. Can be verified with log statements.
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
         int i = 10;
-        redisCommand(redis, "XADD %s-0 * val %b", stream_name.c_str(), reinterpret_cast<char *>(&i), sizeof(int));
-    }, redis, stream_name);
+        self->xadd_sample(0, 0, reinterpret_cast<char *>(&i), sizeof(int));
+    }, this);
 
     int readout = 100;
     int64_t ret = r->Tail(&readout, 10000);
+    writer_thread.join();
 
     ASSERT_EQ(readout, 10); // unchanged
     ASSERT_EQ(ret, 1);
-    writer_thread.join();
 }
 
 TEST_F(StreamReaderTest, TestInitialize) {
@@ -578,39 +609,39 @@ TEST_F(StreamReaderTest, TestSeek) {
 
     int read;
 
-    // Write 10 keys manually so we can have fine precision for testing seeks
+    // Write 10 keys with a manually specified redis key, so we can have fine precision for testing seeks
     for (int id = 10; id < 10 + 10; id++) {
-        redisCommand(redis, "XADD %s-0 %d-0 val %b", stream_name.c_str(), id, reinterpret_cast<char *>(&id), sizeof(int));
+        xadd_sample(0, id - 10, reinterpret_cast<char *>(&id), sizeof(int), fmt::format("{}-0", id));
     }
-    // Shouldn't change the cursor
+    // Shouldn't change the cursor, so the #read() reads the first element
     ASSERT_EQ(reader_->Seek("0-0"), 0);
-    reader_->Read(&read, 1);
+    ASSERT_EQ(reader_->Read(&read, 1), 1);
     ASSERT_EQ(read, 10);
 
-    // Shouldn't change the cursor, again
+    // Shouldn't change the cursor, again, so read just reads the second element
     ASSERT_EQ(reader_->Seek("0-0"), 0);
-    reader_->Read(&read, 1);
+    ASSERT_EQ(reader_->Read(&read, 1), 1);
     ASSERT_EQ(read, 11);
 
     // Seek to the 3rd element (12-0), so the next read should be the 4th (13-0)
     ASSERT_EQ(reader_->Seek("12-0"), 1);
-    reader_->Read(&read, 1);
+    ASSERT_EQ(reader_->Read(&read, 1), 1);
     ASSERT_EQ(read, 13);
 
     // Seek to just past the 5th element (14-1), so the next read should be the 6th element (15-0)
     ASSERT_EQ(reader_->Seek("14-1"), 1);
-    reader_->Read(&read, 1);
+    ASSERT_EQ(reader_->Read(&read, 1), 1);
     ASSERT_EQ(read, 15);
 
     // Insert a tombstone after the last element (19-0).
     write_tombstone(10, "19-1");
     for (int id = 20; id < 20 + 10; id++) {
-        redisCommand(redis, "XADD %s-1 %d-0 val %b", stream_name.c_str(), id, reinterpret_cast<char *>(&id), sizeof(int));
+        xadd_sample(1, id - 10, reinterpret_cast<char *>(&id), sizeof(int), fmt::format("{}-0", id));
     }
 
     // Seek to an element after the tombstone
-    ASSERT_EQ(reader_->Seek("22-0"), 1);
-    reader_->Read(&read, 1);
+    ASSERT_EQ(reader_->Seek("22-0"), 7);
+    ASSERT_EQ(reader_->Read(&read, 1), 1);
     ASSERT_EQ(read, 23);
 
     ASSERT_STREQ(listener->old_stream_keys.at(1).c_str(), fmt::format("{}-0", stream_name).c_str());
@@ -618,14 +649,14 @@ TEST_F(StreamReaderTest, TestSeek) {
 
     // Seek to a really large key, which should seek to the end. A subsequent read with no new samples should thus
     // timeout and read no elements.
-    ASSERT_EQ(reader_->Seek("100-0"), 1);
+    ASSERT_EQ(reader_->Seek("100-0"), 6);
     int64_t num_read = reader_->Read(&read, 1, nullptr, nullptr, 100);
     ASSERT_EQ(num_read, 0);
 
     // Insert something to the end, and the cursor should pick that up.
     int id = 30;
-    redisCommand(redis, "XADD %s-1 %d-0 val %b", stream_name.c_str(), id, reinterpret_cast<char *>(&id), sizeof(int));
-    reader_->Read(&read, 1);
+    xadd_sample(1, id - 10, reinterpret_cast<char *>(&id), sizeof(int), fmt::format("{}-0", id));
+    ASSERT_EQ(reader_->Read(&read, 1), 1);
     ASSERT_EQ(read, 30);
 
     // Finally, insert an EOF, and try to seek past it.

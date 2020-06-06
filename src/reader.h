@@ -14,6 +14,7 @@
 #include <vector>
 #include <memory>
 #include <boost/optional.hpp>
+#include <fmt/format.h>
 #include "schema.h"
 #include "redis.h"
 
@@ -77,13 +78,17 @@ public:
      *
      * @tparam DataT The data type of the buffer. The `sizeof()` of this type should match the stream's sample size as
      * governed by its schema.
-     * @param buffer The buffer into which data will be written. If this call successfully returns, there will be
-     * exactly `num_samples` samples written into the buffer. This buffer will be treated as a raw byte array and thus
-     * will write structs according to their byte order.
-     * @param num_samples Number of samples to read from the underlying stream.
-     * @param sizes If given, `num_samples` entries will be written into this array containing the sizes of each
+     * @param num_samples _Maximum_ number of samples to read from the underlying stream.
+     * @param sizes If given, <return value> entries will be written into this array containing the sizes of each
      * corresponding sample. Particularly useful for VARIABLE_WIDTH_BYTES fields. Pass nullptr to ignore.
-     * @return the number of elements read. Should always be num_samples.
+     * @param keys If given, <return value> `char *` entries will be written into this array containing the
+     * NULL-terminated unique string keys in the underlying database. Pass nullptr to ignore.
+     * @param timeout_ms If positive, the maximum length of time this entire call can block while waiting for samples.
+     * After the timeout, the stream can be partially read, and the return value is needed to determine samples read.
+     * @return the number of elements read. This will always be less than or equal to num_samples. For example, if
+     * there is a timeout, this could be a partially read buffer and so can be less than num_samples; this number can
+     * be less than num_samples even if there is no timeout given. Returns -1 if EOF is encountered; if -1 is returned,
+     * buffer is guaranteed to not have been touched (nor the other buffer objects like sizes/keys).
      */
     template<class DataT>
     int64_t Read(DataT *buffer,
@@ -106,15 +111,17 @@ public:
      * exactly `num_samples` samples written into the buffer, each of which is `sample_size` as told by the schema. For
      * VARIABLE_WIDTH_BYTES fields, ensure this buffer is large enough to capture the maximum possible size of
      * `num_samples` samples.
-     * @param num_samples Number of samples to read from the underlying stream.
-     * @param sizes If given, `num_samples` entries will be written into this array containing the sizes of each
+     * @param num_samples _Maximum_ number of samples to read from the underlying stream.
+     * @param sizes If given, <return value> entries will be written into this array containing the sizes of each
      * corresponding sample. Particularly useful for VARIABLE_WIDTH_BYTES fields. Pass nullptr to ignore.
-     * @param keys If given, `num_samples` `char *` entries will be written into this array containing the
+     * @param keys If given, <return value> `string` entries will be written into this array containing the
      * NULL-terminated unique string keys in the underlying database. Pass nullptr to ignore.
      * @param timeout_ms If positive, the maximum length of time this entire call can block while waiting for samples.
      * After the timeout, the stream can be partially read, and the return value is needed to determine samples read.
-     * @return the number of elements read. If no timeout is given, this will always be num_samples. If there is a
-     * timeout, this could be a partially read buffer and so can be less than num_samples.
+     * @return the number of elements read. This will always be less than or equal to num_samples. For example, if
+     * there is a timeout, this could be a partially read buffer and so can be less than num_samples; this number can
+     * be less than num_samples even if there is no timeout given. Returns -1 if EOF is encountered; if -1 is returned,
+     * buffer is guaranteed to not have been touched (nor the other buffer objects like sizes/keys).
      */
     int64_t ReadBytes(
             char *buffer,
@@ -143,10 +150,12 @@ public:
 
     /**
      * Returns the last element in the stream after the previously seen elements. Blocks until there's at least one
-     * element available in the stream after the current cursor.
+     * element available in the stream after the current cursor if no timeout is given; else, waits for the timeout.
      * @param timeout_ms If positive, the maximum length of time this entire call can block while waiting for a sample.
-     * After the timeout there can be 0 or 1 elements read, and so the return value is needed to determine samples read.
-     * @return the size of the element read into the buffer. 0 if nothing was read (i.e. due to timeout).
+     * After the timeout there will be 0 or 1 elements read, and so the return value is needed to determine samples read.
+     * @return the number of elements skipped and/or read, including the last element that might be written into the
+     * buffer. Thus, this will return 0 in the event of a timeout; this will return >= 1 iff buffer is changed.
+     * Returns -1 if there is an EOF in the stream.
      */
     int64_t TailBytes(char *buffer,
                       int timeout_ms = -1,
@@ -158,6 +167,10 @@ public:
      *
      * If the key that's given is in the past -- i.e., this StreamReader has already consumed past this key -- then
      * the cursor will not be moved, and no exception will be thrown.
+     *
+     * @return the number of elements skipped. Thus, it returns 0 if the key given is in the past of the stream or if
+     * it is the current key. Returns -1 if EOF is hit while attempting to seek to this key (indicating the key given is
+     * greater than any key in the stream).
      */
     int64_t Seek(const string &key);
 
@@ -259,9 +272,10 @@ private:
         uint64_t right;
     } RedisCursor;
     RedisCursor cursor_;
+    int64_t current_sample_idx_;
     int64_t num_samples_read_;
 
-  void FireStreamKeyChange(const string &old_stream_key, const string &new_stream_key);
+    void FireStreamKeyChange(const string &old_stream_key, const string &new_stream_key);
 
     boost::optional<unordered_map<string, string>> RetryablyFetchMetadata(const string &stream_name, int timeout_ms);
     boost::optional<string> ErrorMsgIfNotGood();
@@ -288,13 +302,30 @@ private:
         }
         return nullptr;
     }
+
+    inline int64_t GetSampleIndexOrThrow(const redisReply *values) {
+        const char *this_sample_index = FindField(values, "i");
+        if (this_sample_index == nullptr) {
+            string message = fmt::format("Sample_index not found in stream {}", stream_name_);
+            throw StreamReaderException(message);
+        }
+        int64_t ret = strtoll(this_sample_index, nullptr, 10);
+        if (ret < current_sample_idx_) {
+            string message = fmt::format("Sample index {} was less than current sample idx of {} (stream {})",
+                                         ret,
+                                         current_sample_idx_,
+                                         stream_name_);
+            throw StreamReaderException(message);
+        }
+        return ret;
+    }
 };
 
 namespace internal {
-    /**
-     * Listener for internals that occur with the stream. Contains details related to the underlying Redis structure of
-     * the stream.
-     */
+/**
+ * Listener for internals that occur with the stream. Contains details related to the underlying Redis structure of
+ * the stream.
+ */
     class StreamReaderListener {
     public:
       /**
