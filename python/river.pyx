@@ -211,7 +211,7 @@ cdef class StreamReader:
 
     @property
     def stream_name(self: StreamReader) -> str:
-        return deref(self._reader).stream_name()
+        return deref(self._reader).stream_name().decode('UTF-8')
 
     @property
     def metadata(self: StreamReader) -> dict:
@@ -293,7 +293,7 @@ cdef class StreamWriter:
 
     @property
     def stream_name(self):
-        return deref(self._writer).stream_name()
+        return deref(self._writer).stream_name().decode('UTF-8')
 
     @property
     def metadata(self):
