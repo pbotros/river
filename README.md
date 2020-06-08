@@ -141,7 +141,7 @@ r.initialize(w.stream_name, 1000)
 data = np.empty((1,), dtype=np.double)
 
 while True:
-	# Similar to the style of many I/O streams, we pass in a buffer that will be
+  # Similar to the style of many I/O streams, we pass in a buffer that will be
   # filled with read data when available. In this case, since `data` is of size
   # 1, at most 1 sample will be read from the stream at a time. The second parameter
   # is the timeout in milliseconds: the max amount of time this call will block until
