@@ -352,7 +352,9 @@ int64_t StreamReader::TailBytes(char *buffer, int timeout_ms, char *key, int64_t
             } else {
                 memcpy(buffer, val_str, len);
             }
-            return current_sample_idx_ - old_sample_index + 1;
+            int64_t num_skipped = current_sample_idx_ - old_sample_index + 1;
+            num_samples_read_ += num_skipped;
+            return num_skipped;
         }
 
         if (eof_str != nullptr) {
@@ -446,6 +448,7 @@ int64_t StreamReader::Seek(const string &key) {
                                      ret,
                                      cursor_.left,
                                      cursor_.right) << endl;
+            num_samples_read_ += ret;
             return ret;
         }
 

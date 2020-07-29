@@ -452,6 +452,7 @@ TEST_F(StreamReaderTest, TestTail_Simple) {
 
     ASSERT_EQ(readout, NUM_ELEMENTS - 1);
     ASSERT_EQ(ret, NUM_ELEMENTS);
+    ASSERT_EQ(r->total_samples_read(), NUM_ELEMENTS);
 }
 
 TEST_F(StreamReaderTest, TestTail_SingleElement) {
@@ -617,16 +618,19 @@ TEST_F(StreamReaderTest, TestSeek) {
     ASSERT_EQ(reader_->Seek("0-0"), 0);
     ASSERT_EQ(reader_->Read(&read, 1), 1);
     ASSERT_EQ(read, 10);
+    ASSERT_EQ(reader_->total_samples_read(), 1);
 
     // Shouldn't change the cursor, again, so read just reads the second element
     ASSERT_EQ(reader_->Seek("0-0"), 0);
     ASSERT_EQ(reader_->Read(&read, 1), 1);
     ASSERT_EQ(read, 11);
+    ASSERT_EQ(reader_->total_samples_read(), 2);
 
     // Seek to the 3rd element (12-0), so the next read should be the 4th (13-0)
     ASSERT_EQ(reader_->Seek("12-0"), 1);
     ASSERT_EQ(reader_->Read(&read, 1), 1);
     ASSERT_EQ(read, 13);
+    ASSERT_EQ(reader_->total_samples_read(), 4);
 
     // Seek to just past the 5th element (14-1), so the next read should be the 6th element (15-0)
     ASSERT_EQ(reader_->Seek("14-1"), 1);
@@ -662,6 +666,9 @@ TEST_F(StreamReaderTest, TestSeek) {
     // Finally, insert an EOF, and try to seek past it.
     write_eof(30, 1, "30-1");
     ASSERT_EQ(reader_->Seek("100-0"), -1);
+
+    // 21 elements inserted in this test
+    ASSERT_EQ(reader_->total_samples_read(), 21);
 }
 
 TEST_F(StreamReaderTest, TestMetadata) {
