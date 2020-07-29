@@ -9,7 +9,7 @@
 namespace river {
 
 StreamReader::StreamReader(const RedisConnection &connection, const int max_fetch_size)
-        : max_fetch_size_(max_fetch_size), cursor_(RedisCursor()), current_sample_idx_(0), num_samples_read_(0) {
+        : max_fetch_size_(max_fetch_size), cursor_(RedisCursor()), current_sample_idx_(-1), num_samples_read_(0) {
     this->redis_ = internal::Redis::Create(connection);
 
     this->cursor_.left = 0;
@@ -352,7 +352,7 @@ int64_t StreamReader::TailBytes(char *buffer, int timeout_ms, char *key, int64_t
             } else {
                 memcpy(buffer, val_str, len);
             }
-            int64_t num_skipped = current_sample_idx_ - old_sample_index + 1;
+            int64_t num_skipped = current_sample_idx_ - old_sample_index;
             num_samples_read_ += num_skipped;
             return num_skipped;
         }
