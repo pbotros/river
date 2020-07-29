@@ -473,6 +473,30 @@ TEST_F(StreamReaderTest, TestTail_SingleElement) {
     ASSERT_EQ(r->Tail(&readout, 100), 0);
 }
 
+TEST_F(StreamReaderTest, TestTail_ReadThenTail) {
+    shared_ptr<StreamReader> r = NewStreamReader<int>(10000, FieldDefinition::INT32);
+    r->Initialize(stream_name);
+    int readout;
+
+    // Initial read times out with zero
+    ASSERT_EQ(r->Tail(&readout, 100), 0);
+
+    // Add two elements; read the first one, tail the second one.
+    int value = 10;
+    xadd_sample(0, 0, reinterpret_cast<char *>(&value), sizeof(int));
+    value = 11;
+    xadd_sample(0, 1, reinterpret_cast<char *>(&value), sizeof(int));
+
+    ASSERT_EQ(r->Read(&readout, 1, nullptr, nullptr, 100), 1);
+    ASSERT_EQ(readout, 10);
+
+    ASSERT_EQ(r->Tail(&readout, 100), 1);
+    ASSERT_EQ(readout, 11);
+
+    // Then it times out with zero returns again
+    ASSERT_EQ(r->Tail(&readout, 100), 0);
+}
+
 TEST_F(StreamReaderTest, TestTail_Tombstone) {
     for (int i = 0; i < NUM_ELEMENTS; i++) {
         xadd_sample(0, i, reinterpret_cast<char *>(&i), sizeof(int));
