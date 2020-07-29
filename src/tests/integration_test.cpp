@@ -54,12 +54,15 @@ void tail_data(shared_ptr<StreamReader> reader) {
     // NB: tail() is sorta undefined when there's an EOF inserted on the stream: there's no guarantee that tail() has
     // seen the element right before the EOF. So, there's not too much we can assert on here.
     double element;
+    int64_t total_num_skipped = 0;
     while (reader) {
-        int num_skipped = reader->Tail(&element);
+        int64_t num_skipped = reader->Tail(&element);
         if (num_skipped < 0) {
             return;
         }
         ASSERT_GE(element, 0);
+        total_num_skipped += num_skipped;
+        ASSERT_EQ(total_num_skipped, reader->total_samples_read());
     }
 }
 
