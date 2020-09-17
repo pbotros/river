@@ -29,7 +29,7 @@ int main(int, char **) {
 
     // Define the schema of the stream. This stream will have a single field in each sample with field name "column1".
     // This field will be a double of 8 bytes.
-    river::StreamSchema schema(vector<river::FieldDefinition>(
+    river::StreamSchema schema(std::vector<river::FieldDefinition>(
         {
             river::FieldDefinition("column1", river::FieldDefinition::DOUBLE, 8)
         }));

@@ -1,12 +1,14 @@
 #include "reader.h"
 #include "redis.h"
-#include <cstring>
 #include <thread>
 #include <algorithm>
 #include <fmt/format.h>
 #include <glog/logging.h>
 
+
 namespace river {
+
+using namespace std;
 
 StreamReader::StreamReader(const RedisConnection &connection, const int max_fetch_size)
         : max_fetch_size_(max_fetch_size), cursor_(RedisCursor()), current_sample_idx_(-1), num_samples_read_(0) {
@@ -26,7 +28,7 @@ StreamReader::StreamReader(const RedisConnection &connection, const int max_fetc
     }
 }
 
-void StreamReader::Initialize(const string &stream_name, int timeout_ms) {
+void StreamReader::Initialize(const std::string &stream_name, int timeout_ms) {
     if (this->is_stopped_) {
         throw StreamReaderException("Reader is already stopped; cannot initialize a stopped stream.");
     }
@@ -34,18 +36,18 @@ void StreamReader::Initialize(const string &stream_name, int timeout_ms) {
         return;
     }
 
-    boost::optional<unordered_map<string, string>> maybe_metadata = RetryablyFetchMetadata(stream_name, timeout_ms);
+    boost::optional<unordered_map<std::string, std::string>> maybe_metadata = RetryablyFetchMetadata(stream_name, timeout_ms);
     if (!maybe_metadata) {
         throw StreamDoesNotExistException(fmt::format("Stream {} does not exist.", stream_name));
     }
 
-    unordered_map<string, string> metadata = *maybe_metadata;
+    unordered_map<std::string, std::string> metadata = *maybe_metadata;
 
     this->current_stream_key_ = metadata["first_stream_key"];
     if (this->current_stream_key_.empty()) {
-        throw StreamReaderException("first_stream_key an empty string!");
+        throw StreamReaderException("first_stream_key an empty std::string!");
     }
-    const StreamSchema &tmp = internal::deserialize_schema(metadata["schema"]);
+    const StreamSchema &tmp = StreamSchema::FromJson(metadata["schema"]);
     this->local_minus_server_clock_us_ = strtoll(metadata["local_minus_server_clock_us"].c_str(), nullptr, 10);
     this->initialized_at_us_ = strtoull(metadata["initialized_at_us"].c_str(), nullptr, 10);
 
@@ -62,7 +64,7 @@ int64_t StreamReader::ReadBytes(
         char *buffer,
         int64_t num_samples,
         int **sizes,
-        string **keys,
+        std::string **keys,
         int timeout_ms) {
     if (this->has_variable_width_field_ && sizes == nullptr) {
         LOG(INFO) << "Schema has a variable width field, so sizes must be given." << endl;
@@ -198,7 +200,7 @@ int64_t StreamReader::ReadBytes(
                       << last_sample_index << endl;
             FireStreamKeyChange(current_stream_key_, "");
             is_eof_ = true;
-            eof_key_ = string(last_element->element[0]->str);
+            eof_key_ = std::string(last_element->element[0]->str);
             // Ensure we can't get caught in a "stalling" loop where we've actually returned EOF but return no data.
             if (samples_fetched == 0) {
               return -1;
@@ -220,7 +222,7 @@ int64_t StreamReader::ReadBytes(
             LOG(INFO) << "Tombstone received! Changing streams from " << current_stream_key_ << " to "
                       << next_stream_str
                       << endl;
-            const string &s = string(next_stream_str);
+            const std::string &s = std::string(next_stream_str);
             FireStreamKeyChange(current_stream_key_, s);
             current_stream_key_ = s;
             cursor_.left = 0;
@@ -372,7 +374,7 @@ int64_t StreamReader::TailBytes(char *buffer, int timeout_ms, char *key, int64_t
         }
         LOG(INFO) << "Tombstone received! Changing streams from " << current_stream_key_ << " to " << next_stream_str
                   << endl;
-        const string &s = string(next_stream_str);
+        const std::string &s = std::string(next_stream_str);
         FireStreamKeyChange(current_stream_key_, s);
         current_stream_key_ = s;
         cursor_.left = 0ULL;
@@ -382,24 +384,24 @@ int64_t StreamReader::TailBytes(char *buffer, int timeout_ms, char *key, int64_t
     return 0;
 }
 
-boost::optional<string> StreamReader::ErrorMsgIfNotGood() {
+boost::optional<std::string> StreamReader::ErrorMsgIfNotGood() {
     if (Good()) {
-        return boost::optional<string>();
+        return boost::optional<std::string>();
     }
 
     if (!is_initialized_) {
-        return boost::optional<string>("Stream is not good: Initialize() has not been called.");
+        return boost::optional<std::string>("Stream is not good: Initialize() has not been called.");
     }
     if (is_stopped_) {
-        return boost::optional<string>("Stream is not good: stop() has been called.");
+        return boost::optional<std::string>("Stream is not good: stop() has been called.");
     }
     if (is_eof_) {
-        return boost::optional<string>("Stream is not good: EOF has been reached.");
+        return boost::optional<std::string>("Stream is not good: EOF has been reached.");
     }
-    return boost::optional<string>("Stream is not good: unknown.");
+    return boost::optional<std::string>("Stream is not good: unknown.");
 }
 
-int64_t StreamReader::Seek(const string &key) {
+int64_t StreamReader::Seek(const std::string &key) {
     auto err = ErrorMsgIfNotGood();
     if (err) {
         LOG(INFO) << err.get() << endl;
@@ -431,7 +433,7 @@ int64_t StreamReader::Seek(const string &key) {
         if (eof != nullptr) {
             // EOF was found *before* the target key, meaning the target key is past the end of this stream, i.e. it's a
             // bogus key.
-            const string &msg = fmt::format("Key {} exceeded EOF of the stream (EOF key {}).", key, last_key);
+            const std::string &msg = fmt::format("Key {} exceeded EOF of the stream (EOF key {}).", key, last_key);
             LOG(INFO) << msg << endl;
             return -1;
         }
@@ -462,7 +464,7 @@ int64_t StreamReader::Seek(const string &key) {
             throw StreamReaderException("Tombstone entry found without a sample_index_str key.");
         }
         int64_t last_sample_index = strtoll(sample_index_str, nullptr, 10);
-        const string &s = string(next_stream_str);
+        const std::string &s = std::string(next_stream_str);
 
         LOG(INFO) << fmt::format("Tombstone received during seek. Changing streams from {} to {} [sample_index {}]",
                                  current_stream_key_, next_stream_str, last_sample_index) << endl;
@@ -477,7 +479,7 @@ int64_t StreamReader::Seek(const string &key) {
  * Polls redis until the metadata key exists. Returns nullptr if the timeout is exceeded (or if only one attempt is
  * requested.
  */
-boost::optional<unordered_map<string, string>> StreamReader::RetryablyFetchMetadata(const string &stream_name,
+boost::optional<unordered_map<std::string, std::string>> StreamReader::RetryablyFetchMetadata(const std::string &stream_name,
                                                                                     int timeout_ms) {
     int64_t start_ms = chrono::duration_cast<std::chrono::milliseconds>(
             chrono::high_resolution_clock::now().time_since_epoch()).count();
@@ -494,7 +496,7 @@ boost::optional<unordered_map<string, string>> StreamReader::RetryablyFetchMetad
     return boost::none;
 }
 
-unordered_map<string, string> StreamReader::Metadata() {
+unordered_map<std::string, std::string> StreamReader::Metadata() {
     auto ret = redis_->GetUserMetadata(stream_name_);
     if (!ret) {
         throw StreamReaderException(fmt::format(
@@ -511,7 +513,7 @@ void StreamReader::AddListener(internal::StreamReaderListener *listener) {
     listeners_.push_back(listener);
 }
 
-void StreamReader::FireStreamKeyChange(const string &old_stream_key, const string &new_stream_key) {
+void StreamReader::FireStreamKeyChange(const std::string &old_stream_key, const std::string &new_stream_key) {
     for (auto &listener : listeners_) {
         listener->OnStreamKeyChange(old_stream_key, new_stream_key);
     }

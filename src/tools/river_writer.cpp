@@ -49,7 +49,7 @@ int main(int argc, char **argv) {
 
     river::RedisConnection rc(redis_hostname, redis_port, redis_password);
 
-    StreamSchema schema = internal::deserialize_schema(schema_json);
+    StreamSchema schema = StreamSchema::FromJson(schema_json);
     StreamWriter writer(rc);
     writer.Initialize(stream_name, schema);
 

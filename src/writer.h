@@ -13,12 +13,10 @@
 #include "schema.h"
 #include "redis.h"
 
-using namespace std;
-
 namespace river {
 
-class StreamWriterException : public exception {
-public:
+class StreamWriterException : public std::exception {
+ public:
     explicit StreamWriterException(const std::string& message) {
         std::stringstream s;
         s << "[StreamWriter Exception] " << message;
@@ -64,9 +62,10 @@ public:
      * initialization puts necessary information (e.g. schemas and timestamps) into redis. Optionally, it can accept
      * an unordered_map of user metadata to put in to Redis atomically.
      */
-    void Initialize(const string &stream_name,
+    void Initialize(const std::string &stream_name,
                     const StreamSchema &schema,
-                    const unordered_map<string, string> &user_metadata = unordered_map<string, string>());
+                    const std::unordered_map<std::string, std::string> &user_metadata =
+                    std::unordered_map<std::string, std::string>());
 
     /**
      * Writes data to the stream. The given data buffer of type DataT will be recast to a raw (e.g. char *) array and
@@ -96,7 +95,7 @@ public:
     /**
      * The stream name belonging to this stream. Empty if it has not been initialized.
      */
-    const string& stream_name();
+    const std::string& stream_name();
 
     /**
      * Number of samples written to this stream since initialization.
@@ -111,12 +110,12 @@ public:
     /**
      * User metadata attached to this stream.
      */
-    unordered_map<string, string> Metadata();
+    std::unordered_map<std::string, std::string> Metadata();
 
     /**
      * Sets the user metadata attached to this stream.
      */
-    void SetMetadata(const unordered_map<string, string>& metadata);
+    void SetMetadata(const std::unordered_map<std::string, std::string>& metadata);
 
     /**
      * Stops this stream permanently. This method must be called once the stream is finished in order to notify readers
@@ -127,13 +126,13 @@ public:
 private:
     int64_t ComputeLocalMinusServerClocks();
 
-    unique_ptr<internal::Redis> redis_;
+    std::unique_ptr<internal::Redis> redis_;
 
     const int redis_batch_size_;
     const int64_t keys_per_redis_stream_;
 
-    shared_ptr<StreamSchema> schema_;
-    string stream_name_;
+    std::shared_ptr<StreamSchema> schema_;
+    std::string stream_name_;
     int sample_size_;
     bool has_variable_width_field_;
 

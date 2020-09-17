@@ -66,7 +66,7 @@ assert_expected(redisContext *redis, const string &stream_name, void (*checker)(
     auto *reply = (redisReply *) redisCommand(redis, "HGET %s-metadata schema", stream_name.c_str());
     ASSERT_NE(strlen(reply->str), 0);
     // Just check that it doesn't blow up parsing
-    internal::deserialize_schema(reply->str);
+    StreamSchema::FromJson(reply->str);
 
     reply = (redisReply *) redisCommand(redis, "HGET %s-metadata first_stream_key", stream_name.c_str());
     const char *first_stream_key = reply->str;

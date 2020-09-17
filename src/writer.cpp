@@ -58,7 +58,7 @@ void StreamWriter::Initialize(const string &stream_name,
         throw StreamWriterException("If one field is variable width, then that can be the only field.");
     }
 
-    string serialized_schema = internal::serialize_schema(schema);
+    string serialized_schema = schema.ToJson();
 
     // Calculate the delta between clocks of the client and Redis server, and store offset
     auto local_minus_server_clock = ComputeLocalMinusServerClocks();

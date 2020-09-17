@@ -20,17 +20,15 @@
 #include <windows.h>
 #endif
 
-using namespace std;
-
 namespace river {
 
 class RedisConnection {
 public:
-    string redis_hostname_;
+    std::string redis_hostname_;
     int redis_port_;
-    string redis_password_;
+    std::string redis_password_;
 
-    RedisConnection(string redis_hostname, int redis_port, string redis_password = "")
+    RedisConnection(std::string redis_hostname, int redis_port, std::string redis_password = "")
             : redis_hostname_(std::move(redis_hostname)),
               redis_port_(redis_port),
               redis_password_(std::move(redis_password)) {}
@@ -41,10 +39,10 @@ namespace internal {
 
 inline void DecodeCursor(const char *key, uint64_t *left, uint64_t *right) {
     // Increment the LSB part of the cursor for the next fetch
-    string last_key = string(key);
+    std::string last_key = std::string(key);
     unsigned long delimiter_index = last_key.rfind('-');
-    string new_left_str = last_key.substr(0, delimiter_index);
-    string new_right_str = last_key.substr(delimiter_index + 1);
+    std::string new_left_str = last_key.substr(0, delimiter_index);
+    std::string new_right_str = last_key.substr(delimiter_index + 1);
     *left = strtoull(new_left_str.c_str(), nullptr, 10);
     *right = strtoull(new_right_str.c_str(), nullptr, 10);
 }
@@ -55,7 +53,7 @@ inline std::chrono::system_clock::time_point KeyTimestamp(const char *key) {
     return std::chrono::system_clock::time_point(std::chrono::milliseconds(static_cast<int64_t>(left)));
 }
 
-class RedisException : public exception {
+ class RedisException : public std::exception {
 public:
     explicit RedisException(const std::string &message) {
         std::stringstream s;
@@ -88,40 +86,40 @@ public:
         }
     };
 
-    typedef unique_ptr<redisReply, RedisReplyDeleter> UniqueRedisReplyPtr;
+    typedef std::unique_ptr<redisReply, RedisReplyDeleter> UniqueRedisReplyPtr;
 
     UniqueRedisReplyPtr Xread(
             int64_t num_to_fetch,
             int timeout_ms,
-            const string &stream_name,
+            const std::string &stream_name,
             uint64_t key_part1,
             uint64_t key_part2);
 
     UniqueRedisReplyPtr Xrange(
             int64_t num_to_fetch,
-            const string &stream_name,
+            const std::string &stream_name,
             uint64_t key_part1,
             uint64_t key_part2);
 
     UniqueRedisReplyPtr Xrevrange(
             int64_t num_to_fetch,
-            const string &stream_name,
-            const string &key_left,
+            const std::string &stream_name,
+            const std::string &key_left,
             uint64_t key_right_part1,
             uint64_t key_right_part2);
 
 
-    UniqueRedisReplyPtr Xadd(const string &stream_name, initializer_list<pair<string, string>> key_value_pairs);
+    UniqueRedisReplyPtr Xadd(const std::string &stream_name, std::initializer_list<std::pair<std::string, std::string>> key_value_pairs);
 
-    boost::optional<unordered_map<string, string>> GetMetadata(const string &stream_name);
+    boost::optional<std::unordered_map<std::string, std::string>> GetMetadata(const std::string &stream_name);
 
-    boost::optional<unordered_map<string, string>> GetUserMetadata(const string &stream_name);
+    boost::optional<std::unordered_map<std::string, std::string>> GetUserMetadata(const std::string &stream_name);
 
-    void SetUserMetadata(const string &stream_name, const unordered_map<string, string> &metadata);
+    void SetUserMetadata(const std::string &stream_name, const std::unordered_map<std::string, std::string> &metadata);
 
-    int SetMetadata(const string &stream_name, initializer_list<pair<string, string>> key_value_pairs);
+    int SetMetadata(const std::string &stream_name, std::initializer_list<std::pair<std::string, std::string>> key_value_pairs);
 
-    void DeleteMetadata(const string &stream_name);
+    void DeleteMetadata(const std::string &stream_name);
 
     inline void SendCommandArgv(int argc, const char **argv, const size_t *argvlen) {
         redisAppendCommandArgv(_context, argc, argv, argvlen);
@@ -131,7 +129,7 @@ public:
         redisReply *reply;
         int response = redisGetReply(_context, (void **) &reply);
         if (response != REDIS_OK) {
-            stringstream ss;
+            std::stringstream ss;
             ss << "Error from redis when fetching reply: " << reply->str;
             freeReplyObject(reply);
             throw RedisException(ss.str());
@@ -139,13 +137,13 @@ public:
         return UniqueRedisReplyPtr(reply);
     }
 
-    vector<string> ListStreamNames(const string &stream_filter);
+    std::vector<std::string> ListStreamNames(const std::string &stream_filter);
 
-    void Unlink(const string &stream_key);
+    void Unlink(const std::string &stream_key);
 
     int64_t TimeUs();
 
-    static unique_ptr<Redis> Create(const RedisConnection &connection);
+    static std::unique_ptr<Redis> Create(const RedisConnection &connection);
 
 private:
     explicit Redis(redisContext *context) {

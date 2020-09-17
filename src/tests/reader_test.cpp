@@ -140,7 +140,7 @@ public:
         const FieldDefinition &def = FieldDefinition("field1", type, sizeof(T));
         field_definitions.push_back(def);
         StreamSchema schema(field_definitions);
-        redisCommand(redis, "HSET %s-metadata schema %s", stream_name.c_str(), internal::serialize_schema(schema).c_str());
+        redisCommand(redis, "HSET %s-metadata schema %s", stream_name.c_str(), schema.ToJson().c_str());
     }
 };
 

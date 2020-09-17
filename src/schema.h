@@ -10,8 +10,6 @@
 #include <utility>
 #include <vector>
 
-using namespace std;
-
 namespace river {
 
 /**
@@ -24,7 +22,7 @@ namespace river {
  * correspond to the MAX size possible for this field, which is needed when serializing/deserializing.
  */
 typedef struct FieldDefinition {
-    string name;
+    std::string name;
     int size;
 
     /* If adding a new stream, ensure to add a test in ingester_test to confirm round-trip works. */
@@ -40,7 +38,7 @@ typedef struct FieldDefinition {
 
     FieldDefinition& operator=(const FieldDefinition& t) = default;
 
-    FieldDefinition(string name_, Type type_, int size_) : name(std::move(name_)), size(size_), type(type_) {}
+    FieldDefinition(std::string name_, Type type_, int size_) : name(std::move(name_)), size(size_), type(type_) {}
 } FieldDefinition;
 
 /**
@@ -49,41 +47,38 @@ typedef struct FieldDefinition {
  *
  */
 class StreamSchema {
-public:
-    vector<FieldDefinition> field_definitions;
+ public:
+  std::vector<FieldDefinition> field_definitions;
 
-    explicit StreamSchema() : field_definitions(vector<FieldDefinition>()) {}
+  explicit StreamSchema() : field_definitions(std::vector<FieldDefinition>()) {}
 
-    StreamSchema(vector<FieldDefinition> field_definitions_) {
-       field_definitions = field_definitions_;
+  StreamSchema(std::vector<FieldDefinition> field_definitions_) {
+    field_definitions = field_definitions_;
+  }
+
+  StreamSchema &operator=(const StreamSchema &t) = default;
+
+  int sample_size() const {
+    int total = 0;
+    for (auto &it : field_definitions) {
+      total += it.size;
     }
+    return total;
+  }
 
-    StreamSchema& operator=(const StreamSchema& t) = default;
-
-    int sample_size() const {
-        int total = 0;
-        for (auto &it : field_definitions) {
-            total += it.size;
-        }
-        return total;
+  bool has_variable_width_field() const {
+    for (auto &it : field_definitions) {
+      if (it.type == FieldDefinition::VARIABLE_WIDTH_BYTES) {
+        return true;
+      }
     }
+    return false;
+  }
 
-    bool has_variable_width_field() const {
-        for (auto &it : field_definitions) {
-            if (it.type == FieldDefinition::VARIABLE_WIDTH_BYTES) {
-                return true;
-            }
-        }
-        return false;
-    }
+  std::string ToJson() const;
+
+  static StreamSchema FromJson(const std::string &json);
 };
-
-namespace internal {
-string serialize_schema(const StreamSchema &schema);
-
-StreamSchema deserialize_schema(const string &json);
-}
-
 }
 
 #endif //PARENT_SCHEMA_H

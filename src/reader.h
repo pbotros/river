@@ -10,7 +10,7 @@
 #include <hiredis.h>
 #include <sstream>
 #include <cstdio>
-#include <cstring>
+#include <string>
 #include <vector>
 #include <memory>
 #include <boost/optional.hpp>
@@ -18,15 +18,13 @@
 #include "schema.h"
 #include "redis.h"
 
-using namespace std;
-
 namespace river {
 namespace internal {
     class StreamReaderListener;
 }
 
-class StreamReaderException : public exception {
-public:
+class StreamReaderException : public std::exception {
+ public:
     explicit StreamReaderException(const std::string& message) {
         std::stringstream s;
         s << "[StreamReader Exception] " << message;
@@ -69,7 +67,7 @@ public:
      * `timeout_ms` milliseconds for the stream to be created. When the timeout is exceeded or if no timeout was given
      * and the stream does not exist, a StreamReaderException will be raised.
      */
-    void Initialize(const string &stream_name, int timeout_ms = -1);
+    void Initialize(const std::string &stream_name, int timeout_ms = -1);
 
     /**
      * Read from the stream from where was last consumed. This call blocks until the desired number of samples is
@@ -82,7 +80,7 @@ public:
      * @param sizes If given, <return value> entries will be written into this array containing the sizes of each
      * corresponding sample. Particularly useful for VARIABLE_WIDTH_BYTES fields. Pass nullptr to ignore.
      * @param keys If given, <return value> `char *` entries will be written into this array containing the
-     * NULL-terminated unique string keys in the underlying database. Pass nullptr to ignore.
+     * NULL-terminated unique std::string keys in the underlying database. Pass nullptr to ignore.
      * @param timeout_ms If positive, the maximum length of time this entire call can block while waiting for samples.
      * After the timeout, the stream can be partially read, and the return value is needed to determine samples read.
      * @return the number of elements read. This will always be less than or equal to num_samples. For example, if
@@ -94,7 +92,7 @@ public:
     int64_t Read(DataT *buffer,
                  int64_t num_samples,
                  int **sizes = nullptr,
-                 string **keys = nullptr,
+                 std::string **keys = nullptr,
                  int timeout_ms = -1) {
         if (sizeof(buffer[0]) != sample_size_) {
             throw StreamReaderException("Buffer given was not the same size as what's stored in metadata.");
@@ -114,8 +112,8 @@ public:
      * @param num_samples _Maximum_ number of samples to read from the underlying stream.
      * @param sizes If given, <return value> entries will be written into this array containing the sizes of each
      * corresponding sample. Particularly useful for VARIABLE_WIDTH_BYTES fields. Pass nullptr to ignore.
-     * @param keys If given, <return value> `string` entries will be written into this array containing the
-     * NULL-terminated unique string keys in the underlying database. Pass nullptr to ignore.
+     * @param keys If given, <return value> `std::string` entries will be written into this array containing the
+     * NULL-terminated unique std::string keys in the underlying database. Pass nullptr to ignore.
      * @param timeout_ms If positive, the maximum length of time this entire call can block while waiting for samples.
      * After the timeout, the stream can be partially read, and the return value is needed to determine samples read.
      * @return the number of elements read. This will always be less than or equal to num_samples. For example, if
@@ -127,7 +125,7 @@ public:
             char *buffer,
             int64_t num_samples,
             int **sizes = nullptr,
-            string **keys = nullptr,
+            std::string **keys = nullptr,
             int timeout_ms = -1);
 
     /**
@@ -172,7 +170,7 @@ public:
      * it is the current key. Returns -1 if EOF is hit while attempting to seek to this key (indicating the key given is
      * greater than any key in the stream).
      */
-    int64_t Seek(const string &key);
+    int64_t Seek(const std::string &key);
 
     /**
      * Whether this stream has been initialized.
@@ -199,8 +197,8 @@ public:
      * If the stream has reached EOF, this will be the key that contained the EOF signal.
      * @return
      */
-    boost::optional<string> eof_key() {
-        return eof_key_.empty() ? boost::optional<string>() : boost::optional<string>(eof_key_);
+    boost::optional<std::string> eof_key() {
+        return eof_key_.empty() ? boost::optional<std::string>() : boost::optional<std::string>(eof_key_);
     }
 
     /**
@@ -230,14 +228,14 @@ public:
      */
     const StreamSchema& schema();
 
-    const string& stream_name() {
+    const std::string& stream_name() {
         return stream_name_;
     }
 
     /**
      * User metadata attached to this stream.
      */
-    unordered_map<string, string> Metadata();
+    std::unordered_map<std::string, std::string> Metadata();
 
     /**
      * Get the difference between the "local" clock with respect to the *WRITER* of the stream and the server clock,
@@ -252,18 +250,18 @@ public:
     void Stop();
 
 private:
-    unique_ptr<internal::Redis> redis_;
+    std::unique_ptr<internal::Redis> redis_;
 
     const int max_fetch_size_;
 
-    string stream_name_;
-    string current_stream_key_;
-    shared_ptr<StreamSchema> schema_;
+    std::string stream_name_;
+    std::string current_stream_key_;
+    std::shared_ptr<StreamSchema> schema_;
     int64_t initialized_at_us_{};
     int64_t local_minus_server_clock_us_{};
     bool has_variable_width_field_{};
 
-    vector<internal::StreamReaderListener *> listeners_;
+    std::vector<internal::StreamReaderListener *> listeners_;
 
     int sample_size_;
 
@@ -275,15 +273,15 @@ private:
     int64_t current_sample_idx_;
     int64_t num_samples_read_;
 
-    void FireStreamKeyChange(const string &old_stream_key, const string &new_stream_key);
+    void FireStreamKeyChange(const std::string &old_stream_key, const std::string &new_stream_key);
 
-    boost::optional<unordered_map<string, string>> RetryablyFetchMetadata(const string &stream_name, int timeout_ms);
-    boost::optional<string> ErrorMsgIfNotGood();
+    boost::optional<std::unordered_map<std::string, std::string>> RetryablyFetchMetadata(const std::string &stream_name, int timeout_ms);
+    boost::optional<std::string> ErrorMsgIfNotGood();
 
     bool is_stopped_;
     bool is_initialized_;
     bool is_eof_;
-    string eof_key_;
+    std::string eof_key_;
 
     inline void IncrementCursorFrom(const char *key) {
         // Increment the LSB part of the cursor for the next fetch
@@ -306,12 +304,12 @@ private:
     inline int64_t GetSampleIndexOrThrow(const redisReply *values) {
         const char *this_sample_index = FindField(values, "i");
         if (this_sample_index == nullptr) {
-            string message = fmt::format("Sample_index not found in stream {}", stream_name_);
+            std::string message = fmt::format("Sample_index not found in stream {}", stream_name_);
             throw StreamReaderException(message);
         }
         int64_t ret = strtoll(this_sample_index, nullptr, 10);
         if (ret < current_sample_idx_) {
-            string message = fmt::format("Sample index {} was less than current sample idx of {} (stream {})",
+            std::string message = fmt::format("Sample index {} was less than current sample idx of {} (stream {})",
                                          ret,
                                          current_sample_idx_,
                                          stream_name_);
@@ -334,7 +332,7 @@ namespace internal {
        * @param old_stream_key: the previous stream key. Can be empty if we are just starting to read the stream.
        * @param new_stream_key: the stream key to which we changed. Can be empty if we hit an EOF.
        */
-      virtual void OnStreamKeyChange(const string &old_stream_key, const string &new_stream_key) = 0;
+      virtual void OnStreamKeyChange(const std::string &old_stream_key, const std::string &new_stream_key) = 0;
 
         virtual ~StreamReaderListener() = default;
     };
