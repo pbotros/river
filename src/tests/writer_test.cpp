@@ -231,3 +231,9 @@ TEST_F(StreamWriterTest, TestInitializeAlreadyExists) {
     auto writer = new StreamWriter(RedisConnection("127.0.0.1", 6379));
     ASSERT_THROW(writer->Initialize(stream_name, schema), StreamExistsException);
 }
+
+TEST_F(StreamWriterTest, TestStopImmediately) {
+  auto writer = make_shared<StreamWriter>(RedisConnection("127.0.0.1", 6379));
+  // Ensure no errors; probably could check things in Redis to double check nothing happened, but meh.
+  writer->Stop();
+}

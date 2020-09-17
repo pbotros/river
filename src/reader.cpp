@@ -507,6 +507,9 @@ unordered_map<std::string, std::string> StreamReader::Metadata() {
 
 void StreamReader::Stop() {
     is_stopped_ = true;
+    if (redis_) {
+      redis_.reset();
+    }
 }
 
 void StreamReader::AddListener(internal::StreamReaderListener *listener) {

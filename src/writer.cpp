@@ -234,7 +234,7 @@ int64_t StreamWriter::ComputeLocalMinusServerClocks() {
 }
 
 void StreamWriter::Stop() {
-    if (is_stopped_) {
+    if (is_stopped_ || !is_initialized_) {
         return;
     }
 
