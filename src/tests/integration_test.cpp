@@ -1,8 +1,6 @@
 #include "gtest/gtest.h"
 #include "../river.h"
-#include <boost/uuid/uuid.hpp>
-#include <boost/uuid/uuid_generators.hpp>
-#include <boost/uuid/uuid_io.hpp>
+#include "../tools/uuid.h"
 #include <thread>
 #include <random>
 
@@ -74,10 +72,7 @@ protected:
         reader_tail = make_shared<StreamReader>(connection);
         writer = make_shared<StreamWriter>(connection, 3000);
 
-        boost::uuids::uuid uuid = boost::uuids::random_generator()();
-        stringstream ss;
-        ss << uuid;
-        stream_name = ss.str();
+        stream_name = uuid::generate_uuid_v4();
     }
 
     void run() {

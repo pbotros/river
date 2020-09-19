@@ -36,7 +36,7 @@ void StreamReader::Initialize(const std::string &stream_name, int timeout_ms) {
         return;
     }
 
-    boost::optional<unordered_map<std::string, std::string>> maybe_metadata = RetryablyFetchMetadata(stream_name, timeout_ms);
+    unique_ptr<unordered_map<std::string, std::string>> maybe_metadata = RetryablyFetchMetadata(stream_name, timeout_ms);
     if (!maybe_metadata) {
         throw StreamDoesNotExistException(fmt::format("Stream {} does not exist.", stream_name));
     }
@@ -72,9 +72,9 @@ int64_t StreamReader::ReadBytes(
     }
 
     auto good_err_msg = ErrorMsgIfNotGood();
-    if (good_err_msg) {
-        LOG(INFO) << good_err_msg.get() << endl;
-        return -1;
+    if (!good_err_msg.empty()) {
+      LOG(INFO) << good_err_msg << endl;
+      return -1;
     }
 
     int64_t samples_fetched = 0;
@@ -239,8 +239,8 @@ int64_t StreamReader::ReadBytes(
 
 int64_t StreamReader::TailBytes(char *buffer, int timeout_ms, char *key, int64_t *sample_index) {
     auto good_err_msg = ErrorMsgIfNotGood();
-    if (good_err_msg) {
-        LOG(INFO) << good_err_msg.get() << endl;
+    if (!good_err_msg.empty()) {
+        LOG(INFO) << good_err_msg << endl;
         return -1;
     }
 
@@ -384,27 +384,27 @@ int64_t StreamReader::TailBytes(char *buffer, int timeout_ms, char *key, int64_t
     return 0;
 }
 
-boost::optional<std::string> StreamReader::ErrorMsgIfNotGood() {
+std::string StreamReader::ErrorMsgIfNotGood() {
     if (Good()) {
-        return boost::optional<std::string>();
+        return "";
     }
 
     if (!is_initialized_) {
-        return boost::optional<std::string>("Stream is not good: Initialize() has not been called.");
+        return "Stream is not good: Initialize() has not been called.";
     }
     if (is_stopped_) {
-        return boost::optional<std::string>("Stream is not good: stop() has been called.");
+        return "Stream is not good: stop() has been called.";
     }
     if (is_eof_) {
-        return boost::optional<std::string>("Stream is not good: EOF has been reached.");
+        return "Stream is not good: EOF has been reached.";
     }
-    return boost::optional<std::string>("Stream is not good: unknown.");
+    return "Stream is not good: unknown.";
 }
 
 int64_t StreamReader::Seek(const std::string &key) {
     auto err = ErrorMsgIfNotGood();
-    if (err) {
-        LOG(INFO) << err.get() << endl;
+    if (!err.empty()) {
+        LOG(INFO) << err << endl;
         return -1;
     }
 
@@ -479,7 +479,7 @@ int64_t StreamReader::Seek(const std::string &key) {
  * Polls redis until the metadata key exists. Returns nullptr if the timeout is exceeded (or if only one attempt is
  * requested.
  */
-boost::optional<unordered_map<std::string, std::string>> StreamReader::RetryablyFetchMetadata(const std::string &stream_name,
+unique_ptr<unordered_map<std::string, std::string>> StreamReader::RetryablyFetchMetadata(const std::string &stream_name,
                                                                                     int timeout_ms) {
     int64_t start_ms = chrono::duration_cast<std::chrono::milliseconds>(
             chrono::high_resolution_clock::now().time_since_epoch()).count();
@@ -490,10 +490,10 @@ boost::optional<unordered_map<std::string, std::string>> StreamReader::Retryably
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
             continue;
         }
-        return maybe_metadata.get();
+        return maybe_metadata;
     } while (chrono::duration_cast<std::chrono::milliseconds>(
             chrono::high_resolution_clock::now().time_since_epoch()).count() < end_ms);
-    return boost::none;
+    return unique_ptr<unordered_map<std::string, std::string>>();
 }
 
 unordered_map<std::string, std::string> StreamReader::Metadata() {
@@ -502,7 +502,7 @@ unordered_map<std::string, std::string> StreamReader::Metadata() {
         throw StreamReaderException(fmt::format(
             "Metadata could not be found for stream {}; has it been initialized?", stream_name_));
     }
-    return ret.get();
+    return *ret;
 }
 
 void StreamReader::Stop() {

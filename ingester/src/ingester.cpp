@@ -250,7 +250,7 @@ StreamIngestionResult SingleStreamIngester::Ingest() {
             } else if (num_read < 0) {
                 should_ingest = false;
                 ingestion_status = StreamIngestionResult::COMPLETED;
-                eof_key = reader->eof_key().value();
+                eof_key = reader->eof_key();
                 LOG(INFO) << fmt::format("EOF encountered in stream {}, num_read=0, global_offset={}",
                                          stream_name_,
                                          global_offset);

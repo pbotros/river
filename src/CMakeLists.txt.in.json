@@ -1,0 +1,13 @@
+project(json-download NONE)
+
+include(ExternalProject)
+ExternalProject_Add(json
+  GIT_REPOSITORY    https://github.com/nlohmann/json.git
+  GIT_TAG           v3.9.1
+  SOURCE_DIR        "${CMAKE_CURRENT_BINARY_DIR}/json-src"
+  BINARY_DIR        "${CMAKE_CURRENT_BINARY_DIR}/json-build"
+  CONFIGURE_COMMAND ""
+  BUILD_COMMAND     ""
+  INSTALL_COMMAND   ""
+  TEST_COMMAND      ""
+)

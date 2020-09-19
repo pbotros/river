@@ -13,7 +13,6 @@
 #include <string>
 #include <vector>
 #include <memory>
-#include <boost/optional.hpp>
 #include <fmt/format.h>
 #include "schema.h"
 #include "redis.h"
@@ -194,11 +193,11 @@ public:
     }
 
     /**
-     * If the stream has reached EOF, this will be the key that contained the EOF signal.
+     * If the stream has reached EOF, this will be the key that contained the EOF signal. Empty if not reached EOF.
      * @return
      */
-    boost::optional<std::string> eof_key() {
-        return eof_key_.empty() ? boost::optional<std::string>() : boost::optional<std::string>(eof_key_);
+    std::string eof_key() {
+        return eof_key_;
     }
 
     /**
@@ -275,8 +274,9 @@ private:
 
     void FireStreamKeyChange(const std::string &old_stream_key, const std::string &new_stream_key);
 
-    boost::optional<std::unordered_map<std::string, std::string>> RetryablyFetchMetadata(const std::string &stream_name, int timeout_ms);
-    boost::optional<std::string> ErrorMsgIfNotGood();
+    std::unique_ptr<std::unordered_map<std::string, std::string>> RetryablyFetchMetadata(
+        const std::string &stream_name, int timeout_ms);
+    std::string ErrorMsgIfNotGood();
 
     bool is_stopped_;
     bool is_initialized_;

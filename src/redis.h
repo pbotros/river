@@ -13,10 +13,8 @@
 #include <memory>
 #include <vector>
 #include <unordered_map>
-#include <boost/optional.hpp>
 
 #if defined(_WIN32) || defined(_WIN64)
-#include <boost/asio.hpp>
 #include <windows.h>
 #endif
 
@@ -111,9 +109,9 @@ public:
 
     UniqueRedisReplyPtr Xadd(const std::string &stream_name, std::initializer_list<std::pair<std::string, std::string>> key_value_pairs);
 
-    boost::optional<std::unordered_map<std::string, std::string>> GetMetadata(const std::string &stream_name);
+    std::unique_ptr<std::unordered_map<std::string, std::string>> GetMetadata(const std::string &stream_name);
 
-    boost::optional<std::unordered_map<std::string, std::string>> GetUserMetadata(const std::string &stream_name);
+    std::unique_ptr<std::unordered_map<std::string, std::string>> GetUserMetadata(const std::string &stream_name);
 
     void SetUserMetadata(const std::string &stream_name, const std::unordered_map<std::string, std::string> &metadata);
 

@@ -3,61 +3,74 @@
 //
 
 #include "schema.h"
-#include <boost/property_tree/ptree.hpp>
-#include <boost/foreach.hpp>
-#include <boost/property_tree/json_parser.hpp>
-#include <boost/bimap.hpp>
+#include <nlohmann/json.hpp>
+
+using json = nlohmann::json;
 
 namespace river {
-typedef boost::bimap<FieldDefinition::Type, std::string> type_bimap;
-
-static const type_bimap mapping() {
-  type_bimap map;
-  map.insert(type_bimap::value_type(FieldDefinition::DOUBLE, "DOUBLE"));
-  map.insert(type_bimap::value_type(FieldDefinition::FLOAT, "FLOAT"));
-  map.insert(type_bimap::value_type(FieldDefinition::INT32, "INT32"));
-  map.insert(type_bimap::value_type(FieldDefinition::INT64, "INT64"));
-  map.insert(type_bimap::value_type(FieldDefinition::FIXED_WIDTH_BYTES, "FIXED_WIDTH_BYTES"));
-  map.insert(type_bimap::value_type(FieldDefinition::VARIABLE_WIDTH_BYTES, "VARIABLE_WIDTH_BYTES"));
-  return map;
-}
 
 std::string StreamSchema::ToJson() const {
-  type_bimap type_map = mapping();
-
-  boost::property_tree::ptree parent;
-  boost::property_tree::ptree holder;
+  json holder = json::array();
   for (auto &it : field_definitions) {
-    boost::property_tree::ptree field;
-    field.put("name", it.name);
-    field.put("size", it.size);
-    field.put("type", type_map.left.at(it.type));
-    holder.push_back(std::make_pair("", field));
+    json field;
+    field["name"] = it.name;
+    field["size"] = it.size;
+    switch (it.type) {
+      case FieldDefinition::DOUBLE:
+        field["type"] = "DOUBLE";
+        break;
+      case FieldDefinition::FLOAT:
+        field["type"] = "FLOAT";
+        break;
+      case FieldDefinition::INT32:
+        field["type"] = "INT32";
+        break;
+      case FieldDefinition::INT64:
+        field["type"] = "INT64";
+        break;
+      case FieldDefinition::FIXED_WIDTH_BYTES:
+        field["type"] = "FIXED_WIDTH_BYTES";
+        break;
+      case FieldDefinition::VARIABLE_WIDTH_BYTES:
+        field["type"] = "VARIABLE_WIDTH_BYTES";
+        break;
+      default:
+        throw std::invalid_argument("Unhandled type");
+    }
+    holder.push_back(field);
   }
-  parent.add_child("field_definitions", holder);
-
-  std::stringstream ss;
-  boost::property_tree::json_parser::write_json(ss, parent);
-  return ss.str();
+  json parent;
+  parent["field_definitions"] = holder;
+  return parent.dump();
 }
 
-StreamSchema StreamSchema::FromJson(const std::string &json) {
-  std::stringstream ss;
-  ss << json;
+StreamSchema StreamSchema::FromJson(const std::string &json_str) {
+    json pt = json::parse(json_str);
 
-  boost::property_tree::ptree pt;
-  boost::property_tree::json_parser::read_json(ss, pt);
+    std::vector<FieldDefinition> field_definitions;
+    for (const auto &field : pt["field_definitions"]) {
+      std::string name = field["name"];
+      int size = field["size"];
+      std::string type_str = field["type"];
+      FieldDefinition::Type type;
+      if (type_str == "DOUBLE") {
+        type = FieldDefinition::DOUBLE;
+      } else if (type_str == "FLOAT") {
+        type = FieldDefinition::FLOAT;
+      } else if (type_str == "INT32") {
+        type = FieldDefinition::INT32;
+      } else if (type_str == "INT64") {
+        type = FieldDefinition::INT64;
+      } else if (type_str == "FIXED_WIDTH_BYTES") {
+        type = FieldDefinition::FIXED_WIDTH_BYTES;
+      } else if (type_str == "VARIABLE_WIDTH_BYTES") {
+        type = FieldDefinition::VARIABLE_WIDTH_BYTES;
+      } else {
+        throw std::invalid_argument("Invalid type");
+      }
+      field_definitions.emplace_back(name, type, size);
+    }
 
-  type_bimap type_map = mapping();
-
-  std::vector<FieldDefinition> field_definitions;
-  BOOST_FOREACH(boost::property_tree::ptree::value_type &field, pt.get_child("field_definitions")) {
-          auto name = field.second.get<std::string>("name");
-          auto size = field.second.get<int>("size");
-          auto type_int = field.second.get<std::string>("type");
-          field_definitions.push_back(FieldDefinition(name, type_map.right.at(type_int), size));
-        }
-
-  return StreamSchema(field_definitions);
+    return StreamSchema(field_definitions);
 }
 }

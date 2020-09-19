@@ -89,7 +89,7 @@ void StreamWriter::Initialize(const string &stream_name,
     }
 
     LOG(INFO) << "Stream metadata:" << endl;
-    for (const auto& pair : metadata.get()) {
+    for (const auto& pair : *metadata) {
         LOG(INFO) << "=> " << pair.first << ": " << pair.second << endl;
     }
 
@@ -260,7 +260,7 @@ unordered_map<string, string> StreamWriter::Metadata() {
         throw StreamWriterException(fmt::format(
             "Metadata could not be found for stream {}; has it been initialized?", stream_name_));
     }
-    return ret.get();
+    return *ret;
 }
 
 void StreamWriter::SetMetadata(const unordered_map<string, string>& metadata) {

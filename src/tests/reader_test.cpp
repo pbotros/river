@@ -1,12 +1,10 @@
 #include "gtest/gtest.h"
 #include "../river.h"
-#include <boost/uuid/uuid.hpp>            // uuid class
-#include <boost/uuid/uuid_generators.hpp> // generators
-#include <boost/uuid/uuid_io.hpp>         // streaming operators etc.
 #include <thread>
 #include <chrono>
 #include <fmt/format.h>
 #include <glog/logging.h>
+#include "../tools/uuid.h"
 
 using namespace std;
 using namespace river;
@@ -35,10 +33,7 @@ public:
     }
 
     void regenerate_stream_name() {
-        boost::uuids::uuid uuid = boost::uuids::random_generator()();
-        stringstream ss;
-        ss << uuid;
-        stream_name = ss.str();
+        stream_name = uuid::generate_uuid_v4();
     }
 
     template <class T> shared_ptr<StreamReader> NewStreamReader() {
@@ -301,7 +296,7 @@ TEST_F(StreamReaderTest, TestEofEmpty) {
     ASSERT_FALSE(reader_->Good());
 
     // EOF key got set when EOF was hit
-    ASSERT_FALSE(reader_->eof_key().value().empty());
+    ASSERT_FALSE(reader_->eof_key().empty());
 
     // And any subsequent calls fail
     ASSERT_EQ(reader_->Read(read_data, 1), -1);

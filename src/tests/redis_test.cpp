@@ -1,11 +1,5 @@
 #include "gtest/gtest.h"
-#include <boost/uuid/uuid.hpp>            // uuid class
-#include <boost/uuid/uuid_generators.hpp> // generators
-#include <boost/uuid/uuid_io.hpp>         // streaming operators etc.
-#include <boost/uuid/uuid.hpp>            // uuid class
-#include <boost/uuid/uuid_generators.hpp> // generators
-#include <boost/uuid/uuid_io.hpp>         // streaming operators etc.
-
+#include "../tools/uuid.h"
 #include "../redis.h"
 
 using namespace std;
@@ -14,10 +8,7 @@ using namespace river;
 class RedisTest : public ::testing::Test {
 protected:
     void SetUp() override {
-        boost::uuids::uuid uuid = boost::uuids::random_generator()();
-        stringstream ss;
-        ss << uuid;
-        stream_name = ss.str();
+        stream_name = uuid::generate_uuid_v4();
         redis = internal::Redis::Create(RedisConnection("127.0.0.1", 6379));
     }
 

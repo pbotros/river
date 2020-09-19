@@ -5,8 +5,6 @@
 #include <iostream>
 #include <mutex>
 #include <cstring>
-#include <boost/property_tree/ptree.hpp>
-#include <boost/property_tree/json_parser.hpp>
 #include <hiredis.h>
 #include <unordered_map>
 #include <memory>

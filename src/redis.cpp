@@ -4,12 +4,12 @@
 
 #include "redis.h"
 #include <iostream>
-#include <boost/property_tree/ptree.hpp>
-#include <boost/property_tree/json_parser.hpp>
+#include <nlohmann/json.hpp>
 #include <regex>
 #include <glog/logging.h>
 #include <fmt/format.h>
 
+using json = nlohmann::json;
 using namespace std;
 
 namespace river {
@@ -112,7 +112,7 @@ Redis::UniqueRedisReplyPtr Redis::Xrevrange(
 }
 
 
-boost::optional<unordered_map<string, string>> Redis::GetMetadata(const string &stream_name) {
+unique_ptr<unordered_map<string, string>> Redis::GetMetadata(const string &stream_name) {
     auto *reply = (redisReply *) redisCommand(_context, "HGETALL %s-metadata", stream_name.c_str());
     if (reply == nullptr) {
         throw RedisException(
@@ -130,7 +130,7 @@ boost::optional<unordered_map<string, string>> Redis::GetMetadata(const string &
 
     if (reply->elements == 0) {
         freeReplyObject(reply);
-        return boost::optional<unordered_map<string, string>>();
+        return unique_ptr<unordered_map<string, string>>();
     }
 
     unordered_map<string, string> ret;
@@ -140,36 +140,33 @@ boost::optional<unordered_map<string, string>> Redis::GetMetadata(const string &
     }
 
     freeReplyObject(reply);
-    return boost::optional<unordered_map<string, string>>(ret);
+    return make_unique<unordered_map<string, string>>(ret);
 }
 
-boost::optional<unordered_map<string, string>> Redis::GetUserMetadata(const string &stream_name) {
+unique_ptr<unordered_map<string, string>> Redis::GetUserMetadata(const string &stream_name) {
     auto maybe_metadata = this->GetMetadata(stream_name);
     if (!maybe_metadata) {
-        return boost::optional<unordered_map<string, string>>();
+        return unique_ptr<unordered_map<string, string>>();
     }
 
     stringstream ss;
-    ss << maybe_metadata.get()["user_metadata"];
-    boost::property_tree::ptree pt;
-    boost::property_tree::json_parser::read_json(ss, pt);
+    ss << (*maybe_metadata)["user_metadata"];
+    json pt = json::parse(ss);
     unordered_map<string, string> ret;
-    for (auto &it : pt) {
-        ret.insert({it.first, it.second.get_value<string>()});
+    for (auto &it : pt.items()) {
+      ret.insert({it.key(), it.value().get<string>()});
     }
-    return boost::optional<unordered_map<string, string>>(ret);
+    return make_unique<unordered_map<string, string>>(ret);
 }
 
 void Redis::SetUserMetadata(const string &stream_name, const unordered_map<string, string> &metadata) {
-    boost::property_tree::ptree parent;
+    json parent;
     for (auto &it : metadata) {
-        parent.put(it.first, it.second);
+        parent[it.first] = it.second;
     }
 
-    std::stringstream ss;
-    boost::property_tree::json_parser::write_json(ss, parent);
-    string json = ss.str();
-    this->SetMetadata(stream_name, {{"user_metadata", json}});
+    string out = parent.dump();
+    this->SetMetadata(stream_name, {{"user_metadata", out}});
 }
 
 int Redis::SetMetadata(const string &stream_name, initializer_list<std::pair<string, string>> key_value_pairs) {

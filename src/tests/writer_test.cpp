@@ -1,8 +1,6 @@
 #include "gtest/gtest.h"
 #include "../river.h"
-#include <boost/uuid/uuid.hpp>            // uuid class
-#include <boost/uuid/uuid_generators.hpp> // generators
-#include <boost/uuid/uuid_io.hpp>         // streaming operators etc.
+#include "../tools/uuid.h"
 #include <cstring>
 #include <unordered_map>
 
@@ -23,10 +21,7 @@ protected:
 
     template<class T>
     shared_ptr<StreamWriter> NewWriter(const unordered_map<string, string>& metadata, FieldDefinition::Type type) {
-        boost::uuids::uuid uuid = boost::uuids::random_generator()();
-        stringstream ss;
-        ss << uuid;
-        stream_name = ss.str();
+        stream_name = uuid::generate_uuid_v4();
 
         auto writer = make_shared<StreamWriter>(RedisConnection("127.0.0.1", 6379));
 

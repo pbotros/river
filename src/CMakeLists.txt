@@ -2,78 +2,51 @@ set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_VERBOSE_MAKEFILE TRUE)
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
+function(import_external_project filename target)
+    if (NOT TARGET ${target})
+        configure_file(${filename} ${target}-download/CMakeLists.txt)
+        execute_process(COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" .
+                RESULT_VARIABLE result
+                WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${target}-download )
+        if(result)
+            message(FATAL_ERROR "CMake step for ${target} failed: ${result}")
+        endif()
+        execute_process(COMMAND ${CMAKE_COMMAND} --build .
+                RESULT_VARIABLE result
+                WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${target}-download )
+        if(result)
+            message(FATAL_ERROR "Build step for ${target} failed: ${result}")
+        endif()
+        add_subdirectory(${CMAKE_CURRENT_BINARY_DIR}/${target}-src
+                ${CMAKE_CURRENT_BINARY_DIR}/${target}-build
+                EXCLUDE_FROM_ALL)
+    endif()
+endfunction()
+
 # ===== External Dependency: GoogleTest
-if (NOT TARGET gtest)
-    configure_file(CMakeLists.txt.in.googletest googletest-download/CMakeLists.txt)
-    execute_process(COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" .
-            RESULT_VARIABLE result
-            WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/googletest-download )
-    if(result)
-        message(FATAL_ERROR "CMake step for googletest failed: ${result}")
-    endif()
-    execute_process(COMMAND ${CMAKE_COMMAND} --build .
-            RESULT_VARIABLE result
-            WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/googletest-download )
-    if(result)
-        message(FATAL_ERROR "Build step for googletest failed: ${result}")
-    endif()
-    set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-    add_subdirectory(${CMAKE_CURRENT_BINARY_DIR}/googletest-src
-            ${CMAKE_CURRENT_BINARY_DIR}/googletest-build
-            EXCLUDE_FROM_ALL)
-    if (CMAKE_VERSION VERSION_LESS 2.8.11)
-        include_directories("${gtest_SOURCE_DIR}/include")
-    endif()
+import_external_project(CMakeLists.txt.in.googletest googletest)
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+if (CMAKE_VERSION VERSION_LESS 2.8.11)
+    include_directories("${gtest_SOURCE_DIR}/include")
 endif()
 
 # ===== External Dependency: fmt
-if (NOT TARGET fmt)
-    configure_file(CMakeLists.txt.in.fmt fmt-download/CMakeLists.txt)
-    execute_process(COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" .
-            RESULT_VARIABLE result
-            WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/fmt-download )
-    if(result)
-        message(FATAL_ERROR "CMake step for fmt failed: ${result}")
-    endif()
-    execute_process(COMMAND ${CMAKE_COMMAND} --build .
-            RESULT_VARIABLE result
-            WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/fmt-download )
-    if(result)
-        message(FATAL_ERROR "Build step for fmt failed: ${result}")
-    endif()
-    add_subdirectory(${CMAKE_CURRENT_BINARY_DIR}/fmt-src
-            ${CMAKE_CURRENT_BINARY_DIR}/fmt-build
-            EXCLUDE_FROM_ALL)
-endif()
+import_external_project(CMakeLists.txt.in.fmt fmt)
 
 # ===== External Dependency: hiredis
-configure_file(CMakeLists.txt.in.hiredis hiredis-download/CMakeLists.txt)
-execute_process(COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" .
-        RESULT_VARIABLE result
-        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/hiredis-download )
-if(result)
-    message(FATAL_ERROR "CMake step for hiredis failed: ${result}")
-endif()
-execute_process(COMMAND ${CMAKE_COMMAND} --build .
-        RESULT_VARIABLE result
-        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/hiredis-download )
-if(result)
-    message(FATAL_ERROR "Build step for hiredis failed: ${result}")
-endif()
-add_subdirectory(${CMAKE_CURRENT_BINARY_DIR}/hiredis-src
-        ${CMAKE_CURRENT_BINARY_DIR}/hiredis-build
-        EXCLUDE_FROM_ALL)
+import_external_project(CMakeLists.txt.in.hiredis hiredis)
+
+# ===== External Dependency: json
+import_external_project(CMakeLists.txt.in.json json)
+
+# ===== External Dependency: cxxopts
+import_external_project(CMakeLists.txt.in.cxxopts cxxopts)
 
 # ===== External Dependency: glog
 find_package(glog REQUIRED)
 
-find_package(Boost 1.68 COMPONENTS program_options filesystem system thread REQUIRED)
 if (${MSVC})
-	# https://github.com/boostorg/system/issues/32
-	add_compile_definitions(HAVE_SNPRINTF)
     set(ADDITIONAL_LIBRARIES)
-    # https://github.com/boostorg/uuid/issues/68
-    add_definitions(-DBOOST_UUID_FORCE_AUTO_LINK)
 else()
     set(ADDITIONAL_LIBRARIES "dl")
     add_definitions(-D_GNU_SOURCE)
@@ -82,11 +55,9 @@ endif()
 set(LIBRARIES_TO_LINK
         "fmt"
         "hiredis"
-        "Boost::filesystem"
-        "Boost::program_options"
-        "Boost::system"
-        "Boost::thread"
         "glog::glog"
+        "nlohmann_json::nlohmann_json"
+        "cxxopts"
         ${ADDITIONAL_LIBRARIES})
 
 set(RIVER_HEADERS writer.h river.h reader.h redis.h schema.h)
