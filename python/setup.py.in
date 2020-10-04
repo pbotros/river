@@ -33,11 +33,11 @@ setup(
                 'glog'],
             library_dirs=filter_empty([
                 '${FMT_BINARY_DIR}',
-                '${FMT_BINARY_DIR}/Release',
+                '${FMT_BINARY_DIR}/${CMAKE_BUILD_TYPE}',
                 '${river_BINARY_DIR}/src',
-                '${river_BINARY_DIR}/src/Release',
+                '${river_BINARY_DIR}/src/${CMAKE_BUILD_TYPE}',
                 '${hiredis_BINARY_DIR}',
-                '${hiredis_BINARY_DIR}/Release',
+                '${hiredis_BINARY_DIR}/${CMAKE_BUILD_TYPE}',
             ]),
             include_dirs=filter_empty([
                 np.get_include(),
