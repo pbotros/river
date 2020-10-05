@@ -50,7 +50,12 @@ StreamSchema StreamSchema::FromJson(const std::string &json_str) {
     std::vector<FieldDefinition> field_definitions;
     for (const auto &field : pt["field_definitions"]) {
       std::string name = field["name"];
-      int size = field["size"];
+      int size;
+      if (field["size"].is_number_integer()) {
+        size = field["size"];
+      } else {
+        size = std::stoi(field["size"].get<std::string>());
+      }
       std::string type_str = field["type"];
       FieldDefinition::Type type;
       if (type_str == "DOUBLE") {
