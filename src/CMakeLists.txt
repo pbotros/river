@@ -78,32 +78,23 @@ target_link_libraries(river PRIVATE ${LIBRARIES_TO_LINK})
 add_executable(river_test tests/river_test.cpp tests/reader_test.cpp tests/writer_test.cpp tests/redis_test.cpp tests/integration_test.cpp)
 add_dependencies(river_test river)
 target_compile_features(river_test PRIVATE cxx_std_14)
-# target_include_directories(river_test SYSTEM PUBLIC ${INCLUDE_DIRS})
 target_link_libraries(river_test river ${LIBRARIES_TO_LINK} gtest gtest_main)
 add_test(NAME river_test COMMAND river_test)
 
 add_executable(river_benchmark tools/river_benchmark.cpp)
-# add_dependencies(river_benchmark river)
 target_compile_features(river_benchmark PRIVATE cxx_std_14)
-# target_include_directories(river_benchmark PUBLIC ${INCLUDE_DIRS})
 target_link_libraries(river_benchmark river ${LIBRARIES_TO_LINK})
 
 add_executable(river_writer tools/river_writer.cpp)
-# add_dependencies(river_writer river)
 target_compile_features(river_writer PRIVATE cxx_std_14)
-# target_include_directories(river_writer PUBLIC ${INCLUDE_DIRS})
 target_link_libraries(river_writer river ${LIBRARIES_TO_LINK})
 
 add_executable(river_reader tools/river_reader.cpp)
-# add_dependencies(river_reader river)
 target_compile_features(river_reader PRIVATE cxx_std_14)
-# target_include_directories(river_reader PUBLIC ${INCLUDE_DIRS})
 target_link_libraries(river_reader river ${LIBRARIES_TO_LINK})
 
 add_executable(river_example tools/river_example.cpp)
-# add_dependencies(river_example river)
 target_compile_features(river_example PRIVATE cxx_std_14)
-# target_include_directories(river_example PUBLIC ${INCLUDE_DIRS})
 target_link_libraries(river_example river ${LIBRARIES_TO_LINK})
 
 

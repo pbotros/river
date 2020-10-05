@@ -35,7 +35,7 @@ else()
     set(DL_LIB "dl")
 endif()
 
-set(INCLUDE_DIRS ${ARROW_INCLUDE_DIR} ${PARQUET_INCLUDE_DIR} ${BOOST_INCLUDE_DIRS} "${river_SOURCE_DIR}/src")
+set(INCLUDE_DIRS ${ARROW_INCLUDE_DIR} ${PARQUET_INCLUDE_DIR} ${BOOST_INCLUDE_DIRS} "${river_SOURCE_DIR}/src" "${hiredis_SOURCE_DIR}")
 set(LIBRARIES_TO_LINK
         "river"
         "fmt"
@@ -44,6 +44,7 @@ set(LIBRARIES_TO_LINK
         "Boost::system"
         "Boost::thread"
         "glog::glog"
+        "hiredis"
         ${DL_LIB}
         ${ARROW_PARQUET_LIBS})
 
