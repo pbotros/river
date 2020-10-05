@@ -13,6 +13,7 @@ set(CXXOPTS_BUILD_TESTS OFF)
 set(CXXOPTS_BUILD_EXAMPLES OFF)
 set(CXXOPTS_ENABLE_INSTALL OFF)
 set(DISABLE_TESTS ON)  # hiredis
+set(FMT_DEBUG_POSTFIX "")
 
 FetchContent_Declare(
   googletest
