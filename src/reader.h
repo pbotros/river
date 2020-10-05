@@ -7,7 +7,6 @@
 
 #include <iostream>
 #include <exception>
-#include <hiredis.h>
 #include <sstream>
 #include <cstdio>
 #include <string>

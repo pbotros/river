@@ -19,6 +19,11 @@ package_data.append('river.pyi')
 def filter_empty(l):
     return [e for e in l if len(e) > 0]
 
+library_dirs = [
+    '${FMT_BINARY_DIR}',
+    '${river_BINARY_DIR}/src',
+    '${hiredis_BINARY_DIR}',
+]
 setup(
     name='river',
     version='${PACKAGE_VERSION}',
@@ -31,14 +36,9 @@ setup(
                 'river',
                 'hiredis',
                 'glog'],
-            library_dirs=filter_empty([
-                '${FMT_BINARY_DIR}',
-                '${FMT_BINARY_DIR}/${CMAKE_BUILD_TYPE}',
-                '${river_BINARY_DIR}/src',
-                '${river_BINARY_DIR}/src/${CMAKE_BUILD_TYPE}',
-                '${hiredis_BINARY_DIR}',
-                '${hiredis_BINARY_DIR}/${CMAKE_BUILD_TYPE}',
-            ]),
+            library_dirs=filter_empty(
+                [f'{d}{suffix}' for d in library_dirs for suffix in ('', '/Debug', '/Release', '/RelWithDebInfo')]
+            ),
             include_dirs=filter_empty([
                 np.get_include(),
                 '${FMT_SOURCE_DIR}/include',

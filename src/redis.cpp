@@ -3,6 +3,7 @@
 //
 
 #include "redis.h"
+#include <hiredis.h>
 #include <iostream>
 #include <nlohmann/json.hpp>
 #include <regex>

@@ -5,7 +5,6 @@
 #include <iostream>
 #include <mutex>
 #include <cstring>
-#include <hiredis.h>
 #include <unordered_map>
 #include <memory>
 #include "schema.h"

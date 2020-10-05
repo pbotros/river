@@ -2,7 +2,6 @@
 
 #include <iostream>
 #include <cstring>
-#include <hiredis.h>
 #include <fmt/format.h>
 #include <chrono>
 #include <glog/logging.h>

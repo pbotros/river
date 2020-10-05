@@ -5,7 +5,6 @@
 #ifndef PARENT_REDIS_H
 #define PARENT_REDIS_H
 
-#include <hiredis.h>
 #include <sstream>
 #include <cstdlib>
 #include <chrono>
@@ -13,6 +12,7 @@
 #include <memory>
 #include <vector>
 #include <unordered_map>
+#include <hiredis.h>
 
 #if defined(_WIN32) || defined(_WIN64)
 #include <windows.h>
