@@ -44,7 +44,7 @@ std::string StreamSchema::ToJson() const {
   return parent.dump();
 }
 
-StreamSchema StreamSchema::FromJson(const std::string &json_str) {
+StreamSchema StreamSchema::FromJson(std::string json_str) {
     json pt = json::parse(json_str);
 
     std::vector<FieldDefinition> field_definitions;

@@ -77,7 +77,7 @@ class StreamSchema {
 
   std::string ToJson() const;
 
-  static StreamSchema FromJson(const std::string &json);
+  static StreamSchema FromJson(std::string json);
 };
 }
 
