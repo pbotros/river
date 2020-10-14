@@ -35,16 +35,11 @@ FetchContent_Declare(
   GIT_REPOSITORY    https://github.com/jarro2783/cxxopts.git
   GIT_TAG           v2.2.1
 )
-FetchContent_Declare(
-  glog
-  GIT_REPOSITORY    https://github.com/google/glog.git
-  GIT_TAG           v0.4.0
-)
 
-FetchContent_MakeAvailable(googletest fmt hiredis json cxxopts glog)
+FetchContent_MakeAvailable(googletest fmt hiredis json cxxopts)
 
 # ===== External Dependency: glog
-# find_package(glog REQUIRED)
+find_package(glog REQUIRED)
 
 if (${MSVC})
     set(ADDITIONAL_LIBRARIES)
