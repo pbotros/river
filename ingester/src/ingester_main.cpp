@@ -38,7 +38,7 @@ int main(int argc, char **argv) {
             ("stream_name", po::value<string>(&stream_name),
              "Single stream to process directly [optional]")
             ("samples_per_row_group", po::value<int>(&samples_per_row_group)->default_value(128 * 1024),
-             "Number of samples to read at a time before persisting to disk [optional]"),
+             "Number of samples to read at a time before persisting to disk [optional]")
             ("minimum_seconds_age_before_deletion,m", po::value<int>(&minimum_age_seconds_before_deletion)->default_value(60),
              "Minimum age of a sample, in seconds, before it can be considered for deletion [optional]");
 
