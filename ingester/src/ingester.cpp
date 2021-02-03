@@ -35,14 +35,14 @@ StreamIngester::StreamIngester(const RedisConnection &connection,
                                bool *terminated,
                                const string& stream_filter,
                                int64_t samples_per_row_group,
-                               int lookback_seconds_before_deletion,
+                               int minimum_age_seconds_before_deletion,
                                int stalled_timeout_ms,
                                int stale_period_ms)
         : _connection(connection),
           _output_directory(output_directory),
           _terminated(terminated),
           _samples_per_row_group(samples_per_row_group),
-          _lookback_seconds_before_deletion(lookback_seconds_before_deletion),
+          _minimum_age_seconds_before_deletion(minimum_age_seconds_before_deletion),
           _stalled_timeout_ms(stalled_timeout_ms),
           _stale_period_ms(stale_period_ms),
           _stream_filter(stream_filter) {
@@ -125,7 +125,7 @@ StreamIngestionResult StreamIngester::ingest_single(string stream_name) {
                                                        _output_directory,
                                                        _terminated,
                                                        _samples_per_row_group,
-                                                       _lookback_seconds_before_deletion,
+                                                       _minimum_age_seconds_before_deletion,
                                                        _stalled_timeout_ms,
                                                        _stale_period_ms);
         auto ret = ingester.Ingest();
@@ -153,12 +153,12 @@ SingleStreamIngester::SingleStreamIngester(const RedisConnection &connection,
                                            const string &output_directory,
                                            bool *terminated,
                                            int64_t samples_per_row_group,
-                                           int lookback_seconds_before_deletion,
+                                           int minimum_age_seconds_before_deletion,
                                            int stalled_timeout_ms,
                                            int stale_period_ms)
         : _connection(connection),
           _samples_per_row_group(samples_per_row_group),
-          _lookback_seconds_before_deletion(lookback_seconds_before_deletion),
+          _minimum_age_seconds_before_deletion(minimum_age_seconds_before_deletion),
           _stalled_timeout_ms(stalled_timeout_ms),
           _stale_period_ms(stale_period_ms),
           stream_name_(stream_name),
@@ -434,8 +434,8 @@ void SingleStreamIngester::delete_up_to(const string& last_key_persisted) {
 
     auto elapsed_seconds = std::chrono::duration_cast<std::chrono::seconds>(
             std::chrono::system_clock::now() - KeyTimestamp(last_key_persisted.c_str()));
-    if (elapsed_seconds.count() > _lookback_seconds_before_deletion) {
-        long long to_sleep = _lookback_seconds_before_deletion - elapsed_seconds.count() + 1;
+    if (elapsed_seconds.count() > _minimum_age_seconds_before_deletion) {
+        long long to_sleep = _minimum_age_seconds_before_deletion - elapsed_seconds.count() + 1;
         if (to_sleep > 0) {
             LOG(INFO) << fmt::format(
                     "Sleeping for {} seconds until we can delete up to this key.", to_sleep);

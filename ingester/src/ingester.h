@@ -45,7 +45,7 @@ public:
             bool *terminated,
             const string &stream_filter = "",
             int64_t samples_per_row_group = 128 * 1024, // ~128k elements, arbitrary
-            int lookback_seconds_before_deletion = 60,
+            int minimum_age_seconds_before_deletion = 60,
             int stalled_timeout_ms = 1000,
             int stale_period_ms = 300000);
 
@@ -65,7 +65,7 @@ private:
     const string _output_directory;
     bool* _terminated;
     const int64_t _samples_per_row_group;
-    const int _lookback_seconds_before_deletion;
+    const int _minimum_age_seconds_before_deletion;
     const int _stalled_timeout_ms;
     const int _stale_period_ms;
     const string _stream_filter;
@@ -81,7 +81,7 @@ public:
                          const string &output_directory,
                          bool *terminated,
                          int64_t samples_per_row_group,
-                         int lookback_seconds_before_deletion,
+                         int minimum_age_seconds_before_deletion,
                          int stalled_timeout_ms,
                          int stale_period_ms);
 
@@ -89,7 +89,7 @@ public:
 private:
     const RedisConnection _connection;
     const int64_t _samples_per_row_group;
-    const int _lookback_seconds_before_deletion;
+    const int _minimum_age_seconds_before_deletion;
     const int _stalled_timeout_ms;
     const int _stale_period_ms;
 
