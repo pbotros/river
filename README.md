@@ -1,5 +1,7 @@
 # River
 
+[![DOI](https://zenodo.org/badge/268426515.svg)](https://zenodo.org/badge/latestdoi/268426515)
+
 A high-throughput, structured streaming framework built atop Redis Streams. Capable of streaming large-volume, high-bandwidth data from one producer to multiple consumers. Supports _ingestion_ of streams via a separate binary that persists River streams to disk for offline analysis.
 
 Written in C++ with bindings in Python.
