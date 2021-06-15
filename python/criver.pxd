@@ -61,6 +61,7 @@ cdef extern from "${CMAKE_CURRENT_SOURCE_DIR}/../src/river.h" namespace "river" 
         bool Good() except +raise_py_error;
         bool operator bool() except +raise_py_error;
         int64_t total_samples_read() except +raise_py_error;
+        int64_t initialized_at_us() except +raise_py_error;
         StreamSchema schema() except +raise_py_error;
         string stream_name() except +raise_py_error;
         unordered_map[string, string] Metadata() except +raise_py_error;
@@ -78,6 +79,7 @@ cdef extern from "${CMAKE_CURRENT_SOURCE_DIR}/../src/river.h" namespace "river" 
         void Stop() except +raise_py_error;
 
         int64_t total_samples_written() except +raise_py_error;
+        int64_t initialized_at_us() except +raise_py_error;
         StreamSchema schema() except +raise_py_error;
         string stream_name() except +raise_py_error;
 
