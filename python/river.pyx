@@ -227,6 +227,10 @@ cdef class StreamReader:
         return deref(self._reader).total_samples_read()
 
     @property
+    def initialized_at_us(self: StreamReader):
+        return deref(self._reader).initialized_at_us()
+
+    @property
     def good(self: StreamReader) -> bool:
         return deref(self._reader).Good()
 
@@ -314,6 +318,10 @@ cdef class StreamWriter:
     @property
     def total_samples_written(self):
         return deref(self._writer).total_samples_written()
+
+    @property
+    def initialized_at_us(self: StreamWriter):
+        return deref(self._writer).initialized_at_us()
 
     def write(self, arr: np.ndarray) -> None:
         cdef int64_t size = arr.size
