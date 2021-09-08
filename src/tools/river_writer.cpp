@@ -18,10 +18,10 @@ int main(int argc, char **argv) {
   options.add_options()
       ("help",
        "Reads raw data from a River stream via a StreamWriter and outputs raw binary to STDOUT. Reads until the stream is finished or STDOUT is closed.")
-      ("redis_hostname,h", "Redis hostname [required]", cxxopts::value<std::string>())
-      ("redis_port,p", "Redis port [optional]", cxxopts::value<int>()->default_value("6379"))
-      ("redis_password,w", "Redis password [optional]", cxxopts::value<string>())
-      ("redis_password_file,f", "Redis password file [optional]", cxxopts::value<string>())
+      ("h,redis_hostname", "Redis hostname [required]", cxxopts::value<std::string>())
+      ("p,redis_port", "Redis port [optional]", cxxopts::value<int>()->default_value("6379"))
+      ("w,redis_password", "Redis password [optional]", cxxopts::value<string>()->default_value(""))
+      ("f,redis_password_file", "Redis password file [optional]", cxxopts::value<string>()->default_value(""))
       ("stream_name", "Stream name to read data from [required]", cxxopts::value<string>())
       ("batch_size", "Number of rows to read at a time [optional]", cxxopts::value<int>()->default_value("1"))
       ("schema", "Schema in JSON format", cxxopts::value<string>());
