@@ -16,10 +16,10 @@ int main(int argc, char **argv) {
   options.add_options()
       ("help",
        "Reads raw data from a River stream via a StreamWriter and outputs raw binary to STDOUT. Reads until the stream is finished or STDOUT is closed.")
-      ("redis_hostname,h", "Redis hostname [required]", cxxopts::value<std::string>())
-      ("redis_port,p", "Redis port [optional]", cxxopts::value<int>()->default_value("6379"))
-      ("redis_password,w", "Redis password [optional]", cxxopts::value<string>())
-      ("redis_password_file,f", "Redis password file [optional]", cxxopts::value<string>())
+      ("h,redis_hostname", "Redis hostname [required]", cxxopts::value<std::string>())
+      ("p,redis_port", "Redis port [optional]", cxxopts::value<int>()->default_value("6379"))
+      ("w,redis_password", "Redis password [optional]", cxxopts::value<string>()->default_value(""))
+      ("f,redis_password_file", "Redis password file [optional]", cxxopts::value<string>()->default_value(""))
       ("num_samples",
        "Number of samples to write to redis [default 1 million]",
        cxxopts::value<int64_t>()->default_value("1000000"))
@@ -87,8 +87,12 @@ int main(int argc, char **argv) {
   start_time = chrono::high_resolution_clock::now();
   int64_t num_read = 0;
   vector<char> read_data(batch_size * sample_size);
-  while (reader.Good()) {
-    num_read += reader.ReadBytes(&read_data.front(), batch_size);
+  while (true) {
+    auto num_read_loop = reader.ReadBytes(&read_data.front(), batch_size);
+    if (num_read_loop < 0) {
+      break;
+    }
+    num_read += num_read_loop;
   }
   end_time = chrono::high_resolution_clock::now();
   us = chrono::duration_cast<chrono::microseconds>(end_time - start_time).count();
