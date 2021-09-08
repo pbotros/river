@@ -146,8 +146,7 @@ protected:
         ASSERT_EQ(field1_col->length(), reader->total_samples_read());
         vector<double> field1_values;
         for (const auto& chunk : field1_col->chunks()) {
-            shared_ptr<arrow::DoubleArray> array;
-            ARROW_CHECK_OK(chunk->View(arrow::float64(), reinterpret_cast<std::shared_ptr<arrow::Array> *>(&array)));
+            auto array = std::static_pointer_cast<arrow::DoubleArray>(chunk->View(arrow::float64()).ValueOrDie());
             for (int i = 0; i < array->length(); i++) {
                 field1_values.push_back(array->Value(i));
             }
