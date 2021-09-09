@@ -79,7 +79,7 @@ To test whether the installation was correct, run the benchmark, assuming you're
 ```
 # From the root of the river repository
 cd build/release/src
-./river_benchmark --redis_hostname 127.0.0.1  --batch_size 1 --row_size 128 --num_samples 1000
+./river_benchmark --redis_hostname 127.0.0.1  --batch_size 1 --sample_size 128 --num_samples 1000
 ```
 
 
