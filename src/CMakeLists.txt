@@ -6,11 +6,6 @@ set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 include(FetchContent)
 
 FetchContent_Declare(
-  googletest
-  GIT_REPOSITORY    https://github.com/google/googletest.git
-  GIT_TAG           release-1.10.0
-)
-FetchContent_Declare(
   fmt
   GIT_REPOSITORY    https://github.com/fmtlib/fmt.git
   GIT_TAG           6.2.0
@@ -28,15 +23,15 @@ FetchContent_Declare(
 FetchContent_Declare(
   json
   GIT_REPOSITORY    https://github.com/nlohmann/json.git
-  GIT_TAG           v3.9.1
+  GIT_TAG           v3.10.4
 )
 FetchContent_Declare(
   cxxopts
   GIT_REPOSITORY    https://github.com/jarro2783/cxxopts.git
-  GIT_TAG           v2.2.1
+  GIT_TAG           v3.0.0
 )
 
-FetchContent_MakeAvailable(googletest fmt hiredis json cxxopts)
+FetchContent_MakeAvailable(fmt hiredis json cxxopts)
 
 # ===== External Dependency: glog
 find_package(glog REQUIRED)
@@ -63,14 +58,6 @@ add_library(river SHARED ${RIVER_HEADERS} ${RIVER_SOURCES})
 target_compile_features(river PRIVATE cxx_std_14)
 target_include_directories(river SYSTEM PUBLIC ${INCLUDE_DIRS})
 target_link_libraries(river ${LIBRARIES_TO_LINK})
-
-
-add_executable(river_test tests/river_test.cpp tests/reader_test.cpp tests/writer_test.cpp tests/redis_test.cpp tests/integration_test.cpp)
-add_dependencies(river_test river)
-target_compile_features(river_test PRIVATE cxx_std_14)
-target_include_directories(river_test SYSTEM PUBLIC ${INCLUDE_DIRS})
-target_link_libraries(river_test river ${LIBRARIES_TO_LINK} gtest gtest_main)
-add_test(NAME river_test COMMAND river_test)
 
 add_executable(river_benchmark tools/river_benchmark.cpp)
 add_dependencies(river_benchmark river)
@@ -110,8 +97,6 @@ endif()
 
 target_compile_options(river PUBLIC "$<$<CONFIG:DEBUG>:${MY_CXX_DEBUG_OPTIONS}>")
 target_compile_options(river PUBLIC "$<$<CONFIG:RELEASE>:${MY_CXX_RELEASE_OPTIONS}>")
-target_compile_options(river_test PUBLIC "$<$<CONFIG:DEBUG>:${MY_CXX_DEBUG_OPTIONS}>")
-target_compile_options(river_test PUBLIC "$<$<CONFIG:RELEASE>:${MY_CXX_RELEASE_OPTIONS}>")
 target_compile_options(river_benchmark PUBLIC "$<$<CONFIG:DEBUG>:${MY_CXX_DEBUG_OPTIONS}>")
 target_compile_options(river_benchmark PUBLIC "$<$<CONFIG:RELEASE>:${MY_CXX_RELEASE_OPTIONS}>")
 
@@ -126,3 +111,15 @@ add_custom_command(TARGET river POST_BUILD
 add_custom_command(TARGET river POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:hiredis> ${CMAKE_CURRENT_BINARY_DIR}/to_copy/$<TARGET_FILE_NAME:hiredis>
 )
+
+# ======== TESTS
+if (RIVER_BUILD_TESTS)
+  add_executable(river_test tests/river_test.cpp tests/reader_test.cpp tests/writer_test.cpp tests/redis_test.cpp tests/integration_test.cpp)
+  add_dependencies(river_test river)
+  target_compile_features(river_test PRIVATE cxx_std_14)
+  target_include_directories(river_test SYSTEM PUBLIC ${INCLUDE_DIRS})
+  target_link_libraries(river_test river ${LIBRARIES_TO_LINK} gtest gtest_main)
+  add_test(NAME river_test COMMAND river_test)
+  target_compile_options(river_test PUBLIC "$<$<CONFIG:DEBUG>:${MY_CXX_DEBUG_OPTIONS}>")
+  target_compile_options(river_test PUBLIC "$<$<CONFIG:RELEASE>:${MY_CXX_RELEASE_OPTIONS}>")
+endif()
