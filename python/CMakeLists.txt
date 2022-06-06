@@ -9,8 +9,10 @@ configure_file("${CMAKE_CURRENT_SOURCE_DIR}/river.pyx" "${CMAKE_CURRENT_BINARY_D
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/criver.pxd" "${CMAKE_CURRENT_BINARY_DIR}/criver.pxd")
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/river.pyi" "${CMAKE_CURRENT_BINARY_DIR}/river.pyi" COPYONLY)
 
-install(CODE "execute_process(
-        COMMAND ${Python3_EXECUTABLE} setup.py install
-        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})")
+if (RIVER_INSTALL)
+  install(CODE "execute_process(
+          COMMAND ${Python3_EXECUTABLE} setup.py install
+          WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})")
+endif()
 
 add_custom_target(riverpy ALL DEPENDS river)
