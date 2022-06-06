@@ -2,6 +2,8 @@
 #include "ingester_threadpool.h"
 #include <memory>
 #include <unordered_map>
+#include <boost/bind/bind.hpp>
+
 
 using namespace std;
 
@@ -31,7 +33,7 @@ protected:
     void SetUp() override {
         should_raise = false;
         tester = make_shared<IngesterThreadpoolConcurrencyTester>();
-        auto func = boost::bind(&IngesterThreadpoolConcurrencyTester::record_stream_name, tester, _1);
+        auto func = boost::bind(&IngesterThreadpoolConcurrencyTester::record_stream_name, tester.get(), boost::placeholders::_1);
         pool = make_unique<IngesterThreadPool<string, int>>(8, func);
     }
 

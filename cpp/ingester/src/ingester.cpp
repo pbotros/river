@@ -17,7 +17,7 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <memory>
-#include <boost/bind.hpp>
+#include <boost/bind/bind.hpp>
 #include <glog/logging.h>
 
 #include <utility>
@@ -59,7 +59,7 @@ StreamIngester::StreamIngester(const RedisConnection &connection,
 
     this->_redis = internal::Redis::Create(connection);
 
-    auto func = boost::bind(&StreamIngester::ingest_single, this, _1);
+    auto func = boost::bind(&StreamIngester::ingest_single, this, boost::placeholders::_1);
     _pool = make_unique<IngesterThreadPool<string, StreamIngestionResult>>(4, func);
 }
 

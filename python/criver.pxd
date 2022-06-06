@@ -6,10 +6,10 @@ from libcpp.string cimport string
 from libcpp cimport bool
 from libc.stdint cimport int64_t
 
-cdef extern from "${CMAKE_CURRENT_SOURCE_DIR}/exception_handling.h" nogil:
+cdef extern from "exception_handling.h" nogil:
   cdef void raise_py_error()
 
-cdef extern from "${CMAKE_CURRENT_SOURCE_DIR}/../src/river.h" namespace "river" nogil:
+cdef extern from "<river/river.h>" namespace "river" nogil:
     cdef cppclass RedisConnection:
         RedisConnection(string redis_hostname, int redis_port);
         RedisConnection(string redis_hostname, int redis_port, string redis_password);
@@ -40,8 +40,8 @@ cdef extern from "${CMAKE_CURRENT_SOURCE_DIR}/../src/river.h" namespace "river" 
         vector[FieldDefinition] field_definitions;
 
     cdef cppclass StreamReader:
-        StreamReader(RedisConnection connection);
-        StreamReader(RedisConnection connection, int max_fetch_size);
+        StreamReader(RedisConnection connection) except +raise_py_error;
+        StreamReader(RedisConnection connection, int max_fetch_size) except +raise_py_error;
 
         void Initialize(const string stream_name) except +raise_py_error;
         void Initialize(const string stream_name, int timeout_ms) except +raise_py_error;
@@ -67,9 +67,9 @@ cdef extern from "${CMAKE_CURRENT_SOURCE_DIR}/../src/river.h" namespace "river" 
         unordered_map[string, string] Metadata() except +raise_py_error;
 
     cdef cppclass StreamWriter:
-        StreamWriter(RedisConnection connection);
-        StreamWriter(RedisConnection connection, int64_t keys_per_redis_stream);
-        StreamWriter(RedisConnection connection, int64_t keys_per_redis_stream, int batch_size);
+        StreamWriter(RedisConnection connection) except +raise_py_error;
+        StreamWriter(RedisConnection connection, int64_t keys_per_redis_stream) except +raise_py_error;
+        StreamWriter(RedisConnection connection, int64_t keys_per_redis_stream, int batch_size) except +raise_py_error;
 
         void Initialize(const string stream_name, StreamSchema schema) except +raise_py_error;
         void Initialize(const string stream_name, StreamSchema schema, unordered_map[string, string] metadata) except +raise_py_error;

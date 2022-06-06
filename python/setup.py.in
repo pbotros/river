@@ -2,28 +2,15 @@ from setuptools import setup, Extension
 from Cython.Build import cythonize
 from Cython.Compiler import Options
 import numpy as np
-from pathlib import Path
-import os
-import shutil
 
 Options.docstrings = True
 Options.embed_pos_in_docstring = True
 
-package_data = []
-for s in Path('${CMAKE_CURRENT_BINARY_DIR}/../src/to_copy').glob('*'):
-    l = os.path.basename(s)
-    package_data.append(l)
-    shutil.copyfile(str(s), l)
-package_data.append('river.pyi')
+package_data = ['river.pyi']
 
 def filter_empty(l):
     return [e for e in l if len(e) > 0]
 
-library_dirs = [
-    '${FMT_BINARY_DIR}',
-    '${river_BINARY_DIR}/src',
-    '${hiredis_BINARY_DIR}',
-]
 setup(
     name='river',
     version='${PACKAGE_VERSION}',
@@ -32,19 +19,12 @@ setup(
             'river',
             sources=['river.pyx'],
             libraries=[
-                'fmt',
                 'river',
                 'hiredis',
                 'glog'],
-            library_dirs=filter_empty(
-                [f'{d}{suffix}' for d in library_dirs for suffix in ('', '/Debug', '/Release', '/RelWithDebInfo')]
-            ),
             include_dirs=filter_empty([
                 np.get_include(),
-                '${FMT_SOURCE_DIR}/include',
-                '${river_BINARY_DIR}/src',
-                '${hiredis_SOURCE_DIR}',
-            ]),
+            ] + '${RIVER_INCLUDE_DIRS}'.split(';')),
             extra_compile_args=["-std=c++14"]),
         compiler_directives={
             'language_level' : "3",
