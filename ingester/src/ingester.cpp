@@ -19,6 +19,7 @@
 #include <memory>
 #include <boost/bind.hpp>
 #include <glog/logging.h>
+#include <functional>
 
 #include <utility>
 
@@ -59,7 +60,7 @@ StreamIngester::StreamIngester(const RedisConnection &connection,
 
     this->_redis = internal::Redis::Create(connection);
 
-    auto func = boost::bind(&StreamIngester::ingest_single, this, _1);
+    auto func = boost::bind(&StreamIngester::ingest_single, this, std::placeholders::_1);
     _pool = make_unique<IngesterThreadPool<string, StreamIngestionResult>>(4, func);
 }
 
