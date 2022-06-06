@@ -1,10 +1,10 @@
+set(PACKAGE_VERSION 1.0.0)
+project(river VERSION ${PACKAGE_VERSION})
+
 cmake_policy(SET CMP0048 NEW)
 
 cmake_policy(SET CMP0077 NEW)
 set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
-
-project(river VERSION 0.0.1)
-set(PACKAGE_VERSION 0.0.1)
 
 cmake_minimum_required(VERSION 3.13)
 
