@@ -31,9 +31,10 @@ For the Python bindings, conda is also preferred:
 conda install -c conda-forge river-py
 ```
 
-For the MATLAB bindings, TODO
+For the (experimental) MATLAB bindings, see the MATLAB README for details.
 
 For compiling from source, see below.
+
 ## Tutorial: C++
 
 Sample code that writes some sample data to a River stream and then reads and then prints that data to stdout can be found in [river_example.cpp](https://github.com/pbotros/river/blob/master/src/tools/river_example.cpp). The Python tutorial can be followed to understand how River works.
@@ -48,8 +49,6 @@ Before we begin, you need Redis running. This tutorial assumes Redis is running 
 First, let's create your first stream via river's `StreamWriter`:
 
 ```python
-#!/usr/bin/env python
-
 import river
 import uuid
 import numpy as np
@@ -66,13 +65,24 @@ w = river.StreamWriter(river.RedisConnection("127.0.0.1", 6379))
 dt = np.dtype([('col1', np.double)])
 w.initialize(stream_name, river.StreamSchema.from_dtype(dt))
 
-# Write data! Writes an array of doubles to the stream. It is on the user to ensure that the given numpy array
-# passed in is formatted according to the stream schema, else garbage can be written to the stream.
-w.write(np.arange(10, dtype=np.double))
+# Create a buffer of data to write to the stream. #new_buffer
+# is syntactic sugar for creating a numpy array with the schema's
+# dtype (e.g. `np.empty((10,) dtype=dt)`).
+to_write = w.new_buffer(10)
+to_write['col1'] = np.arange(10, dtype=np.double)
 
-# Stops the stream, declaring no more samples are to be written. This "finalizes" the
-# stream and is a required call to tell any readers (including the ingester) where to stop.
-w.stop()
+# Use a context manager approach so we can't forget to stop the stream:
+with w:
+  # Write data! Writes an array of doubles to the stream. It is on the user to ensure that the given numpy array
+  # passed in is formatted according to the stream schema, else garbage can be written to the stream.
+  w.write(to_write)
+
+# Whenever the context ends (i.e. this `with` block terminates), w.stop() is called,
+# so if you're not using a context like this, you can call w.stop() manually.
+# This serves to "stop" the stream and declares no more samples are to be written.
+# This "finalizes" the stream and is a required call to tell any readers (including
+# the ingester) where to stop. Otherwise, all readers will continually timeout at the
+# end of your stream, waiting for more samples.
 ```
 
 #### Reading
@@ -82,33 +92,43 @@ Great! You have your first stream. In the same Python session, let's read it bac
 ```python
 # Create the Reader and then initialize it with the stream we want to read from.
 r = river.StreamReader(river.RedisConnection("127.0.0.1", 6379))
+
 # The #initialize() call accepts a timeout in milliseconds for the maximum amount
 # of time to wait for the stream to be created, if it is not already.
 r.initialize(w.stream_name, 1000)
 
-# Here, we'll read one sample at a time, and print it out:
-data = np.empty((1,), dtype=np.double)
+# Here, we'll read one sample at a time, and print it out. The number of samples
+# read per invocation is decided by the size of the buffer passed in, so in this
+# case, we create a new empty buffer with `new_buffer` (again, syntactic sugar for
+# creating a numpy array with appropriate dtype). In real use cases, you should
+# read as many samples per call as your latency/system tolerates, to amoritze overhead
+# of each call.
+data = r.new_buffer(1)
 
-while True:
-  # Similar to the style of many I/O streams, we pass in a buffer that will be
-  # filled with read data when available. In this case, since `data` is of size
-  # 1, at most 1 sample will be read from the stream at a time. The second parameter
-  # is the timeout in milliseconds: the max amount of time this call will block until
-  # the given number of samples is available.
-  # The return value returns the number of samples read into the buffer. It should always
-  # be checked. -1 is returned once EOF is encountered.
-  num_read = r.read(data, 10)
-  if num_read > 0:
-    print(data[0])
-  elif num_read == 0:
-    print('Timeout occurred.')
-    continue
-  else:
-    print('EOF encountered for stream', w.stream_name)
-    break
+# Like with the writer, you can use a context manager to auto-stop the reader after
+# you're done.
+with r:
+  while True:
+    # Similar to the style of many I/O streams, we pass in a buffer that will be
+    # filled with read data when available. In this case, since `data` is of size
+    # 1, at most 1 sample will be read from the stream at a time. The second parameter
+    # is the timeout in milliseconds: the max amount of time this call will block until
+    # the given number of samples is available. In this case, it's 100ms max.
+    #
+    # The return value returns the number of samples read into the buffer. It should always
+    # be checked. -1 is returned once EOF is encountered.
+    num_read = r.read(data, 100)
+    if num_read > 0:
+      print(data['col1'][0])
+    elif num_read == 0:
+      print('Timeout occurred.')
+      continue
+    else:
+      print('EOF encountered for stream', r.stream_name)
+      break
 
-# Frees resources allocated within the StreamReader; this reader cannot be used again.
-r.stop()
+# When the context exists, r.stop() is called, so without a context you can call it manually.
+# Calling #stop() frees resources allocated within the StreamReader; this reader cannot be used again.
 ```
 
 Your output should print out 0.0, 1.0, 2.0, ..., 9.0. Note that, although in this example we wrote the stream and then read back the stream sequentially, both chunks of code can be run simultaneously; the reader will block as requested if there are not enough samples in the stream.
