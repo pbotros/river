@@ -30,6 +30,20 @@ unique_ptr<Redis> Redis::Create(const RedisConnection &connection) {
 
     if (connection.redis_password_.length() > 0) {
         auto *reply = (redisReply *) redisCommand(new_context, "AUTH %s", connection.redis_password_.c_str());
+        if (reply == nullptr || reply->type == REDIS_REPLY_ERROR || new_context->err != 0) {
+          string msg = fmt::format("Authorization failed to Redis. "
+                                   "reply_type={}, "
+                                   "reply_msg={}, "
+                                   "context_err={}, "
+                                   "context_errstr={}",
+                                   reply->type,
+                                   reply->str != nullptr ? reply->str : "null",
+                                   new_context->err,
+                                   new_context->errstr);
+          redisFree(new_context);
+          throw RedisException(msg);
+        }
+
         LOG(INFO) << "AUTH response: " << reply->str << std::endl;
         freeReplyObject(reply);
     }

@@ -1,0 +1,11 @@
+@PACKAGE_INIT@
+
+include(CMakeFindDependencyMacro)
+find_dependency(hiredis)
+
+if (NOT TARGET river)
+  include(${CMAKE_CURRENT_LIST_DIR}/@targets_export_name@.cmake)
+endif ()
+
+check_required_components(river)
+

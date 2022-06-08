@@ -20,70 +20,20 @@ _\* River utilizes Redis for all data storage and thus has the same data consist
 
 ## Installation
 
-Compilation by source is currently the only way to install. The below steps will compile the C++ library and install both the C++ library/headers and the Python bindings. This project uses CMake.
-
-### Prerequisites
-River expects several packages to be installed in the standard system-wide directories, including:
-
-- Python 3.7
-- Google Log (glog)
-
-If you're also building and installing the Ingester, you'll need:
-- Boost 1.67+
-- Apache Arrow and Parquet
-
-Use your favorite package manager to install the above. For instance, on Mac OSX, run:
+For the C++ library and the ingester binary, installation via Conda is the preferred way:
 
 ```
-brew update
-brew install pkg-config cmake # build tools
-brew install python3-dev   # Python 3.7 at the time of writing
-brew install glog  # Google Log, if installing ingester
-# brew install boost         # Boost, if installing ingester
-# brew install apache-arrow  # Arrow and Parquet, if installing ingester
+conda install -c conda-forge river-cpp
 ```
 
-### Installing
-
-Since River uses CMake, you can use standard CMake commands such as (if on Mac or Linux):
-
+For the Python bindings, conda is also preferred:
 ```
-git clone git@github.com:pbotros/river.git
-cd river
-mkdir -p build/release
-cd build/release
-cmake -G "Unix Makefiles" -DRIVER_BUILD_INGESTER=0 -DCMAKE_BUILD_TYPE=Release ../..
-make
-sudo make install  # if on Mac, can omit sudo
-sudo ldconfig  # if on Linux
+conda install -c conda-forge river-py
 ```
 
-Replace `{r,R}elease` with `{d,D}ebug` in the above to build debug binaries with debugging symbols if needed. If on Windows, you can use the CMake GUI, or replace the "-G" command with the appropriate identifier (e.g. `-G "Visual Studio 15 2017"`).
+For the MATLAB bindings, TODO
 
-By default, building the ingester is *NOT* enabled, as a typical system configuration will have many readers and writers distributed across a variety of computers but a single instance of ingestion running on a local computer. 
-
-To enable building the ingester, enable the CMake flag `RIVER_BUILD_INGESTER` as in the following example:
-
-```
-cmake -DCMAKE_BUILD_TYPE=Release -DRIVER_BUILD_INGESTER=1 -G "CodeBlocks - Unix Makefiles" ../..
-make
-sudo make install
-```
-
-This will build and install a `river-ingester` binary in your default install path, e.g., `/usr/local/bin/` on modern Mac/Unix systems. Run it with the `--help` option for more details.
-
-### Verifying Installation
-
-To test whether the installation was correct, run the benchmark, assuming you're running Redis on localhost:
-
-```
-# From the root of the river repository
-cd build/release/src
-./river_benchmark --redis_hostname 127.0.0.1  --batch_size 1 --sample_size 128 --num_samples 1000
-```
-
-
-
+For compiling from source, see below.
 ## Tutorial: C++
 
 Sample code that writes some sample data to a River stream and then reads and then prints that data to stdout can be found in [river_example.cpp](https://github.com/pbotros/river/blob/master/src/tools/river_example.cpp). The Python tutorial can be followed to understand how River works.
@@ -248,8 +198,81 @@ build/release/src/river_benchmark -h 127.0.0.1 --num_samples 300000 --sample_siz
 
 The above parameter "batch size" controls how many samples at a time to write to River (i.e., `StreamWriter`'s `num_samples` parameter in `Write`). As can be seen in the above graphs, batching writes drastically improves performance and can be used where appropriate.
 
+## Contributing
 
-## Troubleshooting
+### C++ API
+See `writer.h` and `reader.h` for the main public APIs.
+
+TODO:
+```PYTHONPATH=~/Development/mypy python3.7 ~/Development/mypy/mypy/stubgen.py -p $(python3.7 -c "import river as _, os; print(os.path.dirname(_.__file__))") -m river && mv out/river.pyi python/```
+
+## Compiling from Source
+
+You can also compile by source and install manually. The below steps will compile the C++ library and install both the C++ library/headers and the Python bindings. This project uses CMake.
+
+### Prerequisites
+River expects several packages to be installed in the standard system-wide directories, including:
+
+- Python 3.7
+- Google Log (glog)
+
+If you're also building and installing the Ingester, you'll need:
+- Boost 1.67+
+- Apache Arrow and Parquet
+
+Use your favorite package manager to install the above. For instance, on Mac OSX, run:
+
+```
+brew update
+brew install pkg-config cmake # build tools
+brew install python3-dev   # Python 3.7 at the time of writing
+brew install glog  # Google Log, if installing ingester
+# brew install boost         # Boost, if installing ingester
+# brew install apache-arrow  # Arrow and Parquet, if installing ingester
+```
+
+### Installing
+
+Since River uses CMake, you can use standard CMake commands such as (if on Mac or Linux):
+
+```
+git clone git@github.com:pbotros/river.git
+cd river
+mkdir -p build/release
+cd build/release
+cmake -G "Unix Makefiles" -DRIVER_BUILD_INGESTER=0 -DCMAKE_BUILD_TYPE=Release ../..
+make
+sudo make install  # if on Mac, can omit sudo
+sudo ldconfig  # if on Linux
+```
+
+Replace `{r,R}elease` with `{d,D}ebug` in the above to build debug binaries with debugging symbols if needed. If on Windows, you can use the CMake GUI, or replace the "-G" command with the appropriate identifier (e.g. `-G "Visual Studio 15 2017"`).
+
+By default, building the ingester is *NOT* enabled, as a typical system configuration will have many readers and writers distributed across a variety of computers but a single instance of ingestion running on a local computer. 
+
+To enable building the ingester, enable the CMake flag `RIVER_BUILD_INGESTER` as in the following example:
+
+```
+cmake -DCMAKE_BUILD_TYPE=Release -DRIVER_BUILD_INGESTER=1 -G "CodeBlocks - Unix Makefiles" ../..
+make
+sudo make install
+```
+
+This will build and install a `river-ingester` binary in your default install path, e.g., `/usr/local/bin/` on modern Mac/Unix systems. Run it with the `--help` option for more details.
+
+### Verifying Installation
+
+To test whether the installation was correct, run the benchmark, assuming you're running Redis on localhost:
+
+```
+# From the root of the river repository
+cd build/release/src
+./river_benchmark --redis_hostname 127.0.0.1  --batch_size 1 --sample_size 128 --num_samples 1000
+```
+
+
+
+### Troubleshooting
 
 ### Installing Google Log (GLOG)
 On Mac, `brew install glog` seems to work fine to resolve dependencies needed for Google Log. However, on other distros where the version of GLOG is too old and doesn't include a CMakeLists.txt (i.e. Raspbian Buster, Ubuntu 18.04), GLOG needs to be compiled and installed from source.
@@ -283,8 +306,4 @@ sudo ./b2 install
 
 ### Installing Boost on Windows
 Boost can be installed via a precompiled binary posted by the boost team. [Go here](https://sourceforge.net/projects/boost/files/boost-binaries) to find the latest precompiled Boost binaries. You can also install via conda.
-
-## Development
-### C++ API
-See `writer.h` and `reader.h` for the main public APIs.
 

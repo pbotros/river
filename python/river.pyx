@@ -31,6 +31,12 @@ class StreamWriterException(RuntimeError):
     pass
 cdef public PyObject* stream_writer_exception = <PyObject*>StreamWriterException;
 
+class RedisException(RuntimeError):
+    pass
+
+cdef public PyObject* redis_exception = <PyObject*>RedisException;
+
+
 cdef class RedisConnection:
     cdef shared_ptr[criver.RedisConnection] _connection
 
@@ -237,6 +243,9 @@ cdef class StreamReader:
     def __bool__(self):
         return self.good
 
+    def new_buffer(self, n: int) -> np.ndarray:
+        return np.empty(n, dtype=self.schema.dtype())
+
     def read(self: StreamReader, arr: np.ndarray, timeout_ms: int = -1) -> int:
         cdef int64_t size = arr.size
         cdef char* pointer = <char *> arr.data
@@ -263,6 +272,13 @@ cdef class StreamReader:
 
     def stop(self) -> None:
         deref(self._reader).Stop()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.stop()
+
 
 cdef class StreamWriter:
     cdef shared_ptr[criver.StreamWriter] _writer
@@ -323,6 +339,9 @@ cdef class StreamWriter:
     def initialized_at_us(self: StreamWriter):
         return deref(self._writer).initialized_at_us()
 
+    def new_buffer(self, n: int) -> np.ndarray:
+        return np.empty(n, dtype=self.schema.dtype())
+
     def write(self, arr: np.ndarray) -> None:
         cdef int64_t size = arr.size
         cdef char* pointer = <char *> arr.data
@@ -332,3 +351,9 @@ cdef class StreamWriter:
 
     def stop(self) -> None:
         deref(self._writer).Stop()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.stop()

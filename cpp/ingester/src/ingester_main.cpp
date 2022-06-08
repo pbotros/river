@@ -1,6 +1,8 @@
 #include "ingester.h"
 #include <iostream>
 #include <csignal>
+#include <thread>
+#include <fstream>
 #include <boost/program_options.hpp>
 #include <glog/logging.h>
 

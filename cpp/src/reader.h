@@ -11,8 +11,8 @@
 #include <cstdio>
 #include <string>
 #include <vector>
+#include <cstring>
 #include <memory>
-#include <fmt/format.h>
 #include "schema.h"
 #include "redis.h"
 
@@ -303,15 +303,19 @@ private:
     inline int64_t GetSampleIndexOrThrow(const redisReply *values) {
         const char *this_sample_index = FindField(values, "i");
         if (this_sample_index == nullptr) {
-            std::string message = fmt::format("Sample_index not found in stream {}", stream_name_);
+            std::stringstream ss;
+            ss << "Sample_index not found in stream ";
+            ss << stream_name_;
+            std::string message = ss.str();
             throw StreamReaderException(message);
         }
+
         int64_t ret = strtoll(this_sample_index, nullptr, 10);
         if (ret < current_sample_idx_) {
-            std::string message = fmt::format("Sample index {} was less than current sample idx of {} (stream {})",
-                                         ret,
-                                         current_sample_idx_,
-                                         stream_name_);
+            std::stringstream ss;
+            ss << "Sample index " << ret << " was less than current sample idx of "
+               << current_sample_idx_ << " (stream " << stream_name_ << ")";
+            std::string message = ss.str();
             throw StreamReaderException(message);
         }
         return ret;

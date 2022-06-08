@@ -1,5 +1,5 @@
 #include "Python.h"
-#include "../src/river.h"
+#include <river/river.h>
 #include <exception>
 #include <string>
 
@@ -9,6 +9,7 @@ extern "C" PyObject *stream_exists_exception;
 extern "C" PyObject *stream_does_not_exist_exception;
 extern "C" PyObject *stream_reader_exception;
 extern "C" PyObject *stream_writer_exception;
+extern "C" PyObject *redis_exception;
 
 void raise_py_error() {
   try {
@@ -29,6 +30,10 @@ void raise_py_error() {
       PyObject *e_obj = PyObject_CallFunction(
               stream_reader_exception, "s", e.what());
       PyErr_SetObject(stream_reader_exception, e_obj);
+  } catch (river::internal::RedisException& e) {
+      PyObject *e_obj = PyObject_CallFunction(
+              redis_exception, "s", e.what());
+      PyErr_SetObject(redis_exception, e_obj);
   } catch (const std::exception& e) {
     PyErr_SetString(PyExc_RuntimeError, e.what());
   }
