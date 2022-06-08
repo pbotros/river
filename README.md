@@ -230,22 +230,20 @@ You can also compile by source and install manually. The below steps will compil
 ### Prerequisites
 River expects several packages to be installed in the standard system-wide directories, including:
 
-- Python 3.7
+- Python 3.7+
 - Google Log (glog)
 
 If you're also building and installing the Ingester, you'll need:
 - Boost 1.67+
 - Apache Arrow and Parquet
 
-Use your favorite package manager to install the above. For instance, on Mac OSX, run:
+Use your favorite package manager to install the above. For instance, run:
 
 ```
-brew update
-brew install pkg-config cmake # build tools
-brew install python3-dev   # Python 3.7 at the time of writing
-brew install glog  # Google Log, if installing ingester
-# brew install boost         # Boost, if installing ingester
-# brew install apache-arrow  # Arrow and Parquet, if installing ingester
+conda install -c conda-forge pkg-config cmake # build tools
+conda install -c conda-forge glog  # Google Log
+# brew install python3-dev  # If not already installed via conda
+# conda install -c conda-forge boost-cpp arrow-cpp # Boost/Arrow/Parquet, if installing ingester
 ```
 
 ### Installing
