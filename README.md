@@ -223,14 +223,6 @@ build/release/src/river_benchmark -h 127.0.0.1 --num_samples 300000 --sample_siz
 
 The above parameter "batch size" controls how many samples at a time to write to River (i.e., `StreamWriter`'s `num_samples` parameter in `Write`). As can be seen in the above graphs, batching writes drastically improves performance and can be used where appropriate.
 
-## Contributing
-
-### C++ API
-See `writer.h` and `reader.h` for the main public APIs.
-
-TODO:
-```PYTHONPATH=~/Development/mypy python3.7 ~/Development/mypy/mypy/stubgen.py -p $(python3.7 -c "import river as _, os; print(os.path.dirname(_.__file__))") -m river && mv out/river.pyi python/```
-
 ## Compiling from Source
 
 You can also compile by source and install manually. The below steps will compile the C++ library and install both the C++ library/headers and the Python bindings. This project uses CMake.
@@ -332,3 +324,13 @@ sudo ./b2 install
 ### Installing Boost on Windows
 Boost can be installed via a precompiled binary posted by the boost team. [Go here](https://sourceforge.net/projects/boost/files/boost-binaries) to find the latest precompiled Boost binaries. You can also install via conda.
 
+
+## Contributing
+
+### C++ API
+TODO
+
+### Regenerating Python Stubs
+```bash
+python3 /path/to/mypy/mypy/mypy/stubgen.py -p $(python3 -c "import river as _, os; print(os.path.dirname(_.__file__))") -m river && mv out/river.pyi python/```
+```
