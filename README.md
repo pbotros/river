@@ -1,6 +1,6 @@
 # River
 
--[![DOI](https://zenodo.org/badge/268426515.svg)](https://zenodo.org/badge/latestdoi/268426515)
+[![DOI](https://zenodo.org/badge/268426515.svg)](https://zenodo.org/badge/latestdoi/268426515)
 
 A high-throughput, structured streaming framework built atop an industry-standard in-memory database, Redis. Capable of streaming large-volume, high-bandwidth data from one producer to multiple consumers. Supports online _ingestion_ -- persistence of streamed data to disk for offline analysis -- and indefinitely long streams.
 
