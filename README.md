@@ -1,20 +1,20 @@
 # River
 
-[![DOI](https://zenodo.org/badge/268426515.svg)](https://zenodo.org/badge/latestdoi/268426515)
+-[![DOI](https://zenodo.org/badge/268426515.svg)](https://zenodo.org/badge/latestdoi/268426515)
 
-A high-throughput, structured streaming framework built atop Redis Streams. Capable of streaming large-volume, high-bandwidth data from one producer to multiple consumers. Supports _ingestion_ of streams via a separate binary that persists River streams to disk for offline analysis.
+A high-throughput, structured streaming framework built atop an industry-standard in-memory database, Redis. Capable of streaming large-volume, high-bandwidth data from one producer to multiple consumers. Supports online _ingestion_ -- persistence of streamed data to disk for offline analysis -- and indefinitely long streams.
 
-Written in C++ with bindings in Python.
+Written in C++ with bindings in Python and experimental bindings in MATLAB.
 
 ## Premise
 
-Research and Internet-of-Things (IoT) applications often need to pipe data between devices in near-realtime -- a temperature sensor relays data to a microcontroller that controls a thermostat. While a home-grown solution can likely work for simple systems, more complex systems will inevitably require data produced by a single device to be read by multiple sources, often simultaneously -- that temperature sensor might need to also relay its data to a computer for a realtime display. These requirements intensify with the growing data capabilities of our hardware. Crafting a multi-reader system like this quickly becomes untenable.
+Research and Internet-of-Things (IoT) applications often need to pipe data between devices in near-realtime -- a temperature sensor relays data to a microcontroller that controls a thermostat. While a home-grown solution can likely work for simple systems, more complex systems will inevitably require data produced by a single device to be read by multiple sources, often simultaneously -- that temperature sensor might need to also relay its data to a computer for a realtime display. These requirements intensify with the growing data capabilities of our hardware. Crafting a multi-reader system like this from scratch quickly becomes an untenable effort.
 
-Enter streaming frameworks: libraries designed to "produce" data to many "consumers". There are many robust and industry-standard streaming frameworks out there such as [RabbitMQ](https://www.rabbitmq.com/), [Kafka](https://kafka.apache.org/), and [ZeroMQ](https://zeromq.org/); however, they can be cumbersome to install & manage for non-enterprise environments (e.g. Kafka), have limited single-stream throughput (e.g., RabbitMQ's [~50k messages/sec](https://www.cloudamqp.com/blog/2018-01-08-part2-rabbitmq-best-practice-for-high-performance.html) max even with persistence disabled), or require non-trivial application-level code to be usable for multi-reader streaming (e.g., ZeroMQ). These frameworks are tailored towards stricter requirements than is often required for our settings here, where perhaps some data can be dropped and/or delivered twice in failure cases.
+Enter streaming frameworks: libraries designed to "produce" data to many "consumers". There are many robust and industry-standard streaming frameworks out there such as [RabbitMQ](https://www.rabbitmq.com/), [Kafka](https://kafka.apache.org/), and [ZeroMQ](https://zeromq.org/); however, they can be cumbersome to install & manage for non-enterprise environments (e.g. Kafka), have limited single-stream throughput (e.g., RabbitMQ's [~50k messages/sec](https://www.cloudamqp.com/blog/2018-01-08-part2-rabbitmq-best-practice-for-high-performance.html) max even with persistence disabled), or require non-trivial application-level code to be usable for multi-reader streaming (e.g., ZeroMQ). These frameworks are tailored towards stricter requirements than is often required for our settings here, where perhaps some trailing data can be dropped and/or delivered twice in failure cases.
 
-River was created to meet the needs of streaming in a research or IoT world: pipe data from one device to many others, prioritizing minimal setup and high performance over strict guarantees on message delivery and persistence*. River is built on the high-throughput [Redis Streams](https://redis.io/topics/streams-intro), released in Redis 5.0, providing a "schema'd" interface on top of Redis Streams as well as a light layer of management state and metadata.
+**River** was created to meet the needs of streaming in a research or IoT world: stream data from one device to many others, prioritizing minimal setup and high performance over strict guarantees on message delivery and persistence*. River is built on the high-throughput [Redis Streams](https://redis.io/topics/streams-intro), released in Redis 5.0, and then layers a schema and metadata to make it easy to stream.
 
-However, streaming is often only _one_ part of the story. Researchers and makers often want to see what was streamed after-the-fact - to analyze that data offline. River addresses this unmet need with its "data ingestion": persisting data that was streamed via River to disk. Packaged in a separate binary, the `ingester` is a long-running server process that polls for River streams created in Redis and automatically writes the data in batches to disk using a columnar data storage format, [Apache Parquet](https://parquet.apache.org/). Once a segment of data is persisted and considered sufficiently stale, the `ingester` will delete this data from Redis in order to allow for indefinitely large streams.
+However, streaming is often only the _first_ part of the story. Researchers and makers often want to see what was streamed after-the-fact - to analyze that data offline. River addresses this unmet need with its "data ingestion": persisting data that was streamed via River to disk. Packaged in a separate binary, the `ingester` is a long-running server process that polls for River streams created in Redis and automatically writes the data in batches to disk using a columnar data storage format, [Apache Parquet](https://parquet.apache.org/). Once a segment of data is persisted and considered sufficiently stale, the `ingester` will delete this data from Redis, thus affording for indefinitely large streams.
 
 _\* River utilizes Redis for all data storage and thus has the same data consistency guarantees as is configured in your Redis server._
 
@@ -22,18 +22,20 @@ _\* River utilizes Redis for all data storage and thus has the same data consist
 
 For the C++ library and the ingester binary, installation via Conda is the preferred way:
 
-```
+```bash
 conda install -c conda-forge river-cpp
 ```
+**NOTE: the ingester binary isn't available on Windows due to compilation issues. Use WSL or Linux/Mac for the ingester**.
 
 For the Python bindings, conda is also preferred:
-```
+
+```bash
 conda install -c conda-forge river-py
 ```
 
 For the (experimental) MATLAB bindings, see the MATLAB README for details.
 
-For compiling from source, see below.
+For compiling from source, see further down.
 
 ## Tutorial: C++
 
@@ -42,9 +44,12 @@ Sample code that writes some sample data to a River stream and then reads and th
 
 ## Tutorial: Python
 
-Before we begin, you need Redis running. This tutorial assumes Redis is running at localhost `127.0.0.1` on the standard port 6379, but adjust the following if it's not. The [Redis website](https://redis.io/) has great instructions on downloading and installing. After that:
+### Redis
+River utilizes Redis as its underlying database. If you don't have it running, the [Redis website](https://redis.io/) has great instructions on downloading and installing. Note that Redis is currently only supported on Linux, Mac, and Windows Subsystem for Linux (WSL).
 
-#### Writing
+This tutorial assumes Redis is running at localhost `127.0.0.1` on the standard port 6379, but adjust the following if it's not.
+
+### Writing
 
 First, let's create your first stream via river's `StreamWriter`:
 
@@ -85,7 +90,7 @@ with w:
 # end of your stream, waiting for more samples.
 ```
 
-#### Reading
+### Reading
 
 Great! You have your first stream. In the same Python session, let's read it back and print out the contents:
 
@@ -133,7 +138,7 @@ with r:
 
 Your output should print out 0.0, 1.0, 2.0, ..., 9.0. Note that, although in this example we wrote the stream and then read back the stream sequentially, both chunks of code can be run simultaneously; the reader will block as requested if there are not enough samples in the stream.
 
-#### Ingester
+### Ingester
 
 Now let's ingest some data via the `river-ingester` binary:
 
