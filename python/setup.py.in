@@ -4,7 +4,7 @@ from Cython.Compiler import Options
 import numpy as np
 
 Options.docstrings = True
-Options.embed_pos_in_docstring = True
+Options.embed_pos_in_docstring = False
 
 package_data = ['river.pyi']
 

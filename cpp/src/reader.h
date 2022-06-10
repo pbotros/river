@@ -103,10 +103,10 @@ public:
      * available in the underlying stream. The return value indicates how many samples were written to the buffer.
      * If EOF has been reached, then #good() will return false, and any attempts to #read() will return -1.
      *
-     * @param buffer The buffer into which data will be written. If this call successfully returns, there will be
-     * exactly `num_samples` samples written into the buffer, each of which is `sample_size` as told by the schema. For
-     * VARIABLE_WIDTH_BYTES fields, ensure this buffer is large enough to capture the maximum possible size of
-     * `num_samples` samples.
+     * @param buffer The buffer into which data will be read from the stream. The return value of this call (if
+     * nonnegative) tells how many samples, each of `sample_size` bytes as told by the schema, were written into the
+     * buffer. For VARIABLE_WIDTH_BYTES fields, ensure this buffer is large enough to capture the maximum possible size
+     * of `num_samples` samples.
      * @param num_samples _Maximum_ number of samples to read from the underlying stream.
      * @param sizes If given, <return value> entries will be written into this array containing the sizes of each
      * corresponding sample. Particularly useful for VARIABLE_WIDTH_BYTES fields. Pass nullptr to ignore.
@@ -131,7 +131,9 @@ public:
      * element available in the stream after the current cursor.
      * @param timeout_ms If positive, the maximum length of time this entire call can block while waiting for a sample.
      * After the timeout there can be 0 or 1 elements read, and so the return value is needed to determine samples read.
-     * @return the size of the element read into the buffer. 0 if nothing was read (i.e. due to timeout).
+     * @return the number of elements skipped and/or read, including the last element that might be written into the
+     * buffer. Thus, this will return 0 in the event of a timeout; this will return >= 1 iff buffer is changed.
+     * Returns -1 if there is an EOF in the stream.
      */
     template<class DataT>
     int64_t Tail(DataT *buffer,

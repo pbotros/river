@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>C++ Docs &mdash; river  documentation</title><link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/language_data.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="Python Docs" href="python.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> river
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="python.html">Python Docs</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">C++ Docs</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">river</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>C++ Docs</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/cpp.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="c-docs">
+<h1>C++ Docs<a class="headerlink" href="#c-docs" title="Permalink to this headline">¶</a></h1>
+<dl class="cpp class">
+<dt id="_CPPv4N5river12StreamReaderE">
+<span id="_CPPv3N5river12StreamReaderE"></span><span id="_CPPv2N5river12StreamReaderE"></span><span id="river::StreamReader"></span><span class="target" id="classriver_1_1_stream_reader"></span><em class="property">class </em><code class="sig-prename descclassname">river<code class="sig-prename descclassname">::</code></code><code class="sig-name descname">StreamReader</code><a class="headerlink" href="#_CPPv4N5river12StreamReaderE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>The main entry point for River for reading an existing stream. This class is initialized with a stream name corresponding to an existing stream, and allows for batch consumption of the stream. Reads requesting more data than is present in the stream will block. Any attempt to read into a typed buffer will be checked against the stream’s schema to ensure compatibility.</p>
+<p>After constructing a <a class="reference internal" href="#classriver_1_1_stream_reader"><span class="std std-ref">StreamReader</span></a>, you must call initialize with the name of the stream you wish to read. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt id="_CPPv4N5river12StreamReader12StreamReaderERK15RedisConnectionKi">
+<span id="_CPPv3N5river12StreamReader12StreamReaderERK15RedisConnectionKi"></span><span id="_CPPv2N5river12StreamReader12StreamReaderERK15RedisConnectionKi"></span><span id="river::StreamReader::StreamReader__RedisConnectionCR.iC"></span><span class="target" id="classriver_1_1_stream_reader_1a226b9307d1d8fcdfd4c0cbbd2b461583"></span><em class="property">explicit</em> <code class="sig-name descname">StreamReader</code><span class="sig-paren">(</span><em class="property">const</em> <a class="reference internal" href="#_CPPv4N5river15RedisConnectionE" title="river::RedisConnection">RedisConnection</a> &amp;<em>connection</em>, <em class="property">const</em> int <em>max_fetch_size</em> = 10000<span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5river12StreamReader12StreamReaderERK15RedisConnectionKi" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Construct an instance of a <a class="reference internal" href="#classriver_1_1_stream_reader"><span class="std std-ref">StreamReader</span></a>. One <a class="reference internal" href="#classriver_1_1_stream_reader"><span class="std std-ref">StreamReader</span></a> should be used with at most one underlying stream.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>connection</strong> – parameters to connect to Redis </p></li>
+<li><p><strong>max_fetch_size</strong> – maximum number of elements to fetch from redis at a time (to prevent untenably large batches if a large number of bytes are consumed). </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt id="_CPPv4N5river12StreamReader10InitializeERKNSt6stringEi">
+<span id="_CPPv3N5river12StreamReader10InitializeERKNSt6stringEi"></span><span id="_CPPv2N5river12StreamReader10InitializeERKNSt6stringEi"></span><span id="river::StreamReader::Initialize__ssCR.i"></span><span class="target" id="classriver_1_1_stream_reader_1a2eb04bf6b86c0099a5c2cc87da782a60"></span>void <code class="sig-name descname">Initialize</code><span class="sig-paren">(</span><em class="property">const</em> std::string &amp;<em>stream_name</em>, int <em>timeout_ms</em> = -1<span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5river12StreamReader10InitializeERKNSt6stringEi" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Initialize this reader to a particular stream. If timeout_ms is positive, this call will wait for up to <code class="docutils literal notranslate"><span class="pre">timeout_ms</span></code> milliseconds for the stream to be created. When the timeout is exceeded or if no timeout was given and the stream does not exist, a StreamReaderException will be raised. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt id="_CPPv4I0EN5river12StreamReader4ReadE7int64_tP5DataT7int64_tPPiPPNSt6stringEi">
+<span id="_CPPv3I0EN5river12StreamReader4ReadEP5DataT7int64_tPPiPPNSt6stringEi"></span><span id="_CPPv2I0EN5river12StreamReader4ReadEP5DataT7int64_tPPiPPNSt6stringEi"></span>template&lt;class <code class="sig-name descname">DataT</code>&gt;<br /><span class="target" id="classriver_1_1_stream_reader_1ae8638359b4ffaf2160e50134c1a3e525"></span><em class="property">inline</em> int64_t <code class="sig-name descname">Read</code><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4I0EN5river12StreamReader4ReadE7int64_tP5DataT7int64_tPPiPPNSt6stringEi" title="river::StreamReader::Read::DataT">DataT</a> *<em>buffer</em>, int64_t <em>num_samples</em>, int **<em>sizes</em> = nullptr, std::string **<em>keys</em> = nullptr, int <em>timeout_ms</em> = -1<span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0EN5river12StreamReader4ReadE7int64_tP5DataT7int64_tPPiPPNSt6stringEi" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Read from the stream from where was last consumed. This call blocks until the desired number of samples is available in the underlying stream. The return value indicates how many samples were written to the buffer. If EOF has been reached, then #good() will return false, and any attempts to #read() will return -1.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Template Parameters</dt>
+<dd class="field-odd"><p><strong>DataT</strong> – The data type of the buffer. The <code class="docutils literal notranslate"><span class="pre">sizeof()</span></code> of this type should match the stream’s sample size as governed by its schema. </p>
+</dd>
+<dt class="field-even">Parameters</dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>num_samples</strong> – <em>Maximum</em> number of samples to read from the underlying stream. </p></li>
+<li><p><strong>sizes</strong> – If given, &lt;return value&gt; entries will be written into this array containing the sizes of each corresponding sample. Particularly useful for VARIABLE_WIDTH_BYTES fields. Pass nullptr to ignore. </p></li>
+<li><p><strong>keys</strong> – If given, &lt;return value&gt; <code class="docutils literal notranslate"><span class="pre">char</span> <span class="pre">*</span></code> entries will be written into this array containing the NULL-terminated unique std::string keys in the underlying database. Pass nullptr to ignore. </p></li>
+<li><p><strong>timeout_ms</strong> – If positive, the maximum length of time this entire call can block while waiting for samples. After the timeout, the stream can be partially read, and the return value is needed to determine samples read. </p></li>
+</ul>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>the number of elements read. This will always be less than or equal to num_samples. For example, if there is a timeout, this could be a partially read buffer and so can be less than num_samples; this number can be less than num_samples even if there is no timeout given. Returns -1 if EOF is encountered; if -1 is returned, buffer is guaranteed to not have been touched (nor the other buffer objects like sizes/keys). </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt id="_CPPv4N5river12StreamReader9ReadBytesEPc7int64_tPPiPPNSt6stringEi">
+<span id="_CPPv3N5river12StreamReader9ReadBytesEPc7int64_tPPiPPNSt6stringEi"></span><span id="_CPPv2N5river12StreamReader9ReadBytesEPc7int64_tPPiPPNSt6stringEi"></span><span id="river::StreamReader::ReadBytes__cP.int64_t.iPP.ssPP.i"></span><span class="target" id="classriver_1_1_stream_reader_1a1174ca9c9cb7341125c9f39252ddd98c"></span>int64_t <code class="sig-name descname">ReadBytes</code><span class="sig-paren">(</span>char *<em>buffer</em>, int64_t <em>num_samples</em>, int **<em>sizes</em> = nullptr, std::string **<em>keys</em> = nullptr, int <em>timeout_ms</em> = -1<span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5river12StreamReader9ReadBytesEPc7int64_tPPiPPNSt6stringEi" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Read from the stream from where was last consumed. This call blocks until the desired number of samples is available in the underlying stream. The return value indicates how many samples were written to the buffer. If EOF has been reached, then #good() will return false, and any attempts to #read() will return -1.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>buffer</strong> – The buffer into which data will be read from the stream. The return value of this call (if nonnegative) tells how many samples, each of <code class="docutils literal notranslate"><span class="pre">sample_size</span></code> bytes as told by the schema, were written into the buffer. For VARIABLE_WIDTH_BYTES fields, ensure this buffer is large enough to capture the maximum possible size of <code class="docutils literal notranslate"><span class="pre">num_samples</span></code> samples. </p></li>
+<li><p><strong>num_samples</strong> – <em>Maximum</em> number of samples to read from the underlying stream. </p></li>
+<li><p><strong>sizes</strong> – If given, &lt;return value&gt; entries will be written into this array containing the sizes of each corresponding sample. Particularly useful for VARIABLE_WIDTH_BYTES fields. Pass nullptr to ignore. </p></li>
+<li><p><strong>keys</strong> – If given, &lt;return value&gt; <code class="docutils literal notranslate"><span class="pre">std::string</span></code> entries will be written into this array containing the NULL-terminated unique std::string keys in the underlying database. Pass nullptr to ignore. </p></li>
+<li><p><strong>timeout_ms</strong> – If positive, the maximum length of time this entire call can block while waiting for samples. After the timeout, the stream can be partially read, and the return value is needed to determine samples read. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>the number of elements read. This will always be less than or equal to num_samples. For example, if there is a timeout, this could be a partially read buffer and so can be less than num_samples; this number can be less than num_samples even if there is no timeout given. Returns -1 if EOF is encountered; if -1 is returned, buffer is guaranteed to not have been touched (nor the other buffer objects like sizes/keys). </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt id="_CPPv4I0EN5river12StreamReader4TailE7int64_tP5DataTiPcP7int64_t">
+<span id="_CPPv3I0EN5river12StreamReader4TailEP5DataTiPcP7int64_t"></span><span id="_CPPv2I0EN5river12StreamReader4TailEP5DataTiPcP7int64_t"></span>template&lt;class <code class="sig-name descname">DataT</code>&gt;<br /><span class="target" id="classriver_1_1_stream_reader_1ae9042e8fc263a4d44c1e1ac2a5950f0c"></span><em class="property">inline</em> int64_t <code class="sig-name descname">Tail</code><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4I0EN5river12StreamReader4TailE7int64_tP5DataTiPcP7int64_t" title="river::StreamReader::Tail::DataT">DataT</a> *<em>buffer</em>, int <em>timeout_ms</em> = -1, char *<em>key</em> = nullptr, int64_t *<em>sample_index</em> = nullptr<span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0EN5river12StreamReader4TailE7int64_tP5DataTiPcP7int64_t" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Returns the last element in the stream after the previously seen elements. Blocks until there’s at least one element available in the stream after the current cursor. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>timeout_ms</strong> – If positive, the maximum length of time this entire call can block while waiting for a sample. After the timeout there can be 0 or 1 elements read, and so the return value is needed to determine samples read. </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>the number of elements skipped and/or read, including the last element that might be written into the buffer. Thus, this will return 0 in the event of a timeout; this will return &gt;= 1 iff buffer is changed. Returns -1 if there is an EOF in the stream. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt id="_CPPv4N5river12StreamReader9TailBytesEPciPcP7int64_t">
+<span id="_CPPv3N5river12StreamReader9TailBytesEPciPcP7int64_t"></span><span id="_CPPv2N5river12StreamReader9TailBytesEPciPcP7int64_t"></span><span id="river::StreamReader::TailBytes__cP.i.cP.int64_tP"></span><span class="target" id="classriver_1_1_stream_reader_1abac014eb784588519cb0056e05e6948e"></span>int64_t <code class="sig-name descname">TailBytes</code><span class="sig-paren">(</span>char *<em>buffer</em>, int <em>timeout_ms</em> = -1, char *<em>key</em> = nullptr, int64_t *<em>sample_index</em> = nullptr<span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5river12StreamReader9TailBytesEPciPcP7int64_t" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Returns the last element in the stream after the previously seen elements. Blocks until there’s at least one element available in the stream after the current cursor if no timeout is given; else, waits for the timeout. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>timeout_ms</strong> – If positive, the maximum length of time this entire call can block while waiting for a sample. After the timeout there will be 0 or 1 elements read, and so the return value is needed to determine samples read. </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>the number of elements skipped and/or read, including the last element that might be written into the buffer. Thus, this will return 0 in the event of a timeout; this will return &gt;= 1 iff buffer is changed. Returns -1 if there is an EOF in the stream. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt id="_CPPv4N5river12StreamReader4SeekERKNSt6stringE">
+<span id="_CPPv3N5river12StreamReader4SeekERKNSt6stringE"></span><span id="_CPPv2N5river12StreamReader4SeekERKNSt6stringE"></span><span id="river::StreamReader::Seek__ssCR"></span><span class="target" id="classriver_1_1_stream_reader_1ac8eebe180c76df60d428f8225f2a7f97"></span>int64_t <code class="sig-name descname">Seek</code><span class="sig-paren">(</span><em class="property">const</em> std::string &amp;<em>key</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5river12StreamReader4SeekERKNSt6stringE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Seeks the internal cursor to the given key. Any elements returned by read/tail will be <em>after</em> this element.</p>
+<p>If the key that’s given is in the past &amp;#8212; i.e., this <a class="reference internal" href="#classriver_1_1_stream_reader"><span class="std std-ref">StreamReader</span></a> has already consumed past this key &amp;#8212; then the cursor will not be moved, and no exception will be thrown.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>the number of elements skipped. Thus, it returns 0 if the key given is in the past of the stream or if it is the current key. Returns -1 if EOF is hit while attempting to seek to this key (indicating the key given is greater than any key in the stream). </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt id="_CPPv4N5river12StreamReader14is_initializedEv">
+<span id="_CPPv3N5river12StreamReader14is_initializedEv"></span><span id="_CPPv2N5river12StreamReader14is_initializedEv"></span><span id="river::StreamReader::is_initialized"></span><span class="target" id="classriver_1_1_stream_reader_1a767238f67effcbf6b8bc5fbe01322b81"></span><em class="property">inline</em> bool <code class="sig-name descname">is_initialized</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5river12StreamReader14is_initializedEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Whether this stream has been initialized. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt id="_CPPv4NK5river12StreamReader4GoodEv">
+<span id="_CPPv3NK5river12StreamReader4GoodEv"></span><span id="_CPPv2NK5river12StreamReader4GoodEv"></span><span id="river::StreamReader::GoodC"></span><span class="target" id="classriver_1_1_stream_reader_1a938c964a6a6f2fd708919ab4d4018e59"></span><em class="property">inline</em> bool <code class="sig-name descname">Good</code><span class="sig-paren">(</span><span class="sig-paren">)</span> <em class="property">const</em><a class="headerlink" href="#_CPPv4NK5river12StreamReader4GoodEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Whether this stream is “good” for reading (similar to std::ifstream’s #good()). Synonymous with casting to bool. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt id="_CPPv4NK5river12StreamReadercvbEv">
+<span id="_CPPv3NK5river12StreamReadercvbEv"></span><span id="_CPPv2NK5river12StreamReadercvbEv"></span><span id="river::StreamReader::castto-b-operatorC"></span><span class="target" id="classriver_1_1_stream_reader_1ae4e50f943b0a27c470093b9e45d05719"></span><em class="property">inline</em> <em class="property">explicit</em> <code class="sig-name descname">operator bool</code><span class="sig-paren">(</span><span class="sig-paren">)</span> <em class="property">const</em><a class="headerlink" href="#_CPPv4NK5river12StreamReadercvbEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Synonym for #good(). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt id="_CPPv4N5river12StreamReader7eof_keyEv">
+<span id="_CPPv3N5river12StreamReader7eof_keyEv"></span><span id="_CPPv2N5river12StreamReader7eof_keyEv"></span><span id="river::StreamReader::eof_key"></span><span class="target" id="classriver_1_1_stream_reader_1ab9c08262d25e847e3e34fbc9ad0c1f15"></span><em class="property">inline</em> std::string <code class="sig-name descname">eof_key</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5river12StreamReader7eof_keyEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>If the stream has reached EOF, this will be the key that contained the EOF signal. Empty if not reached EOF. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt id="_CPPv4N5river12StreamReader17initialized_at_usEv">
+<span id="_CPPv3N5river12StreamReader17initialized_at_usEv"></span><span id="_CPPv2N5river12StreamReader17initialized_at_usEv"></span><span id="river::StreamReader::initialized_at_us"></span><span class="target" id="classriver_1_1_stream_reader_1a8d7f0af84a071ae9ae3079eba1857c83"></span><em class="property">inline</em> int64_t <code class="sig-name descname">initialized_at_us</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5river12StreamReader17initialized_at_usEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Time in microseconds since epoch of when this stream was initialized, with respect to the <em>server</em> time. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt id="_CPPv4N5river12StreamReader18total_samples_readEv">
+<span id="_CPPv3N5river12StreamReader18total_samples_readEv"></span><span id="_CPPv2N5river12StreamReader18total_samples_readEv"></span><span id="river::StreamReader::total_samples_read"></span><span class="target" id="classriver_1_1_stream_reader_1a3794741b1ff263d0d911fab69effceff"></span><em class="property">inline</em> int64_t <code class="sig-name descname">total_samples_read</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5river12StreamReader18total_samples_readEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Number of samples that have been read since initialization of this stream. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt id="_CPPv4N5river12StreamReader11AddListenerEPN8internal20StreamReaderListenerE">
+<span id="_CPPv3N5river12StreamReader11AddListenerEPN8internal20StreamReaderListenerE"></span><span id="_CPPv2N5river12StreamReader11AddListenerEPN8internal20StreamReaderListenerE"></span><span id="river::StreamReader::AddListener__internal::StreamReaderListenerP"></span><span class="target" id="classriver_1_1_stream_reader_1a9336ce458f6b8624c54cf3b3274a9ec3"></span>void <code class="sig-name descname">AddListener</code><span class="sig-paren">(</span>internal::StreamReaderListener *<em>listener</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5river12StreamReader11AddListenerEPN8internal20StreamReaderListenerE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Add a listener to this reader. Can be called at any point, even before initialization of the stream. See StreamReaderListener for more details. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt id="_CPPv4N5river12StreamReader6schemaEv">
+<span id="_CPPv3N5river12StreamReader6schemaEv"></span><span id="_CPPv2N5river12StreamReader6schemaEv"></span><span id="river::StreamReader::schema"></span><span class="target" id="classriver_1_1_stream_reader_1a551d9695f0702a26ea76692ff25738d2"></span><em class="property">const</em> <a class="reference internal" href="#_CPPv4N5river12StreamSchemaE" title="river::StreamSchema">StreamSchema</a> &amp;<code class="sig-name descname">schema</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5river12StreamReader6schemaEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>The schema of this stream; only valid after #initialize() has been called. This schema contains useful information on the fields, in particular the name, order, and size of the fields within a single sample of this stream. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt id="_CPPv4N5river12StreamReader8MetadataEv">
+<span id="_CPPv3N5river12StreamReader8MetadataEv"></span><span id="_CPPv2N5river12StreamReader8MetadataEv"></span><span id="river::StreamReader::Metadata"></span><span class="target" id="classriver_1_1_stream_reader_1af351f6f6c71ecd75f8afa6b7f7c9d715"></span>std::unordered_map&lt;std::string, std::string&gt; <code class="sig-name descname">Metadata</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5river12StreamReader8MetadataEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>User metadata attached to this stream. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt id="_CPPv4N5river12StreamReader27local_minus_server_clock_usEv">
+<span id="_CPPv3N5river12StreamReader27local_minus_server_clock_usEv"></span><span id="_CPPv2N5river12StreamReader27local_minus_server_clock_usEv"></span><span id="river::StreamReader::local_minus_server_clock_us"></span><span class="target" id="classriver_1_1_stream_reader_1a521a24d7e0b2bd543892ba11731f9e86"></span>int64_t <code class="sig-name descname">local_minus_server_clock_us</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5river12StreamReader27local_minus_server_clock_usEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Get the difference between the “local” clock with respect to the <em>WRITER</em> of the stream and the server clock, i.e. the redis server. Difference returned in microseconds. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt id="_CPPv4N5river12StreamReader4StopEv">
+<span id="_CPPv3N5river12StreamReader4StopEv"></span><span id="_CPPv2N5river12StreamReader4StopEv"></span><span id="river::StreamReader::Stop"></span><span class="target" id="classriver_1_1_stream_reader_1aef2b9896b60494709e869792827fa869"></span>void <code class="sig-name descname">Stop</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5river12StreamReader4StopEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Stops this reader from being used in the future. Redis connections are freed; read() will no longer work; good() will return false. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp class">
+<dt id="_CPPv4N5river12StreamWriterE">
+<span id="_CPPv3N5river12StreamWriterE"></span><span id="_CPPv2N5river12StreamWriterE"></span><span id="river::StreamWriter"></span><span class="target" id="classriver_1_1_stream_writer"></span><em class="property">class </em><code class="sig-prename descclassname">river<code class="sig-prename descclassname">::</code></code><code class="sig-name descname">StreamWriter</code><a class="headerlink" href="#_CPPv4N5river12StreamWriterE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>The main entry point for River for writing a new stream. Streams are defined by a schema and a stream name, both of which are given in the <code class="docutils literal notranslate"><span class="pre">initialize()</span></code> call. All samples written to this stream must belong to the same schema. Once there are no more elements in this stream, call <code class="docutils literal notranslate"><span class="pre">stop()</span></code>; this will signal to any other readers that the stream has ended. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt id="_CPPv4N5river12StreamWriter12StreamWriterERK15RedisConnection7int64_ti">
+<span id="_CPPv3N5river12StreamWriter12StreamWriterERK15RedisConnection7int64_ti"></span><span id="_CPPv2N5river12StreamWriter12StreamWriterERK15RedisConnection7int64_ti"></span><span id="river::StreamWriter::StreamWriter__RedisConnectionCR.int64_t.i"></span><span class="target" id="classriver_1_1_stream_writer_1adfca1747a6ba227cdac36d67cf3073d0"></span><em class="property">explicit</em> <code class="sig-name descname">StreamWriter</code><span class="sig-paren">(</span><em class="property">const</em> <a class="reference internal" href="#_CPPv4N5river15RedisConnectionE" title="river::RedisConnection">RedisConnection</a> &amp;<em>connection</em>, int64_t <em>keys_per_redis_stream</em> = int64_t{1LL &lt;&lt; 24}, int <em>batch_size</em> = 1536<span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5river12StreamWriter12StreamWriterERK15RedisConnection7int64_ti" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Construct an instance of <a class="reference internal" href="#classriver_1_1_stream_writer"><span class="std std-ref">StreamWriter</span></a>. One <a class="reference internal" href="#classriver_1_1_stream_writer"><span class="std std-ref">StreamWriter</span></a> belongs to at most one stream.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>connection</strong> – Parameters to connect to Redis. </p></li>
+<li><p><strong>batch_size</strong> – Number of samples in a batch that will be written/read from redis. Increasing this number makes batches bigger and thus reduces the number of writes/reads to redis, but then also increases the average latency of the stream. </p></li>
+<li><p><strong>keys_per_redis_stream</strong> – the number of keys in each underlying redis stream. Default value reasoning is: 2^24 = 17M keys per stream =&gt; ~350MB of memory on 64-bit redis with 8-byte fields </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt id="_CPPv4N5river12StreamWriter10InitializeERKNSt6stringERK12StreamSchemaRKNSt13unordered_mapINSt6stringENSt6stringEEE">
+<span id="_CPPv3N5river12StreamWriter10InitializeERKNSt6stringERK12StreamSchemaRKNSt13unordered_mapINSt6stringENSt6stringEEE"></span><span id="_CPPv2N5river12StreamWriter10InitializeERKNSt6stringERK12StreamSchemaRKNSt13unordered_mapINSt6stringENSt6stringEEE"></span><span id="river::StreamWriter::Initialize__ssCR.StreamSchemaCR.std::unordered_map:ss.ss:CR"></span><span class="target" id="classriver_1_1_stream_writer_1a9f1acb2db9f66cb195732ac9350895d1"></span>void <code class="sig-name descname">Initialize</code><span class="sig-paren">(</span><em class="property">const</em> std::string &amp;<em>stream_name</em>, <em class="property">const</em> <a class="reference internal" href="#_CPPv4N5river12StreamSchemaE" title="river::StreamSchema">StreamSchema</a> &amp;<em>schema</em>, <em class="property">const</em> std::unordered_map&lt;std::string, std::string&gt; &amp;<em>user_metadata</em> = std::unordered_map&lt;std::string, std::string&gt;()<span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5river12StreamWriter10InitializeERKNSt6stringERK12StreamSchemaRKNSt13unordered_mapINSt6stringENSt6stringEEE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Initialize this stream for writing. The given stream name must be unique within the Redis used. This initialization puts necessary information (e.g. schemas and timestamps) into redis. Optionally, it can accept an unordered_map of user metadata to put in to Redis atomically. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt id="_CPPv4I0EN5river12StreamWriter5WriteEvP5DataT7int64_tPKi">
+<span id="_CPPv3I0EN5river12StreamWriter5WriteEP5DataT7int64_tPKi"></span><span id="_CPPv2I0EN5river12StreamWriter5WriteEP5DataT7int64_tPKi"></span>template&lt;class <code class="sig-name descname">DataT</code>&gt;<br /><span class="target" id="classriver_1_1_stream_writer_1a7465bde3a022c89aac909b61f5ed5606"></span><em class="property">inline</em> void <code class="sig-name descname">Write</code><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4I0EN5river12StreamWriter5WriteEvP5DataT7int64_tPKi" title="river::StreamWriter::Write::DataT">DataT</a> *<em>data</em>, int64_t <em>num_samples</em>, <em class="property">const</em> int *<em>sizes</em> = nullptr<span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0EN5river12StreamWriter5WriteEvP5DataT7int64_tPKi" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Writes data to the stream. The given data buffer of type DataT will be recast to a raw (e.g. char *) array and written to redis according to each sample size. If the schema has only fixed-width fields, then the data buffer will be advanced according to the fixed-width size given in #initialize(); otherwise (i.e. if it has variable- width fields), the sizes buffer is necessary to determine the size of each sample. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt id="_CPPv4N5river12StreamWriter10WriteBytesEPKc7int64_tPKi">
+<span id="_CPPv3N5river12StreamWriter10WriteBytesEPKc7int64_tPKi"></span><span id="_CPPv2N5river12StreamWriter10WriteBytesEPKc7int64_tPKi"></span><span id="river::StreamWriter::WriteBytes__cCP.int64_t.iCP"></span><span class="target" id="classriver_1_1_stream_writer_1a0cb9ce184a0062b51b5fc4e19f24ecc3"></span>void <code class="sig-name descname">WriteBytes</code><span class="sig-paren">(</span><em class="property">const</em> char *<em>data</em>, int64_t <em>num_samples</em>, <em class="property">const</em> int *<em>sizes</em> = nullptr<span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5river12StreamWriter10WriteBytesEPKc7int64_tPKi" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Writes raw bytes to the stream. For fixed-width fields, each sample will be assumed to be of the size defined in the schema from initialize(); otherwise, for variable-width fields, the sizes array is necessary. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt id="_CPPv4N5river12StreamWriter6schemaEv">
+<span id="_CPPv3N5river12StreamWriter6schemaEv"></span><span id="_CPPv2N5river12StreamWriter6schemaEv"></span><span id="river::StreamWriter::schema"></span><span class="target" id="classriver_1_1_stream_writer_1a7d8c8478403e95ce240877d3b6f4b38f"></span><em class="property">const</em> <a class="reference internal" href="#_CPPv4N5river12StreamSchemaE" title="river::StreamSchema">StreamSchema</a> &amp;<code class="sig-name descname">schema</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5river12StreamWriter6schemaEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>A copy of the stream’s schema that was provided on initialize(). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt id="_CPPv4N5river12StreamWriter11stream_nameEv">
+<span id="_CPPv3N5river12StreamWriter11stream_nameEv"></span><span id="_CPPv2N5river12StreamWriter11stream_nameEv"></span><span id="river::StreamWriter::stream_name"></span><span class="target" id="classriver_1_1_stream_writer_1aec7415976b53c485d0a634e5e48ac6b3"></span><em class="property">const</em> std::string &amp;<code class="sig-name descname">stream_name</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5river12StreamWriter11stream_nameEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>The stream name belonging to this stream. Empty if it has not been initialized. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt id="_CPPv4N5river12StreamWriter21total_samples_writtenEv">
+<span id="_CPPv3N5river12StreamWriter21total_samples_writtenEv"></span><span id="_CPPv2N5river12StreamWriter21total_samples_writtenEv"></span><span id="river::StreamWriter::total_samples_written"></span><span class="target" id="classriver_1_1_stream_writer_1a35a2b6b3bdee49a616e4ff85778958e1"></span>int64_t <code class="sig-name descname">total_samples_written</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5river12StreamWriter21total_samples_writtenEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Number of samples written to this stream since initialization. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt id="_CPPv4N5river12StreamWriter17initialized_at_usEv">
+<span id="_CPPv3N5river12StreamWriter17initialized_at_usEv"></span><span id="_CPPv2N5river12StreamWriter17initialized_at_usEv"></span><span id="river::StreamWriter::initialized_at_us"></span><span class="target" id="classriver_1_1_stream_writer_1a4f7e3974a12810835e07f9aec8f50b90"></span>int64_t <code class="sig-name descname">initialized_at_us</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5river12StreamWriter17initialized_at_usEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Time in microseconds since epoch of when this stream was initialized, with respect to the <em>server</em> time. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt id="_CPPv4N5river12StreamWriter8MetadataEv">
+<span id="_CPPv3N5river12StreamWriter8MetadataEv"></span><span id="_CPPv2N5river12StreamWriter8MetadataEv"></span><span id="river::StreamWriter::Metadata"></span><span class="target" id="classriver_1_1_stream_writer_1a2d41a0b8a201c712fd4f797829ef65c1"></span>std::unordered_map&lt;std::string, std::string&gt; <code class="sig-name descname">Metadata</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5river12StreamWriter8MetadataEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>User metadata attached to this stream. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt id="_CPPv4N5river12StreamWriter11SetMetadataERKNSt13unordered_mapINSt6stringENSt6stringEEE">
+<span id="_CPPv3N5river12StreamWriter11SetMetadataERKNSt13unordered_mapINSt6stringENSt6stringEEE"></span><span id="_CPPv2N5river12StreamWriter11SetMetadataERKNSt13unordered_mapINSt6stringENSt6stringEEE"></span><span id="river::StreamWriter::SetMetadata__std::unordered_map:ss.ss:CR"></span><span class="target" id="classriver_1_1_stream_writer_1a3140a124e54f495c29dc34c176bfcc60"></span>void <code class="sig-name descname">SetMetadata</code><span class="sig-paren">(</span><em class="property">const</em> std::unordered_map&lt;std::string, std::string&gt; &amp;<em>metadata</em><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5river12StreamWriter11SetMetadataERKNSt13unordered_mapINSt6stringENSt6stringEEE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Sets the user metadata attached to this stream. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt id="_CPPv4N5river12StreamWriter4StopEv">
+<span id="_CPPv3N5river12StreamWriter4StopEv"></span><span id="_CPPv2N5river12StreamWriter4StopEv"></span><span id="river::StreamWriter::Stop"></span><span class="target" id="classriver_1_1_stream_writer_1a6e15675a960b445379df26f093b26167"></span>void <code class="sig-name descname">Stop</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5river12StreamWriter4StopEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Stops this stream permanently. This method must be called once the stream is finished in order to notify readers that the stream has terminated. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp class">
+<dt id="_CPPv4N5river15RedisConnectionE">
+<span id="_CPPv3N5river15RedisConnectionE"></span><span id="_CPPv2N5river15RedisConnectionE"></span><span id="river::RedisConnection"></span><span class="target" id="classriver_1_1_redis_connection"></span><em class="property">class </em><code class="sig-name descname">RedisConnection</code><a class="headerlink" href="#_CPPv4N5river15RedisConnectionE" title="Permalink to this definition">¶</a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp class">
+<dt id="_CPPv4N5river12StreamSchemaE">
+<span id="_CPPv3N5river12StreamSchemaE"></span><span id="_CPPv2N5river12StreamSchemaE"></span><span id="river::StreamSchema"></span><span class="target" id="classriver_1_1_stream_schema"></span><em class="property">class </em><code class="sig-name descname">StreamSchema</code><a class="headerlink" href="#_CPPv4N5river12StreamSchemaE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>The schema for a particular stream. A stream has exactly one schema over its lifetime; this schema defines both the writing and reading structure of the stream (and, if in use, the on-disk representation of the stream). </p>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt id="_CPPv4N5river15FieldDefinitionE">
+<span id="_CPPv3N5river15FieldDefinitionE"></span><span id="_CPPv2N5river15FieldDefinitionE"></span><span id="river::FieldDefinition"></span><span class="target" id="structriver_1_1_field_definition"></span><em class="property">struct </em><code class="sig-name descname">FieldDefinition</code><a class="headerlink" href="#_CPPv4N5river15FieldDefinitionE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>One or more fields that are present in each sample of a particular stream. This definition governs how this will be serialized to Redis and the columns in the persisted file.</p>
+<p>While most field definitions are fixed-width, the VARIABLE_WIDTH_BYTES field is a bit different. If you want to use a variable-width bytes (e.g. a dynamic-length string or byte array), then specify VARIABLE_WIDTH_BYTES but this must be your only field; this is for simplicity for handling serialization/deserialization. In this case, the size should correspond to the MAX size possible for this field, which is needed when serializing/deserializing. </p>
+</dd></dl>
+
+<dl class="cpp class">
+<dt id="_CPPv4N5river8internal14RedisExceptionE">
+<span id="_CPPv3N5river8internal14RedisExceptionE"></span><span id="_CPPv2N5river8internal14RedisExceptionE"></span><span id="river::internal::RedisException"></span><span class="target" id="classriver_1_1internal_1_1_redis_exception"></span><em class="property">class </em><code class="sig-name descname">RedisException</code> : <em class="property">public</em> std::exception<a class="headerlink" href="#_CPPv4N5river8internal14RedisExceptionE" title="Permalink to this definition">¶</a><br /></dt>
+<dd></dd></dl>
+
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="python.html" class="btn btn-neutral float-left" title="Python Docs" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, Paul Botros.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
