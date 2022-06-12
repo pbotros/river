@@ -110,8 +110,8 @@ r.initialize(w.stream_name, 1000)
 # read per invocation is decided by the size of the buffer passed in, so in this
 # case, we create a new empty buffer with `new_buffer` (again, syntactic sugar for
 # creating a numpy array with appropriate dtype). In real use cases, you should
-# read as many samples per call as your latency/system tolerates, to amoritze overhead
-# of each call.
+# read as many samples per call as your latency/system tolerates to amoritze overhead
+# of each call, i.e. you should use a buffer with many more samples.
 data = r.new_buffer(1)
 
 # Like with the writer, you can use a context manager to auto-stop the reader after
