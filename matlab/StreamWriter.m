@@ -51,7 +51,7 @@ classdef StreamWriter < handle
                 'VariableNames', field_names);
         end
         
-        function write(this, input_table)
+        function write_table(this, input_table)
             % Convert to cell array
             field_names = this.schema_field_names();
             n_cols = length(field_names);

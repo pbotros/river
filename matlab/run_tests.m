@@ -17,7 +17,7 @@ written_data{:, 'col1'} = [1, 2, 4, 6]';
 written_data{:, 'col2'} = [1.0, -10.0, -100.0, 1931]';
 
 % And write it!
-w.write(written_data);
+w.write_table(written_data);
 w.stop();
 
 % Now setup the reader pointing to the just-created stream:
@@ -27,7 +27,7 @@ disp(r.stream_name());
 disp(r.schema_field_names());
 
 % And read!
-read_data = r.read(10);
+read_data = r.read_table(10);
 r.stop();
 
 disp(read_data);

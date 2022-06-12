@@ -48,7 +48,7 @@ classdef StreamReader < handle
                 'VariableNames', field_names);
         end
         
-        function output_table = read(this, n)
+        function output_table = read_table(this, n)
             [n_read, data] = this.mexInterface.call_method('read', n);
             field_names = this.schema_field_names();
             field_types = this.schema_field_types();
