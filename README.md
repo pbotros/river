@@ -37,6 +37,9 @@ For the (experimental) MATLAB bindings, see the MATLAB README for details.
 
 For compiling from source, see further down.
 
+## Documentation
+Documentation for the C++ and Python libraries can be found at https://pbotros.github.io/river/docs/index.html.
+
 ## Tutorial: C++
 
 Sample code that writes some sample data to a River stream and then reads and then prints that data to stdout can be found in [river_example.cpp](https://github.com/pbotros/river/blob/master/src/tools/river_example.cpp). The Python tutorial can be followed to understand how River works.
@@ -208,9 +211,6 @@ $> cat river_streams/<your stream name>/metadata.json | jq
 - `ingestion_status`: can be `COMPLETED` or `IN_PROGRESS`. Reflects the status of ingesting this particular stream.
 - `local_minus_server_clock_us`: estimated difference between the local and server (i.e. Redis) clocks in microseconds.
 - `initialized_at_us`: the local UNIX timestamp in microseconds at which `StreamWriter#initialize()` was called.
-
-## Documentation
-Documentation for the C++ and Python libraries can be found at https://pbotros.github.io/river/docs/index.html.
 
 ## Performance
 
