@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Python Docs &mdash; river  documentation</title><link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/language_data.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="C++ Docs" href="cpp.html" />
+    <link rel="prev" title="Welcome to river’s documentation!" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> river
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Python Docs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cpp.html">C++ Docs</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">river</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>Python Docs</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/python.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="python-docs">
+<h1>Python Docs<a class="headerlink" href="#python-docs" title="Permalink to this headline">¶</a></h1>
+<dl class="py class">
+<dt id="river.StreamReader">
+<em class="property">class </em><code class="sig-prename descclassname">river.</code><code class="sig-name descname">StreamReader</code><a class="headerlink" href="#river.StreamReader" title="Permalink to this definition">¶</a></dt>
+<dd><p>The main entry point for River for reading an existing stream. This class is initialized with a stream name
+corresponding to an existing stream, and allows for batch consumption of the stream. Reads requesting more data than
+is present in the stream will block.</p>
+<p>After constructing a StreamReader, you must call initialize with the name of the stream you wish to read.</p>
+<dl class="py attribute">
+<dt id="river.StreamReader.good">
+<code class="sig-name descname">good</code><a class="headerlink" href="#river.StreamReader.good" title="Permalink to this definition">¶</a></dt>
+<dd><p>Whether this stream is “good” for reading (similar to std::ifstream’s #good()). Synonymous with casting to bool.
+Indicates whether more samples can be read from this stream via this StreamReader.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="river.StreamReader.initialize">
+<code class="sig-name descname">initialize</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">unicode stream_name: str</em>, <em class="sig-param">timeout_ms: int = -1</em><span class="sig-paren">)</span><a class="headerlink" href="#river.StreamReader.initialize" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initialize this reader to a particular stream. If timeout_ms is positive, this call will wait for up to
+<cite>timeout_ms</cite> milliseconds for the stream to be created. When the timeout is exceeded or if no timeout was given
+and the stream does not exist, a StreamReaderException will be raised.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="river.StreamReader.initialized_at_us">
+<code class="sig-name descname">initialized_at_us</code><a class="headerlink" href="#river.StreamReader.initialized_at_us" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="river.StreamReader.metadata">
+<code class="sig-name descname">metadata</code><a class="headerlink" href="#river.StreamReader.metadata" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="river.StreamReader.new_buffer">
+<code class="sig-name descname">new_buffer</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">self</span></em>, <em class="sig-param"><span class="n">n</span><span class="p">:</span> <span class="n">int</span></em><span class="sig-paren">)</span> &#x2192; np.ndarray<a class="headerlink" href="#river.StreamReader.new_buffer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns an empty NumPy buffer of size <cite>n</cite> with a dtype matching the stream’s schema. Note that the returned
+buffer is simply allocated and not also zeroed, so there’s likely to be “junk” seen in the returned array.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="river.StreamReader.read">
+<code class="sig-name descname">read</code><span class="sig-paren">(</span><em class="sig-param">self: StreamReader</em>, <em class="sig-param">ndarray arr: np.ndarray</em>, <em class="sig-param">timeout_ms: int = -1</em><span class="sig-paren">)</span> &#x2192; int<a class="headerlink" href="#river.StreamReader.read" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read from the stream from where was last consumed. This call blocks until the desired number of samples is
+available in the underlying stream. The return value indicates how many samples were written to the buffer.
+If EOF has been reached, then #good() will return false, and any attempts to #read() will return -1.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>arr</strong> – The buffer into which data will be read from the stream. At most <cite>arr.size</cite> samples will be read
+from the stream and written into <cite>arr</cite>. The return value of this call (if nonnegative) tells how many samples,
+each of <cite>sample_size</cite> bytes as told by the schema, were written into the buffer. For VARIABLE_WIDTH_BYTES
+fields, ensure this buffer is large enough to capture the maximum possible read size.</p></li>
+<li><p><strong>timeout_ms</strong> – If positive, the maximum length of time this entire call can block while waiting for samples.
+After the timeout, the stream can be partially read, and the return value is needed to determine samples read.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>the number of elements read. This will always be less than or equal to <cite>arr.size</cite>. For example, if
+there is a timeout, this could be a partially read buffer and so can be less than <cite>arr.size</cite>; this number can
+be less than <cite>arr.size</cite> even if there is no timeout given, in the case of an EOF on the stream.
+Returns -1 if EOF is encountered; if -1 is returned, buffer is guaranteed to not have been touched.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="river.StreamReader.schema">
+<code class="sig-name descname">schema</code><a class="headerlink" href="#river.StreamReader.schema" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="river.StreamReader.stop">
+<code class="sig-name descname">stop</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">self</span></em><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#river.StreamReader.stop" title="Permalink to this definition">¶</a></dt>
+<dd><p>Stops this reader from being used in the future. Redis connections are freed; read() will no longer work; good()
+will return false.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="river.StreamReader.stream_name">
+<code class="sig-name descname">stream_name</code><a class="headerlink" href="#river.StreamReader.stream_name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="river.StreamReader.tail">
+<code class="sig-name descname">tail</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">ndarray arr</em>, <em class="sig-param">int timeout_ms=-1</em><span class="sig-paren">)</span> &#x2192; int<a class="headerlink" href="#river.StreamReader.tail" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the last element in the stream after the previously seen elements. Blocks until there’s at least one
+element available in the stream after the current cursor if no timeout is given; else, waits for the timeout.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>timeout_ms</strong> – If positive, the maximum length of time this entire call can block while waiting for a sample.
+After the timeout there will be 0 or 1 elements read, and so the return value is needed to determine samples read.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>the number of elements skipped and/or read, including the last element that might be written into the
+buffer. Thus, this will return 0 in the event of a timeout; this will return &gt;= 1 iff buffer is changed.
+Returns -1 if there is an EOF in the stream.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="river.StreamReader.total_samples_read">
+<code class="sig-name descname">total_samples_read</code><a class="headerlink" href="#river.StreamReader.total_samples_read" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="river.StreamWriter">
+<em class="property">class </em><code class="sig-prename descclassname">river.</code><code class="sig-name descname">StreamWriter</code><a class="headerlink" href="#river.StreamWriter" title="Permalink to this definition">¶</a></dt>
+<dd><p>The main entry point for River for writing a new stream. Streams are defined by a schema and a stream name, both of
+which are given in the <cite>initialize()</cite> call. All samples written to this stream must belong to the same schema. Once
+there are no more elements in this stream, call <cite>stop()</cite>; this will signal to any other readers that the stream has
+ended.</p>
+<dl class="py method">
+<dt id="river.StreamWriter.initialize">
+<code class="sig-name descname">initialize</code><span class="sig-paren">(</span><em class="sig-param">self: StreamWriter</em>, <em class="sig-param">unicode stream_name: str</em>, <em class="sig-param">StreamSchema schema: StreamSchema</em>, <em class="sig-param">dict user_metadata: dict = None</em><span class="sig-paren">)</span><a class="headerlink" href="#river.StreamWriter.initialize" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initialize this stream for writing. The given stream name must be unique within the Redis used. This
+initialization puts necessary information (e.g. schemas and timestamps) into redis. Optionally, it can accept
+a dict of user metadata to put in to Redis atomically.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="river.StreamWriter.initialized_at_us">
+<code class="sig-name descname">initialized_at_us</code><a class="headerlink" href="#river.StreamWriter.initialized_at_us" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="river.StreamWriter.metadata">
+<code class="sig-name descname">metadata</code><a class="headerlink" href="#river.StreamWriter.metadata" title="Permalink to this definition">¶</a></dt>
+<dd><p>this does a call to Redis under-the-hood and
+so can incur a little bit of overhead.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>Returns all metadata set for this stream. Implementation note</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="river.StreamWriter.new_buffer">
+<code class="sig-name descname">new_buffer</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">self</span></em>, <em class="sig-param"><span class="n">n</span><span class="p">:</span> <span class="n">int</span></em><span class="sig-paren">)</span> &#x2192; np.ndarray<a class="headerlink" href="#river.StreamWriter.new_buffer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns an empty NumPy buffer of size <cite>n</cite> with a dtype matching the stream’s schema. Note that the returned
+buffer is simply allocated and not also zeroed, so there’s likely to be “junk” seen in the returned array.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="river.StreamWriter.schema">
+<code class="sig-name descname">schema</code><a class="headerlink" href="#river.StreamWriter.schema" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="river.StreamWriter.stop">
+<code class="sig-name descname">stop</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">self</span></em><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#river.StreamWriter.stop" title="Permalink to this definition">¶</a></dt>
+<dd><p>Stops this stream permanently. This method must be called once the stream is finished in order to notify readers
+that the stream has terminated.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="river.StreamWriter.stream_name">
+<code class="sig-name descname">stream_name</code><a class="headerlink" href="#river.StreamWriter.stream_name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="river.StreamWriter.total_samples_written">
+<code class="sig-name descname">total_samples_written</code><a class="headerlink" href="#river.StreamWriter.total_samples_written" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="river.StreamWriter.write">
+<code class="sig-name descname">write</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">ndarray arr: np.ndarray</em><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#river.StreamWriter.write" title="Permalink to this definition">¶</a></dt>
+<dd><p>Writes data to the stream. Assumes that each element of the array <cite>arr</cite> is of the correct sample size (as
+defined by the stream’s schema’s sample size), and will write bytes in order of the schema fields. <cite>arr.size</cite>
+samples will be written to the stream.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="river.RedisConnection">
+<em class="property">class </em><code class="sig-prename descclassname">river.</code><code class="sig-name descname">RedisConnection</code><a class="headerlink" href="#river.RedisConnection" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py attribute">
+<dt id="river.RedisConnection.redis_hostname">
+<code class="sig-name descname">redis_hostname</code><a class="headerlink" href="#river.RedisConnection.redis_hostname" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="river.RedisConnection.redis_password">
+<code class="sig-name descname">redis_password</code><a class="headerlink" href="#river.RedisConnection.redis_password" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="river.RedisConnection.redis_port">
+<code class="sig-name descname">redis_port</code><a class="headerlink" href="#river.RedisConnection.redis_port" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="river.StreamSchema">
+<em class="property">class </em><code class="sig-prename descclassname">river.</code><code class="sig-name descname">StreamSchema</code><a class="headerlink" href="#river.StreamSchema" title="Permalink to this definition">¶</a></dt>
+<dd><p>The schema for a particular stream. A stream has exactly one schema over its lifetime; this schema defines both the
+writing and reading structure of the stream (and, if in use, the on-disk representation of the stream).</p>
+<dl class="py method">
+<dt id="river.StreamSchema.dtype">
+<code class="sig-name descname">dtype</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">self</span></em><span class="sig-paren">)</span> &#x2192; np.dtype<a class="headerlink" href="#river.StreamSchema.dtype" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the equivalent NumPy dtype for this schema instance.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="river.StreamSchema.field_definitions">
+<code class="sig-name descname">field_definitions</code><a class="headerlink" href="#river.StreamSchema.field_definitions" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="river.StreamSchema.from_dtype">
+<em class="property">static </em><code class="sig-name descname">from_dtype</code><span class="sig-paren">(</span><em class="sig-param">dtype dtype: np.dtype</em><span class="sig-paren">)</span><a class="headerlink" href="#river.StreamSchema.from_dtype" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a StreamSchema from a given NumPy dtype. This dtype should be a “structured array”
+dtype, where the dtype is a collection of named fields. See
+<a class="reference external" href="https://numpy.org/doc/stable/user/basics.rec.html">https://numpy.org/doc/stable/user/basics.rec.html</a> for more details.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="river.FieldDefinition">
+<em class="property">class </em><code class="sig-prename descclassname">river.</code><code class="sig-name descname">FieldDefinition</code><a class="headerlink" href="#river.FieldDefinition" title="Permalink to this definition">¶</a></dt>
+<dd><p>One or more fields that are present in each sample of a particular stream. This definition governs how this will be
+serialized to Redis and the columns in the persisted file. A collection of field definitions are housed within a
+StreamSchema.</p>
+<p>While most field definitions are fixed-width( e.g. doubles, floats, etc.), the VARIABLE_WIDTH_BYTES field is a bit
+different. If you want to use a variable-width bytes (e.g. a dynamic-length string or byte array), then specify
+VARIABLE_WIDTH_BYTES but this must be your only field; this is for simplicity for handling serialization/deserialization.
+In this case, the size should correspond to the MAX size possible for this field, which is needed when serializing/deserializing.</p>
+<dl class="py attribute">
+<dt id="river.FieldDefinition.name">
+<code class="sig-name descname">name</code><a class="headerlink" href="#river.FieldDefinition.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="river.FieldDefinition.type">
+<code class="sig-name descname">type</code><a class="headerlink" href="#river.FieldDefinition.type" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="river.FieldType">
+<em class="property">class </em><code class="sig-prename descclassname">river.</code><code class="sig-name descname">FieldType</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">value</span></em><span class="sig-paren">)</span><a class="headerlink" href="#river.FieldType" title="Permalink to this definition">¶</a></dt>
+<dd><p>An enumeration.</p>
+<dl class="py attribute">
+<dt id="river.FieldType.DOUBLE">
+<code class="sig-name descname">DOUBLE</code><em class="property"> = 0</em><a class="headerlink" href="#river.FieldType.DOUBLE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="river.FieldType.FIXED_WIDTH_BYTES">
+<code class="sig-name descname">FIXED_WIDTH_BYTES</code><em class="property"> = 4</em><a class="headerlink" href="#river.FieldType.FIXED_WIDTH_BYTES" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="river.FieldType.FLOAT">
+<code class="sig-name descname">FLOAT</code><em class="property"> = 1</em><a class="headerlink" href="#river.FieldType.FLOAT" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="river.FieldType.INT32">
+<code class="sig-name descname">INT32</code><em class="property"> = 2</em><a class="headerlink" href="#river.FieldType.INT32" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="river.FieldType.INT64">
+<code class="sig-name descname">INT64</code><em class="property"> = 3</em><a class="headerlink" href="#river.FieldType.INT64" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="river.FieldType.VARIABLE_WIDTH_BYTES">
+<code class="sig-name descname">VARIABLE_WIDTH_BYTES</code><em class="property"> = 5</em><a class="headerlink" href="#river.FieldType.VARIABLE_WIDTH_BYTES" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="river.RedisException">
+<em class="property">class </em><code class="sig-prename descclassname">river.</code><code class="sig-name descname">RedisException</code><a class="headerlink" href="#river.RedisException" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py class">
+<dt id="river.StreamReaderException">
+<em class="property">class </em><code class="sig-prename descclassname">river.</code><code class="sig-name descname">StreamReaderException</code><a class="headerlink" href="#river.StreamReaderException" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py class">
+<dt id="river.StreamWriterException">
+<em class="property">class </em><code class="sig-prename descclassname">river.</code><code class="sig-name descname">StreamWriterException</code><a class="headerlink" href="#river.StreamWriterException" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py class">
+<dt id="river.StreamDoesNotExistException">
+<em class="property">class </em><code class="sig-prename descclassname">river.</code><code class="sig-name descname">StreamDoesNotExistException</code><a class="headerlink" href="#river.StreamDoesNotExistException" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py class">
+<dt id="river.StreamExistsException">
+<em class="property">class </em><code class="sig-prename descclassname">river.</code><code class="sig-name descname">StreamExistsException</code><a class="headerlink" href="#river.StreamExistsException" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="Welcome to river’s documentation!" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="cpp.html" class="btn btn-neutral float-right" title="C++ Docs" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, Paul Botros.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

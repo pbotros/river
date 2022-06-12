@@ -213,7 +213,7 @@ $> cat river_streams/<your stream name>/metadata.json | jq
 
 On a 2019 16-inch Macbook Pro with 2.6 GHz i7 and 16GB ram, writing/reading to Redis at localhost, and with no data in Redis before testing, performance varies as a function of sample size and batch size:
 
-![Graph](https://raw.githubusercontent.com/pbotros/river/master/docs/performance.png)
+![Graph](https://raw.githubusercontent.com/pbotros/river/master/misc/performance.png)
 
 Above performance tests were run with:
 

@@ -69,6 +69,16 @@ cpdef enum FieldType:
     VARIABLE_WIDTH_BYTES = criver.FIELD_DEFINITION_VARIABLE_WIDTH_BYTES
 
 cdef class FieldDefinition:
+    """
+    One or more fields that are present in each sample of a particular stream. This definition governs how this will be
+    serialized to Redis and the columns in the persisted file. A collection of field definitions are housed within a
+    StreamSchema.
+
+    While most field definitions are fixed-width( e.g. doubles, floats, etc.), the VARIABLE_WIDTH_BYTES field is a bit
+    different. If you want to use a variable-width bytes (e.g. a dynamic-length string or byte array), then specify
+    VARIABLE_WIDTH_BYTES but this must be your only field; this is for simplicity for handling serialization/deserialization.
+    In this case, the size should correspond to the MAX size possible for this field, which is needed when serializing/deserializing.
+    """
     cdef shared_ptr[criver.FieldDefinition] _definition
 
     def __cinit__(self, str name, FieldType type, size_t size = 0):
@@ -109,6 +119,10 @@ cdef class FieldDefinition:
             deref(fd).size)
 
 cdef class StreamSchema:
+    """
+    The schema for a particular stream. A stream has exactly one schema over its lifetime; this schema defines both the
+    writing and reading structure of the stream (and, if in use, the on-disk representation of the stream).
+    """
     cdef shared_ptr[criver.StreamSchema] _schema
 
     def __cinit__(self, list field_definitions):
@@ -143,6 +157,10 @@ cdef class StreamSchema:
         return ret
 
     def dtype(self) -> np.dtype:
+        """
+        Returns the equivalent NumPy dtype for this schema instance.
+        """
+
         cdef list dtypes
         cdef criver.FieldDefinition *field_definition
 
@@ -172,6 +190,11 @@ cdef class StreamSchema:
 
     @staticmethod
     def from_dtype(dtype: np.dtype):
+        """
+        Creates a StreamSchema from a given NumPy dtype. This dtype should be a "structured array"
+        dtype, where the dtype is a collection of named fields. See
+        https://numpy.org/doc/stable/user/basics.rec.html for more details.
+        """
         if dtype.fields is None:
             raise ValueError('Can only convert a structured array dtype with names.')
 
@@ -196,9 +219,24 @@ cdef class StreamSchema:
         return StreamSchema(field_definitions)
 
 cdef class StreamReader:
+    """
+    The main entry point for River for reading an existing stream. This class is initialized with a stream name
+    corresponding to an existing stream, and allows for batch consumption of the stream. Reads requesting more data than
+    is present in the stream will block.
+
+    After constructing a StreamReader, you must call initialize with the name of the stream you wish to read.
+    """
+
     cdef shared_ptr[criver.StreamReader] _reader
 
     def __cinit__(self, RedisConnection connection, int max_fetch_size = -1):
+        """
+         Construct an instance of a StreamReader. One StreamReader can be used with at most one underlying stream.
+
+         :param connection: contains parameters to connect to Redis
+         :param max_fetch_size: maximum number of elements to fetch from Redis at a time (to prevent untenably large
+                                batches if a large number of bytes are consumed).
+        """
         if max_fetch_size <= 0:
             self._reader = shared_ptr[criver.StreamReader](new criver.StreamReader(deref(connection._connection)))
         else:
@@ -206,6 +244,12 @@ cdef class StreamReader:
                 deref(connection._connection), max_fetch_size))
 
     def initialize(self, stream_name: str, timeout_ms: int = -1):
+        """
+        Initialize this reader to a particular stream. If timeout_ms is positive, this call will wait for up to
+        `timeout_ms` milliseconds for the stream to be created. When the timeout is exceeded or if no timeout was given
+        and the stream does not exist, a StreamReaderException will be raised.
+        """
+
         if timeout_ms > 0:
             deref(self._reader).Initialize(stream_name.encode('UTF-8'), timeout_ms)
         else:
@@ -238,15 +282,44 @@ cdef class StreamReader:
 
     @property
     def good(self: StreamReader) -> bool:
+        """
+        Whether this stream is "good" for reading (similar to std::ifstream's #good()). Synonymous with casting to bool.
+        Indicates whether more samples can be read from this stream via this StreamReader.
+        """
         return deref(self._reader).Good()
 
     def __bool__(self):
+        """
+        Same as #good().
+        """
         return self.good
 
     def new_buffer(self, n: int) -> np.ndarray:
+        """
+        Returns an empty NumPy buffer of size `n` with a dtype matching the stream's schema. Note that the returned
+        buffer is simply allocated and not also zeroed, so there's likely to be "junk" seen in the returned array.
+        """
         return np.empty(n, dtype=self.schema.dtype())
 
     def read(self: StreamReader, arr: np.ndarray, timeout_ms: int = -1) -> int:
+        """
+        Read from the stream from where was last consumed. This call blocks until the desired number of samples is
+        available in the underlying stream. The return value indicates how many samples were written to the buffer.
+        If EOF has been reached, then #good() will return false, and any attempts to #read() will return -1.
+
+        :param arr: The buffer into which data will be read from the stream. At most `arr.size` samples will be read
+                    from the stream and written into `arr`. The return value of this call (if nonnegative) tells how many samples,
+                    each of `sample_size` bytes as told by the schema, were written into the buffer. For VARIABLE_WIDTH_BYTES
+                    fields, ensure this buffer is large enough to capture the maximum possible read size.
+
+        :param timeout_ms: If positive, the maximum length of time this entire call can block while waiting for samples.
+                           After the timeout, the stream can be partially read, and the return value is needed to determine samples read.
+
+        :return: the number of elements read. This will always be less than or equal to `arr.size`. For example, if
+                 there is a timeout, this could be a partially read buffer and so can be less than `arr.size`; this number can
+                 be less than `arr.size` even if there is no timeout given, in the case of an EOF on the stream.
+                 Returns -1 if EOF is encountered; if -1 is returned, buffer is guaranteed to not have been touched.
+        """
         cdef int64_t size = arr.size
         cdef char* pointer = <char *> arr.data
         cdef int64_t ret = 0
@@ -260,6 +333,17 @@ cdef class StreamReader:
         return ret
 
     def tail(self, np.ndarray arr not None, int timeout_ms = -1) -> int:
+        """
+        Returns the last element in the stream after the previously seen elements. Blocks until there's at least one
+        element available in the stream after the current cursor if no timeout is given; else, waits for the timeout.
+
+        :param timeout_ms: If positive, the maximum length of time this entire call can block while waiting for a sample.
+                           After the timeout there will be 0 or 1 elements read, and so the return value is needed to determine samples read.
+
+        :return: the number of elements skipped and/or read, including the last element that might be written into the
+                 buffer. Thus, this will return 0 in the event of a timeout; this will return >= 1 iff buffer is changed.
+                 Returns -1 if there is an EOF in the stream.
+        """
         cdef char* pointer = <char *> arr.data
         cdef int64_t ret = 0
 
@@ -271,6 +355,10 @@ cdef class StreamReader:
         return ret
 
     def stop(self) -> None:
+        """
+        Stops this reader from being used in the future. Redis connections are freed; read() will no longer work; good()
+        will return false.
+        """
         deref(self._reader).Stop()
 
     def __enter__(self):
@@ -281,11 +369,28 @@ cdef class StreamReader:
 
 
 cdef class StreamWriter:
+    """
+    The main entry point for River for writing a new stream. Streams are defined by a schema and a stream name, both of
+    which are given in the `initialize()` call. All samples written to this stream must belong to the same schema. Once
+    there are no more elements in this stream, call `stop()`; this will signal to any other readers that the stream has
+    ended.
+    """
     cdef shared_ptr[criver.StreamWriter] _writer
 
     def __cinit__(self, RedisConnection connection,
                   int64_t keys_per_redis_stream = -1,
                   int batch_size = -1):
+        """
+        Construct an instance of StreamWriter. One StreamWriter belongs to at most one stream.
+
+        :param connection: Parameters to connect to Redis.
+        :param batch_size: Number of samples in a batch that will be written/read from redis. Increasing this
+                           number makes batches bigger and thus reduces the number of writes/reads to redis, but then also increases the
+                           average latency of the stream.
+        :param keys_per_redis_stream: the number of keys in each underlying redis stream. Default value reasoning is:
+                                      2^24 = 17M keys per stream => ~350MB of memory on 64-bit redis with 8-byte sample size.
+        """
+
         if keys_per_redis_stream > 0 and batch_size > 0:
             self._writer = shared_ptr[criver.StreamWriter](new criver.StreamWriter(
                 deref(connection._connection), keys_per_redis_stream, batch_size))
@@ -297,6 +402,11 @@ cdef class StreamWriter:
                 deref(connection._connection)))
 
     def initialize(self: StreamWriter, stream_name: str, schema: StreamSchema, user_metadata: dict = None):
+        """
+        Initialize this stream for writing. The given stream name must be unique within the Redis used. This
+        initialization puts necessary information (e.g. schemas and timestamps) into redis. Optionally, it can accept
+        a dict of user metadata to put in to Redis atomically.
+        """
         cdef unordered_map[string, string] c_metadata
         if user_metadata is not None:
             for key, val in user_metadata.items():
@@ -317,6 +427,10 @@ cdef class StreamWriter:
 
     @property
     def metadata(self):
+        """
+        Returns all metadata set for this stream. Implementation note: this does a call to Redis under-the-hood and
+        so can incur a little bit of overhead.
+        """
         cdef unordered_map[string, string] m = deref(self._writer).Metadata()
         cdef dict ret_bytes = m
         cdef dict ret = dict()
@@ -340,9 +454,18 @@ cdef class StreamWriter:
         return deref(self._writer).initialized_at_us()
 
     def new_buffer(self, n: int) -> np.ndarray:
+        """
+        Returns an empty NumPy buffer of size `n` with a dtype matching the stream's schema. Note that the returned
+        buffer is simply allocated and not also zeroed, so there's likely to be "junk" seen in the returned array.
+        """
         return np.empty(n, dtype=self.schema.dtype())
 
     def write(self, arr: np.ndarray) -> None:
+        """
+        Writes data to the stream. Assumes that each element of the array `arr` is of the correct sample size (as
+        defined by the stream's schema's sample size), and will write bytes in order of the schema fields. `arr.size`
+        samples will be written to the stream.
+        """
         cdef int64_t size = arr.size
         cdef char* pointer = <char *> arr.data
 
@@ -350,6 +473,10 @@ cdef class StreamWriter:
             deref(self._writer).WriteBytes(pointer, size)
 
     def stop(self) -> None:
+        """
+        Stops this stream permanently. This method must be called once the stream is finished in order to notify readers
+        that the stream has terminated.
+        """
         deref(self._writer).Stop()
 
     def __enter__(self):

@@ -44,7 +44,6 @@ typedef struct FieldDefinition {
 /**
  * The schema for a particular stream. A stream has exactly one schema over its lifetime; this schema defines both the
  * writing and reading structure of the stream (and, if in use, the on-disk representation of the stream).
- *
  */
 class StreamSchema {
  public:
