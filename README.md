@@ -66,7 +66,8 @@ w = river.StreamWriter(river.RedisConnection("127.0.0.1", 6379))
 
 # River's Python bindings has built-in support for conversion between River's schema objects
 # and numpy's dtype. These lines initialize a stream where each sample has a single field,
-# a double.
+# a double, named `col1`. See the documentation on StreamSchema for a complete list of supported
+# NumPy types.
 dt = np.dtype([('col1', np.double)])
 w.initialize(stream_name, river.StreamSchema.from_dtype(dt))
 
@@ -208,6 +209,8 @@ $> cat river_streams/<your stream name>/metadata.json | jq
 - `local_minus_server_clock_us`: estimated difference between the local and server (i.e. Redis) clocks in microseconds.
 - `initialized_at_us`: the local UNIX timestamp in microseconds at which `StreamWriter#initialize()` was called.
 
+## Documentation
+Documentation for the C++ and Python libraries can be found at https://pbotros.github.io/river/docs/index.html.
 
 ## Performance
 
