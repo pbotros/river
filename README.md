@@ -293,7 +293,7 @@ cd build/release/src
 ### Troubleshooting
 
 ### Installing Google Log (GLOG)
-On Mac, `brew install glog` seems to work fine to resolve dependencies needed for Google Log. However, on other distros where the version of GLOG is too old and doesn't include a CMakeLists.txt (i.e. Raspbian Buster, Ubuntu 18.04), GLOG needs to be compiled and installed from source.
+On Mac, `brew install glog` seems to work fine to resolve dependencies needed for Google Log. However, on other distros where the version of GLOG is too old and doesn't include a CMakeLists.txt (i.e. Raspbian Buster, Ubuntu 18.04), GLOG needs to be compiled and installed from source. Note that, alternatively, conda via conda-forge might have a sufficient version of `glog`.
 
 ```
 cd /some/directory
@@ -313,7 +313,7 @@ sudo apt remove libgflags-dev libglog-dev
 ```
 
 ### Installing Boost on Linux
-In some Linux distributions, the packaged version of Boost might be too old. In order to install Boost from source, follow [the Boost website](https://www.boost.org/doc/libs/1_57_0/more/getting_started/unix-variants.html). In particular, the following commands will install the libraries needed, once you've downloaded the most recent release and un-tar'd it:
+In some Linux distributions, the packaged version of Boost might be too old. If you're using conda, conda-forge should have an updated version. If you're not, you'll have to install via source. In order to install Boost from source, follow [the Boost website](https://www.boost.org/doc/libs/1_57_0/more/getting_started/unix-variants.html). In particular, the following commands will install the libraries needed, once you've downloaded the most recent release and un-tar'd it:
 
 ```
 ./bootstrap --with-libraries=filesystem,graph,program_options,system,headers,thread
