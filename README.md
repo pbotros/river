@@ -42,7 +42,7 @@ Documentation for the C++ and Python libraries can be found at https://pbotros.g
 
 ## Tutorial: C++
 
-Sample code that writes some sample data to a River stream and then reads and then prints that data to stdout can be found in [river_example.cpp](https://github.com/pbotros/river/blob/master/src/tools/river_example.cpp). The Python tutorial can be followed to understand how River works.
+Sample code that writes some sample data to a River stream and then reads and then prints that data to stdout can be found in [river_example.cpp](https://github.com/pbotros/river/blob/master/cpp/src/tools/river_example.cpp). The Python tutorial can be followed to understand how River works.
 
 
 ## Tutorial: Python
