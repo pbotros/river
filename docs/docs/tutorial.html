@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tutorial &mdash; river  documentation</title><link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/language_data.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="API" href="api/index.html" />
+    <link rel="prev" title="Installation" href="install.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> river
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="install.html">Installation</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Tutorial</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#redis">Redis</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#writing">Writing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#reading">Reading</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#ingestion">Ingestion</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="api/index.html">API</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">river</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>Tutorial</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/tutorial.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="tutorial">
+<h1>Tutorial<a class="headerlink" href="#tutorial" title="Permalink to this headline">¶</a></h1>
+<p>Let’s do your first stream with River. The following tutorial is written in Python, but the concepts and method names are very similar in C++. Similar example code in C++ can be found in <a class="reference external" href="https://github.com/pbotros/river/blob/master/cpp/src/tools/river_example.cpp">river_example.cpp</a>.</p>
+<div class="section" id="redis">
+<h2>Redis<a class="headerlink" href="#redis" title="Permalink to this headline">¶</a></h2>
+<p>River utilizes Redis as its underlying database. If you don’t have it running, the [Redis website](<a class="reference external" href="https://redis.io/">https://redis.io/</a>) has great instructions on downloading and installing. Note that Redis is currently only supported on Linux, Mac, and Windows Subsystem for Linux (WSL).</p>
+<p>This tutorial assumes Redis is running at localhost <cite>127.0.0.1</cite> on the standard port 6379, but adjust the following if it’s not.</p>
+</div>
+<div class="section" id="writing">
+<h2>Writing<a class="headerlink" href="#writing" title="Permalink to this headline">¶</a></h2>
+<p>First, let’s create your first stream via river’s <cite>StreamWriter</cite>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">river</span>
+<span class="kn">import</span> <span class="nn">uuid</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="n">stream_name</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">uuid</span><span class="o">.</span><span class="n">uuid4</span><span class="p">())</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Creating a stream with name&quot;</span><span class="p">,</span> <span class="n">stream_name</span><span class="p">)</span>
+
+<span class="c1"># Create a River StreamWriter that connects to Redis at localhost with port 6379 (the default)</span>
+<span class="n">w</span> <span class="o">=</span> <span class="n">river</span><span class="o">.</span><span class="n">StreamWriter</span><span class="p">(</span><span class="n">river</span><span class="o">.</span><span class="n">RedisConnection</span><span class="p">(</span><span class="s2">&quot;127.0.0.1&quot;</span><span class="p">,</span> <span class="mi">6379</span><span class="p">))</span>
+
+<span class="c1"># River&#39;s Python bindings has built-in support for conversion between River&#39;s schema objects</span>
+<span class="c1"># and numpy&#39;s dtype. These lines initialize a stream where each sample has a single field,</span>
+<span class="c1"># a double, named `col1`. See the documentation on StreamSchema for a complete list of supported</span>
+<span class="c1"># NumPy types.</span>
+<span class="n">dt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">([(</span><span class="s1">&#39;col1&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">double</span><span class="p">)])</span>
+<span class="n">w</span><span class="o">.</span><span class="n">initialize</span><span class="p">(</span><span class="n">stream_name</span><span class="p">,</span> <span class="n">river</span><span class="o">.</span><span class="n">StreamSchema</span><span class="o">.</span><span class="n">from_dtype</span><span class="p">(</span><span class="n">dt</span><span class="p">))</span>
+
+<span class="c1"># Create a buffer of data to write to the stream. #new_buffer</span>
+<span class="c1"># is syntactic sugar for creating a numpy array with the schema&#39;s</span>
+<span class="c1"># dtype (e.g. `np.empty((10,) dtype=dt)`).</span>
+<span class="n">to_write</span> <span class="o">=</span> <span class="n">w</span><span class="o">.</span><span class="n">new_buffer</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
+<span class="n">to_write</span><span class="p">[</span><span class="s1">&#39;col1&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">double</span><span class="p">)</span>
+
+<span class="c1"># Use a context manager approach so we can&#39;t forget to stop the stream:</span>
+<span class="k">with</span> <span class="n">w</span><span class="p">:</span>
+  <span class="c1"># Write data! Writes an array of doubles to the stream. It is on the user to ensure that the given numpy array</span>
+  <span class="c1"># passed in is formatted according to the stream schema, else garbage can be written to the stream.</span>
+  <span class="n">w</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">to_write</span><span class="p">)</span>
+
+<span class="c1"># Whenever the context ends (i.e. this `with` block terminates), w.stop() is called,</span>
+<span class="c1"># so if you&#39;re not using a context like this, you can call w.stop() manually.</span>
+<span class="c1"># This serves to &quot;stop&quot; the stream and declares no more samples are to be written.</span>
+<span class="c1"># This &quot;finalizes&quot; the stream and is a required call to tell any readers (including</span>
+<span class="c1"># the ingester) where to stop. Otherwise, all readers will continually timeout at the</span>
+<span class="c1"># end of your stream, waiting for more samples.</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="reading">
+<h2>Reading<a class="headerlink" href="#reading" title="Permalink to this headline">¶</a></h2>
+<p>Great! You have your first stream. In the same Python session, let’s read it back and print out the contents:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Create the Reader and then initialize it with the stream we want to read from.</span>
+<span class="n">r</span> <span class="o">=</span> <span class="n">river</span><span class="o">.</span><span class="n">StreamReader</span><span class="p">(</span><span class="n">river</span><span class="o">.</span><span class="n">RedisConnection</span><span class="p">(</span><span class="s2">&quot;127.0.0.1&quot;</span><span class="p">,</span> <span class="mi">6379</span><span class="p">))</span>
+
+<span class="c1"># The #initialize() call accepts a timeout in milliseconds for the maximum amount</span>
+<span class="c1"># of time to wait for the stream to be created, if it is not already.</span>
+<span class="n">r</span><span class="o">.</span><span class="n">initialize</span><span class="p">(</span><span class="n">w</span><span class="o">.</span><span class="n">stream_name</span><span class="p">,</span> <span class="mi">1000</span><span class="p">)</span>
+
+<span class="c1"># Here, we&#39;ll read one sample at a time, and print it out. The number of samples</span>
+<span class="c1"># read per invocation is decided by the size of the buffer passed in, so in this</span>
+<span class="c1"># case, we create a new empty buffer with `new_buffer` (again, syntactic sugar for</span>
+<span class="c1"># creating a numpy array with appropriate dtype). In real use cases, you should</span>
+<span class="c1"># read as many samples per call as your latency/system tolerates to amoritze overhead</span>
+<span class="c1"># of each call, i.e. you should use a buffer with many more samples.</span>
+<span class="n">data</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">new_buffer</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+<span class="c1"># Like with the writer, you can use a context manager to auto-stop the reader after</span>
+<span class="c1"># you&#39;re done.</span>
+<span class="k">with</span> <span class="n">r</span><span class="p">:</span>
+  <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+    <span class="c1"># Similar to the style of many I/O streams, we pass in a buffer that will be</span>
+    <span class="c1"># filled with read data when available. In this case, since `data` is of size</span>
+    <span class="c1"># 1, at most 1 sample will be read from the stream at a time. The second parameter</span>
+    <span class="c1"># is the timeout in milliseconds: the max amount of time this call will block until</span>
+    <span class="c1"># the given number of samples is available. In this case, it&#39;s 100ms max.</span>
+    <span class="c1">#</span>
+    <span class="c1"># The return value returns the number of samples read into the buffer. It should always</span>
+    <span class="c1"># be checked. -1 is returned once EOF is encountered.</span>
+    <span class="n">num_read</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="mi">100</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">num_read</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="nb">print</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;col1&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
+    <span class="k">elif</span> <span class="n">num_read</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Timeout occurred.&#39;</span><span class="p">)</span>
+      <span class="k">continue</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;EOF encountered for stream&#39;</span><span class="p">,</span> <span class="n">r</span><span class="o">.</span><span class="n">stream_name</span><span class="p">)</span>
+      <span class="k">break</span>
+
+<span class="c1"># When the context exists, r.stop() is called, so without a context you can call it manually.</span>
+<span class="c1"># Calling #stop() frees resources allocated within the StreamReader; this reader cannot be used again.</span>
+</pre></div>
+</div>
+<p>Your output should print out 0.0, 1.0, 2.0, …, 9.0. Note that, although in this example we wrote the stream and then read back the stream sequentially, both chunks of code can be run simultaneously; the reader will block as requested if there are not enough samples in the stream.</p>
+</div>
+<div class="section" id="ingestion">
+<h2>Ingestion<a class="headerlink" href="#ingestion" title="Permalink to this headline">¶</a></h2>
+<p>Now let’s ingest some data via the <cite>river-ingester</cite> binary:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">GLOG_alsologtostderr</span><span class="o">=</span><span class="m">1</span> river-ingester -h <span class="m">127</span>.0.0.1 -o river_streams
+</pre></div>
+</div>
+<p>This will begin the <cite>ingester</cite>, which will check Redis for any existing streams. River uses GLOG for logging, and so the environment variable <cite>GLOG_alsologtostderr</cite> prints out any logging information to STDERR.</p>
+<p>The logs should include:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>...
+Starting ingestion of stream &lt;your stream name&gt;
+...
+Stream metadata <span class="k">for</span> &lt;your stream name&gt; deleted.
+...
+</pre></div>
+</div>
+<p>After these log lines, you can ctrl-C the ingester. The following files should have been written in the <cite>river_streams</cite> directory:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$&gt; ls -R river_streams
+...
+river_streams/&lt;your stream name&gt;:
+data.parquet  metadata.json
+</pre></div>
+</div>
+<p>You can then print out the contents of <cite>data.parquet</cite> via Pandas and confirm it’s what’s expected:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python -c <span class="s1">&#39;import pandas as pd; print(pd.read_parquet(&quot;river_streams/&lt;your stream name&gt;/data.parquet&quot;))&#39;</span>
+   sample_index              key   timestamp_ms  col1
+<span class="m">0</span>             <span class="m">0</span>  <span class="m">1591593828887</span>-0  <span class="m">1591593828887</span>   <span class="m">0</span>.0
+<span class="m">1</span>             <span class="m">1</span>  <span class="m">1591593828887</span>-1  <span class="m">1591593828887</span>   <span class="m">1</span>.0
+<span class="m">2</span>             <span class="m">2</span>  <span class="m">1591593828887</span>-2  <span class="m">1591593828887</span>   <span class="m">2</span>.0
+<span class="m">3</span>             <span class="m">3</span>  <span class="m">1591593828887</span>-3  <span class="m">1591593828887</span>   <span class="m">3</span>.0
+<span class="m">4</span>             <span class="m">4</span>  <span class="m">1591593828887</span>-4  <span class="m">1591593828887</span>   <span class="m">4</span>.0
+<span class="m">5</span>             <span class="m">5</span>  <span class="m">1591593828887</span>-5  <span class="m">1591593828887</span>   <span class="m">5</span>.0
+<span class="m">6</span>             <span class="m">6</span>  <span class="m">1591593828887</span>-6  <span class="m">1591593828887</span>   <span class="m">6</span>.0
+<span class="m">7</span>             <span class="m">7</span>  <span class="m">1591593828887</span>-7  <span class="m">1591593828887</span>   <span class="m">7</span>.0
+<span class="m">8</span>             <span class="m">8</span>  <span class="m">1591593828887</span>-8  <span class="m">1591593828887</span>   <span class="m">8</span>.0
+<span class="m">9</span>             <span class="m">9</span>  <span class="m">1591593828887</span>-9  <span class="m">1591593828887</span>   <span class="m">9</span>.0
+</pre></div>
+</div>
+<p>You can see a couple columns in addition to the data we wrote have been added, namely:</p>
+<ul class="simple">
+<li><p><cite>sample_index</cite>: 0-indexed index of the sample/row</p></li>
+<li><p><cite>key</cite>: a globally unique identifier for the row (it’s actually the Redis key of the sample)</p></li>
+<li><p><cite>timestamp_ms</cite>: the UNIX timestamp in milliseconds of the Redis server</p></li>
+</ul>
+<p>For those interested in interrogating data while a stream is ongoing: the <cite>ingester</cite> writes intermediate files in the form of <cite>data_XXXX.parquet</cite> in the given output directory while the stream is ongoing, where <cite>XXXX</cite> is of the form <cite>0000, 0001, …</cite> . Each Parquet file represents a disjoint set of data written in ascending <cite>sample_index</cite> .</p>
+<p>Finally, let’s look at the <cite>metadata.json</cite> and highlight a few key fields:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$&gt; cat river_streams/&lt;your stream name&gt;/metadata.json <span class="p">|</span> jq
+<span class="o">{</span>
+  <span class="s2">&quot;stream_name&quot;</span>: <span class="s2">&quot;57031e25-ad00-49f6-8e42-3b69a4684fa9&quot;</span>,
+  <span class="s2">&quot;local_minus_server_clock_us&quot;</span>: <span class="s2">&quot;0&quot;</span>,
+  <span class="s2">&quot;initialized_at_us&quot;</span>: <span class="s2">&quot;1591593828887568&quot;</span>,
+  <span class="s2">&quot;ingestion_status&quot;</span>: <span class="s2">&quot;COMPLETED&quot;</span>
+<span class="o">}</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p><cite>ingestion_status</cite>: can be <cite>COMPLETED</cite> or <cite>IN_PROGRESS</cite>. Reflects the status of ingesting this particular stream.</p></li>
+<li><p><cite>local_minus_server_clock_us</cite>: estimated difference between the local and server (i.e. Redis) clocks in microseconds.</p></li>
+<li><p><cite>initialized_at_us</cite>: the local UNIX timestamp in microseconds at which <cite>StreamWriter#initialize()</cite> was called.</p></li>
+</ul>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="install.html" class="btn btn-neutral float-left" title="Installation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="api/index.html" class="btn btn-neutral float-right" title="API" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, Paul Botros.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
