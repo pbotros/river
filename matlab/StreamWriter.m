@@ -20,7 +20,6 @@ classdef StreamWriter < handle
                 stream_name, ...
                 schema.mexInterface);
             
-            % Cache schema since it will be called on each `read`
             this.populate_schema();
         end
         
@@ -41,14 +40,15 @@ classdef StreamWriter < handle
             this.populate_schema();
             out = this.m_schema.field_types();
         end
-
+        
+        function out = schema_field_sizes(this)
+            this.populate_schema();
+            out = this.m_schema.field_sizes();
+        end
+        
         function out = new_table(this, n)
-            field_names = this.schema_field_names();
-            field_types = this.schema_field_types();
-            out = table(...
-                'Size', [n, length(field_names)], ...
-                'VariableTypes', field_types, ...
-                'VariableNames', field_names);
+            this.populate_schema();
+            out = this.m_schema.new_table(n);
         end
         
         function write_table(this, input_table)
@@ -71,7 +71,8 @@ classdef StreamWriter < handle
             % Cache
             field_names = this.mexInterface.call_method('schema_field_names');
             field_types = this.mexInterface.call_method('schema_field_types');
-            this.m_schema = StreamSchema(field_names, field_types);
+            field_sizes = this.mexInterface.call_method('schema_field_sizes');
+            this.m_schema = StreamSchema(field_names, field_types, field_sizes);
         end
     end
 end

@@ -1,6 +1,7 @@
 #include "mex.h"
 #include "class_handle.hpp"
 #include "mex_helpers.hpp"
+#include "stream_schema_helper.h"
 #include <river/river.h>
 
 using namespace river;
@@ -93,43 +94,21 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       mexErrMsgTxt("schema: expected 1 output.");
       return;
     } else {
-      auto schema = instance->schema();
-      mxArray *ret = mxCreateCellMatrix(schema.field_definitions.size(), 1);
-      for (int i = 0; i < schema.field_definitions.size(); i++) {
-        FieldDefinition fd = schema.field_definitions[i];
-        mxSetCell(ret, i, from_string(fd.name));
-      }
-      plhs[0] = ret;
+      plhs[0] = schema_field_names(instance->schema());
       return;
     }
+  } else if (!strcmp("schema_field_sizes", cmd)) {
+    if (nlhs > 1) {
+      mexErrMsgTxt("schema: expected 1 output.");
+      return;
+    }
+    plhs[0] = schema_field_sizes(instance->schema());
   } else if (!strcmp("schema_field_types", cmd)) {
     if (nlhs != 1) {
       mexErrMsgTxt("schema: expected 1 output.");
       return;
     } else {
-      auto schema = instance->schema();
-      mxArray *ret = mxCreateCellMatrix(schema.field_definitions.size(), 1);
-      for (int i = 0; i < schema.field_definitions.size(); i++) {
-        FieldDefinition fd = schema.field_definitions[i];
-        switch (fd.type) {
-          case FieldDefinition::DOUBLE:
-            mxSetCell(ret, i, from_string("double"));
-            break;
-          case FieldDefinition::FLOAT:
-            mxSetCell(ret, i, from_string("single"));
-            break;
-          case FieldDefinition::INT32:
-            mxSetCell(ret, i, from_string("int32"));
-            break;
-          case FieldDefinition::INT64:
-            mxSetCell(ret, i, from_string("int64"));
-            break;
-          default:
-            mxSetCell(ret, i, from_string("UNKNOWN"));
-            break;
-        }
-      }
-      plhs[0] = ret;
+      plhs[0] = schema_field_types(instance->schema());
       return;
     }
   } else if (!strcmp("read", cmd)) {
@@ -161,57 +140,82 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         mxArray *out_col = nullptr;
 
         switch (field_def.type) {
-          case FieldDefinition::DOUBLE: {
-                                          mxDouble *out_col_data = set_data<double, mxDouble>(
-                                              field_def,
-                                              buffer.data(),
-                                              num_read,
-                                              sample_size,
-                                              col_offset_bytes);
-                                          out_col = mxCreateNumericMatrix(
-                                              0, 0, mxDOUBLE_CLASS, mxREAL);
-                                          mxSetDoubles(out_col, out_col_data);
-                                        } break;
-          case FieldDefinition::FLOAT: {
-                                         mxSingle *out_col_data = set_data<float, mxSingle>(
-                                             field_def,
-                                             buffer.data(),
-                                             num_read,
-                                             sample_size,
-                                             col_offset_bytes);
-                                         out_col = mxCreateNumericMatrix(
-                                             0, 0, mxSINGLE_CLASS, mxREAL);
-                                         mxSetSingles(out_col, out_col_data);
-                                       } break;
-          case FieldDefinition::INT32: {
-                                         mxInt32 *out_col_data = set_data<int32_t, mxInt32>(
-                                             field_def,
-                                             buffer.data(),
-                                             num_read,
-                                             sample_size,
-                                             col_offset_bytes);
-                                         out_col = mxCreateNumericMatrix(
-                                             0, 0, mxINT32_CLASS, mxREAL);
-                                         mxSetInt32s(out_col, out_col_data);
-                                       } break;
-          case FieldDefinition::INT64: {
-                                         mxInt64 *out_col_data = set_data<int64_t, mxInt64>(
-                                             field_def,
-                                             buffer.data(),
-                                             num_read,
-                                             sample_size,
-                                             col_offset_bytes);
-                                         out_col = mxCreateNumericMatrix(
-                                             0, 0, mxINT64_CLASS, mxREAL);
-                                         mxSetInt64s(out_col, out_col_data);
-                                       } break;
-          default: {
-                     mexErrMsgTxt("read: unhandled field def.");
-                   } return;
+          case FieldDefinition::DOUBLE:
+            {
+              mxDouble *out_col_data = set_data<double, mxDouble>(
+                  field_def,
+                  buffer.data(),
+                  num_read,
+                  sample_size,
+                  col_offset_bytes);
+              out_col = mxCreateNumericMatrix(
+                  0, 0, mxDOUBLE_CLASS, mxREAL);
+              mxSetDoubles(out_col, out_col_data);
+            } break;
+          case FieldDefinition::FLOAT:
+            {
+              mxSingle *out_col_data = set_data<float, mxSingle>(
+                  field_def,
+                  buffer.data(),
+                  num_read,
+                  sample_size,
+                  col_offset_bytes);
+              out_col = mxCreateNumericMatrix(
+                  0, 0, mxSINGLE_CLASS, mxREAL);
+              mxSetSingles(out_col, out_col_data);
+            } break;
+          case FieldDefinition::INT32:
+            {
+              mxInt32 *out_col_data = set_data<int32_t, mxInt32>(
+                  field_def,
+                  buffer.data(),
+                  num_read,
+                  sample_size,
+                  col_offset_bytes);
+              out_col = mxCreateNumericMatrix(
+                  0, 0, mxINT32_CLASS, mxREAL);
+              mxSetInt32s(out_col, out_col_data);
+            } break;
+          case FieldDefinition::INT64:
+            {
+              mxInt64 *out_col_data = set_data<int64_t, mxInt64>(
+                  field_def,
+                  buffer.data(),
+                  num_read,
+                  sample_size,
+                  col_offset_bytes);
+              out_col = mxCreateNumericMatrix(
+                  0, 0, mxINT64_CLASS, mxREAL);
+              mxSetInt64s(out_col, out_col_data);
+            } break;
+          case FieldDefinition::FIXED_WIDTH_BYTES:
+            {
+              out_col = mxCreateCellMatrix(num_read, 1);
+              for (int row_idx = 0; row_idx < num_read; row_idx++) {
+                mxUint8 *out_col_data = (mxUint8 *) mxMalloc(field_def.size * sizeof(mxUint8));
+
+                const char *buffer_offset = &buffer[sample_size * row_idx + col_offset_bytes];
+                for (int byte_idx = 0; byte_idx < field_def.size; byte_idx++) {
+                  out_col_data[byte_idx] = buffer_offset[byte_idx];
+                }
+
+                mxArray *out_col_data_wrapped = mxCreateNumericMatrix(0, 0, mxUINT8_CLASS, mxREAL);
+                mxSetUint8s(out_col_data_wrapped, out_col_data);
+                mxSetM(out_col_data_wrapped, 1);
+                mxSetN(out_col_data_wrapped, field_def.size);
+                mxSetCell(out_col, row_idx, out_col_data_wrapped);
+              }
+            } break;
+          default:
+            {
+              mexErrMsgTxt("read: unhandled field def.");
+            } return;
         }
 
-        mxSetM(out_col, num_read);
-        mxSetN(out_col, 1);
+        if (field_def.type != FieldDefinition::FIXED_WIDTH_BYTES) {
+          mxSetM(out_col, num_read);
+          mxSetN(out_col, 1);
+        }
         mxSetCell(out, col_idx, out_col);
         col_offset_bytes += field_def.size;
       }

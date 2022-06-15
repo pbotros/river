@@ -40,12 +40,8 @@ classdef StreamReader < handle
         end
 
         function out = new_table(this, n)
-            field_names = this.schema_field_names();
-            field_types = this.schema_field_types();
-            out = table(...
-                'Size', [n, length(field_names)], ...
-                'VariableTypes', field_types, ...
-                'VariableNames', field_names);
+            this.populate_schema();
+            out = this.m_schema.new_table(n);
         end
         
         function output_table = read_table(this, n)
@@ -77,7 +73,8 @@ classdef StreamReader < handle
             % Cache
             field_names = this.mexInterface.call_method('schema_field_names');
             field_types = this.mexInterface.call_method('schema_field_types');
-            this.m_schema = StreamSchema(field_names, field_types);
+            field_sizes = this.mexInterface.call_method('schema_field_sizes');
+            this.m_schema = StreamSchema(field_names, field_types, field_sizes);
         end
     end
 end

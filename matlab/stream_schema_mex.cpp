@@ -1,6 +1,7 @@
 #include "mex.h"
 #include "class_handle.hpp"
 #include "mex_helpers.hpp"
+#include "stream_schema_helper.h"
 #include <river/river.h>
 
 using namespace river;
@@ -19,7 +20,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       mexErrMsgTxt("New: One output expected.");
       return;
     }
-    if (nrhs != 3) {
+    if (nrhs != 3 && nrhs != 4) {
       mexErrMsgTxt("New: One input expected");
       return;
     }
@@ -27,6 +28,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     // Same format as in: https://www.mathworks.com/help/matlab/ref/table.html
     const mxArray *varNames = prhs[1];
     const mxArray *varTypes = prhs[2];
+    const mxArray **fieldSizes;
+    if (nrhs >= 4) {
+      fieldSizes = &prhs[3];
+    } else {
+      fieldSizes = nullptr;
+    }
+
     int num_vars = mxGetNumberOfElements(varNames);
     if (num_vars <= 0) {
       mexErrMsgTxt("New: expected > 0 vars");
@@ -36,6 +44,17 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     if (num_vars != mxGetNumberOfElements(varTypes)) {
       mexErrMsgTxt("New: expected equal number of var names and types");
       return;
+    }
+
+    if (fieldSizes != nullptr) {
+      if (num_vars != mxGetNumberOfElements(*fieldSizes)) {
+        mexErrMsgTxt("New: expected equal number of var names and sizes");
+        return;
+      }
+      if (mxGetClassID(*fieldSizes) != mxDOUBLE_CLASS) {
+        mexErrMsgTxt("New: field sizes should be double");
+        return;
+      }
     }
 
     if (mxGetClassID(varNames) != mxCELL_CLASS) {
@@ -70,6 +89,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       } else if (!strcmp(field_type_char, "int64")) {
         field_type = FieldDefinition::INT64;
         size = 8;
+      } else if (!strcmp(field_type_char, "cell")) {
+        if (fieldSizes == nullptr) {
+          mexErrMsgTxt("If using a FIXED_WIDTH_BYTES via cell, you need to pass in a size.");
+          return;
+        }
+        field_type = FieldDefinition::FIXED_WIDTH_BYTES;
+        auto ints = mxGetDoubles(*fieldSizes);
+        size = (int64_t) ints[i];
       } else {
         mexErrMsgTxt("New: Unknown field def type");
       }
@@ -113,35 +140,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
   StreamSchema* instance = convertMat2Ptr<StreamSchema>(prhs[1]);
   if (!strcmp("field_names", cmd)) {
-    auto field_defs = instance->field_definitions;
-    mxArray *out = mxCreateCellMatrix(1, field_defs.size());
-    for (int i = 0; i < field_defs.size(); i++) {
-      mxSetCell(out, i, from_string(field_defs[i].name));
-    }
-    plhs[0] = out;
+    plhs[0] = schema_field_names(*instance);
   } else if (!strcmp("field_types", cmd)) {
-    auto field_defs = instance->field_definitions;
-    mxArray *out = mxCreateCellMatrix(1, field_defs.size());
-    for (int i = 0; i < field_defs.size(); i++) {
-      switch (field_defs[i].type) {
-        case FieldDefinition::DOUBLE:
-          mxSetCell(out, i, from_string("double"));
-          break;
-        case FieldDefinition::FLOAT:
-          mxSetCell(out, i, from_string("single"));
-          break;
-        case FieldDefinition::INT32:
-          mxSetCell(out, i, from_string("int32"));
-          break;
-        case FieldDefinition::INT64:
-          mxSetCell(out, i, from_string("int64"));
-          break;
-        default:
-          mexErrMsgTxt("Unhandled field def type");
-          return;
-      }
-    }
-    plhs[0] = out;
+    plhs[0] = schema_field_types(*instance);
+  } else if (!strcmp("field_sizes", cmd)) {
+    plhs[0] = schema_field_sizes(*instance);
   } else {
     mexErrMsgTxt("Command not recognized.");
   }
