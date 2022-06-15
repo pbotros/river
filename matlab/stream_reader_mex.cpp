@@ -2,23 +2,26 @@
 #include "class_handle.hpp"
 #include "mex_helpers.hpp"
 #include <river/river.h>
+#include <string.h>
+#include <memory>
 
 using namespace river;
+using namespace std;
+
+template<typename TypeMx>
+using MxArraySetter = void (*)(mxArray*, TypeMx *);
 
 template<class TypeC, class TypeMx>
-TypeMx *set_data(
-    const FieldDefinition& field_def,
-    const char *buffer,
-    int64_t num_read,
-    int64_t sample_size,
-    int64_t col_offset_bytes) {
-  TypeMx *dynamicData = (TypeMx *) mxMalloc(num_read * sizeof(TypeC));
-  for (int row_idx = 0; row_idx < num_read; row_idx++) {
-    const char *buffer_offset = &buffer[sample_size * row_idx + col_offset_bytes];
-    dynamicData[row_idx] = *((const TypeC *) buffer_offset);
-  }
-  return dynamicData;
+mxArray *set_data(const char *buffer, mxClassID class_id, MxArraySetter<TypeMx> setter) {
+  TypeC val = *((const TypeC *) buffer);
+  TypeMx *dynamicData = (TypeMx *) mxMalloc(1 * sizeof(TypeC));
+  dynamicData[0] = val;
 
+  mxArray *ret = mxCreateNumericMatrix(0, 0, class_id, mxREAL);
+  setter(ret, dynamicData);
+  mxSetM(ret, 1);
+  mxSetN(ret, 1);
+  return ret;
 }
 
 
@@ -81,7 +84,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       mexErrMsgTxt("Initialize: Unexpected arguments.");
     }
   } else if (!strcmp("stream_name", cmd)) {
-    if (nlhs != 1) {
+    if (nlhs > 1) {
       mexErrMsgTxt("stream_name: expected 1 output.");
       return;
     } else {
@@ -89,7 +92,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       return;
     }
   } else if (!strcmp("schema_field_names", cmd)) {
-    if (nlhs != 1) {
+    if (nlhs > 1) {
       mexErrMsgTxt("schema: expected 1 output.");
       return;
     } else {
@@ -103,7 +106,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       return;
     }
   } else if (!strcmp("schema_field_types", cmd)) {
-    if (nlhs != 1) {
+    if (nlhs > 1) {
       mexErrMsgTxt("schema: expected 1 output.");
       return;
     } else {
@@ -133,7 +136,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       return;
     }
   } else if (!strcmp("read", cmd)) {
-    if (nlhs != 2) {
+    if (nlhs > 2) {
       mexErrMsgTxt("read: expected 2 outputs.");
       return;
     }
@@ -150,81 +153,60 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     int64_t num_read = instance->ReadBytes(buffer.data(), n_to_read);
 
     plhs[0] = from_int(num_read);
-    if (num_read >= 0) {
-      auto field_defs = instance->schema().field_definitions;
-      int n_cols = field_defs.size();
 
-      mxArray *out = mxCreateCellMatrix(1, n_cols);
+    auto field_defs = instance->schema().field_definitions;
+    int n_cols = field_defs.size();
+
+    // The vector of unique_ptr will ensure the pointers are cleared up
+    // upon destruction, while the _ptrs var is usable for the C API.
+    vector<unique_ptr<char>> stream_names_chars;
+    vector<const char*> stream_names_chars_ptrs;
+    for (int col_idx = 0; col_idx < n_cols; col_idx++) {
+      auto field_def = field_defs[col_idx];
+
+      char *c = new char[field_def.name.size() + 1];
+      strcpy(c, field_def.name.c_str());
+      stream_names_chars.push_back(unique_ptr<char>(c));
+      stream_names_chars_ptrs.push_back(c);
+    }
+
+    if (num_read <= 0) {
+      plhs[1] = mxCreateStructMatrix(1, 0, stream_names_chars_ptrs.size(), stream_names_chars_ptrs.data());
+      return;
+    }
+
+    mxArray *out = mxCreateStructMatrix(1, num_read, stream_names_chars_ptrs.size(), stream_names_chars_ptrs.data());
+    for (int row_idx = 0; row_idx < num_read; row_idx++) {
       int64_t col_offset_bytes = 0;
       for (int col_idx = 0; col_idx < n_cols; col_idx++) {
         auto field_def = field_defs[col_idx];
-        mxArray *out_col = nullptr;
-
+        const char *buffer_offset = &buffer[row_idx * sample_size + col_offset_bytes];
+        mxArray *val;
         switch (field_def.type) {
-          case FieldDefinition::DOUBLE: {
-                                          mxDouble *out_col_data = set_data<double, mxDouble>(
-                                              field_def,
-                                              buffer.data(),
-                                              num_read,
-                                              sample_size,
-                                              col_offset_bytes);
-                                          out_col = mxCreateNumericMatrix(
-                                              0, 0, mxDOUBLE_CLASS, mxREAL);
-                                          mxSetDoubles(out_col, out_col_data);
-                                        } break;
-          case FieldDefinition::FLOAT: {
-                                         mxSingle *out_col_data = set_data<float, mxSingle>(
-                                             field_def,
-                                             buffer.data(),
-                                             num_read,
-                                             sample_size,
-                                             col_offset_bytes);
-                                         out_col = mxCreateNumericMatrix(
-                                             0, 0, mxSINGLE_CLASS, mxREAL);
-                                         mxSetSingles(out_col, out_col_data);
-                                       } break;
-          case FieldDefinition::INT32: {
-                                         mxInt32 *out_col_data = set_data<int32_t, mxInt32>(
-                                             field_def,
-                                             buffer.data(),
-                                             num_read,
-                                             sample_size,
-                                             col_offset_bytes);
-                                         out_col = mxCreateNumericMatrix(
-                                             0, 0, mxINT32_CLASS, mxREAL);
-                                         mxSetInt32s(out_col, out_col_data);
-                                       } break;
-          case FieldDefinition::INT64: {
-                                         mxInt64 *out_col_data = set_data<int64_t, mxInt64>(
-                                             field_def,
-                                             buffer.data(),
-                                             num_read,
-                                             sample_size,
-                                             col_offset_bytes);
-                                         out_col = mxCreateNumericMatrix(
-                                             0, 0, mxINT64_CLASS, mxREAL);
-                                         mxSetInt64s(out_col, out_col_data);
-                                       } break;
-          default: {
-                     mexErrMsgTxt("read: unhandled field def.");
-                   } return;
+          case FieldDefinition::DOUBLE:
+            {
+              val = set_data<double, mxDouble>(buffer_offset, mxDOUBLE_CLASS, (MxArraySetter<mxDouble>)mxSetDoubles);
+            } break;
+          case FieldDefinition::INT32:
+            {
+              val = set_data<int32_t, mxInt32>(buffer_offset, mxINT32_CLASS, (MxArraySetter<mxInt32>)mxSetInt32s);
+            } break;
+          default:
+            {
+              mexErrMsgTxt("read: unhandled field def.");
+            } return;
         }
-
-        mxSetM(out_col, num_read);
-        mxSetN(out_col, 1);
-        mxSetCell(out, col_idx, out_col);
+        mxSetFieldByNumber(out, row_idx, col_idx, val);
         col_offset_bytes += field_def.size;
       }
-      plhs[1] = out;
-    } else {
-      plhs[1] = mxCreateCellMatrix(0, 0);
     }
+
+    for (int i = 0; i < mxGetNumberOfFields(out); i++) {
+      const char *foo = mxGetFieldNameByNumber(out, i);
+    }
+    plhs[1] = out;
     return;
   } else if (!strcmp("stop", cmd)) {
-    if (nlhs != 0) {
-      mexErrMsgTxt("stop: no outputs expected.");
-      return;
-    }
     if (nrhs == 2) {
       instance->Stop();
       return;

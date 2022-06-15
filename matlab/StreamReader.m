@@ -39,34 +39,17 @@ classdef StreamReader < handle
             out = this.m_schema.field_types();
         end
 
-        function out = new_table(this, n)
+        function out = new_struct_array(this, n)
             field_names = this.schema_field_names();
-            field_types = this.schema_field_types();
-            out = table(...
-                'Size', [n, length(field_names)], ...
-                'VariableTypes', field_types, ...
-                'VariableNames', field_names);
+            
+            for i = n:-1:1
+                c = cell(length(field_names),1);
+                out(i) = cell2struct(c, field_names);
+            end
         end
         
-        function output_table = read_table(this, n)
+        function [n_read, data] = read_struct_array(this, n)
             [n_read, data] = this.mexInterface.call_method('read', n);
-            field_names = this.schema_field_names();
-            field_types = this.schema_field_types();
-            n_cols = length(field_names);
-            if n_read >= 0
-                output_table = table(...
-                    'Size', [n_read, n_cols], ...
-                    'VariableTypes', field_types, ...
-                    'VariableNames', field_names);
-                for col_idx = 1:n_cols
-                    output_table{:, col_idx} = data{col_idx};
-                end
-            else
-                output_table = table(...
-                    'Size', [0, n_cols], ...
-                    'VariableTypes', field_types, ...
-                    'VariableNames', field_names);
-            end
         end
     end
     methods (Access = private)
