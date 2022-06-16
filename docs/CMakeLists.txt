@@ -19,9 +19,19 @@ file(GLOB_RECURSE RIVER_PUBLIC_HEADERS ${RIVER_PUBLIC_HEADER_DIR}/*.h)
 set(DOXYGEN_INPUT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../cpp/src)
 set(DOXYGEN_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR}/cpp/doxygen)
 set(DOXYGEN_INDEX_FILE ${DOXYGEN_OUTPUT_DIR}/cpp/html/index.html)
-set(DOXYFILE_IN ${CMAKE_CURRENT_SOURCE_DIR}/cpp/Doxyfile.in)
-set(DOXYFILE_OUT ${CMAKE_CURRENT_BINARY_DIR}/cpp/Doxyfile)
+set(DOXYFILE_IN ${CMAKE_CURRENT_SOURCE_DIR}/api/cpp/Doxyfile.in)
+set(DOXYFILE_OUT ${CMAKE_CURRENT_BINARY_DIR}/api/cpp/Doxyfile)
 
+set(RST_FILES
+  ${CMAKE_CURRENT_SOURCE_DIR}/index.rst
+  ${CMAKE_CURRENT_SOURCE_DIR}/install.rst
+  ${CMAKE_CURRENT_SOURCE_DIR}/tutorial.rst
+  ${CMAKE_CURRENT_SOURCE_DIR}/performance.rst
+  ${CMAKE_CURRENT_SOURCE_DIR}/contributing.rst
+  ${CMAKE_CURRENT_SOURCE_DIR}/api/index.rst
+  ${CMAKE_CURRENT_SOURCE_DIR}/api/cpp.rst
+  ${CMAKE_CURRENT_SOURCE_DIR}/api/python.rst
+)
 
 ###############################
 # C++: Using Doxygen to Parse #
@@ -63,10 +73,7 @@ add_custom_command(OUTPUT ${SPHINX_INDEX_FILE}
                    ${SPHINX_SOURCE} ${SPHINX_BUILD}
                    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
                    DEPENDS
-                   # Other docs files you want to track should go here (or in some variable)
-                   ${CMAKE_CURRENT_SOURCE_DIR}/index.rst
-                   ${CMAKE_CURRENT_SOURCE_DIR}/cpp.rst
-                   ${CMAKE_CURRENT_SOURCE_DIR}/python.rst
+                   ${RST_FILES}
                    ${DOXYGEN_INDEX_FILE}
                    MAIN_DEPENDENCY ${SPHINX_SOURCE}/conf.py
                    COMMENT "Generating documentation with Sphinx")

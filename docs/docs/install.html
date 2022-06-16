@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Installation &mdash; river  documentation</title><link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/language_data.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Tutorial" href="tutorial.html" />
+    <link rel="prev" title="River" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> river
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Installation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#pre-packaged">Pre-packaged</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#compiling-from-source">Compiling from Source</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#prerequisites">Prerequisites</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#installing">Installing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#verifying-installation">Verifying Installation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#troubleshooting">Troubleshooting</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#installing-google-log-glog">Installing Google Log (GLOG)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#installing-boost-on-linux">Installing Boost on Linux</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#installing-boost-on-windows">Installing Boost on Windows</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/index.html">API</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">river</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>Installation</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/install.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="installation">
+<h1>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="pre-packaged">
+<h2>Pre-packaged<a class="headerlink" href="#pre-packaged" title="Permalink to this headline">¶</a></h2>
+<p>For the C++ library and the ingester binary, installation via Conda is the preferred way:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>conda install -c conda-forge river-cpp
+</pre></div>
+</div>
+<p><strong>NOTE: the ingester binary isn’t available on Windows due to compilation issues. Use WSL or Linux/Mac for the ingester</strong>.</p>
+<p>For the Python bindings, conda is also preferred:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>conda install -c conda-forge river-py
+</pre></div>
+</div>
+<p>For the (experimental) MATLAB bindings, see the MATLAB README for details.</p>
+</div>
+<div class="section" id="compiling-from-source">
+<h2>Compiling from Source<a class="headerlink" href="#compiling-from-source" title="Permalink to this headline">¶</a></h2>
+<p>You can also compile by source and install manually. The below steps will compile the C++ library and install both the C++ library/headers and the Python bindings. This project uses CMake.</p>
+<div class="section" id="prerequisites">
+<h3>Prerequisites<a class="headerlink" href="#prerequisites" title="Permalink to this headline">¶</a></h3>
+<p>River expects several packages to be installed in the standard system-wide directories, including:</p>
+<ul class="simple">
+<li><p>Python 3.7+</p></li>
+<li><p>Google Log (glog)</p></li>
+</ul>
+<p>If you’re also building and installing the Ingester, you’ll need:
+- Boost 1.67+
+- Apache Arrow and Parquet</p>
+<p>Use your favorite package manager to install the above. For instance, run:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>conda install -c conda-forge pkg-config cmake <span class="c1"># build tools</span>
+conda install -c conda-forge glog  <span class="c1"># Google Log</span>
+<span class="c1"># brew install python3-dev  # If not already installed via conda</span>
+<span class="c1"># conda install -c conda-forge boost-cpp arrow-cpp # Boost/Arrow/Parquet, if installing ingester</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="installing">
+<h3>Installing<a class="headerlink" href="#installing" title="Permalink to this headline">¶</a></h3>
+<p>Since River uses CMake, you can use standard CMake commands such as (if on Mac or Linux):</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git clone git@github.com:pbotros/river.git
+<span class="nb">cd</span> river
+mkdir -p build/release
+<span class="nb">cd</span> build/release
+cmake -G <span class="s2">&quot;Unix Makefiles&quot;</span> -DRIVER_BUILD_INGESTER<span class="o">=</span><span class="m">0</span> -DCMAKE_BUILD_TYPE<span class="o">=</span>Release ../..
+make
+sudo make install  <span class="c1"># if on Mac, can omit sudo</span>
+sudo ldconfig  <span class="c1"># if on Linux</span>
+</pre></div>
+</div>
+<p>Replace <cite>{r,R}elease</cite> with <cite>{d,D}ebug</cite> in the above to build debug binaries with debugging symbols if needed. If on Windows, you can use the CMake GUI, or replace the “-G” command with the appropriate identifier (e.g. <cite>-G “Visual Studio 15 2017”</cite>).</p>
+<p>By default, building the ingester is <em>NOT</em> enabled, as a typical system configuration will have many readers and writers distributed across a variety of computers but a single instance of ingestion running on a local computer.</p>
+<p>To enable building the ingester, enable the CMake flag <cite>RIVER_BUILD_INGESTER</cite> as in the following example:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>cmake -DCMAKE_BUILD_TYPE<span class="o">=</span>Release -DRIVER_BUILD_INGESTER<span class="o">=</span><span class="m">1</span> -G <span class="s2">&quot;CodeBlocks - Unix Makefiles&quot;</span> ../..
+make
+sudo make install
+</pre></div>
+</div>
+<p>This will build and install a <cite>river-ingester</cite> binary in your default install path, e.g., <cite>/usr/local/bin/</cite> on modern Mac/Unix systems. Run it with the <cite>–help</cite> option for more details.</p>
+</div>
+<div class="section" id="verifying-installation">
+<h3>Verifying Installation<a class="headerlink" href="#verifying-installation" title="Permalink to this headline">¶</a></h3>
+<p>To test whether the installation was correct, run the benchmark, assuming you’re running Redis on localhost:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># From the root of the river repository</span>
+<span class="nb">cd</span> build/release/src
+./river_benchmark --redis_hostname <span class="m">127</span>.0.0.1  --batch_size <span class="m">1</span> --sample_size <span class="m">128</span> --num_samples <span class="m">1000</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="troubleshooting">
+<h3>Troubleshooting<a class="headerlink" href="#troubleshooting" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="installing-google-log-glog">
+<h4>Installing Google Log (GLOG)<a class="headerlink" href="#installing-google-log-glog" title="Permalink to this headline">¶</a></h4>
+<p>On Mac, <cite>brew install glog</cite> seems to work fine to resolve dependencies needed for Google Log. However, on other distros where the version of GLOG is too old and doesn’t include a CMakeLists.txt (i.e. Raspbian Buster, Ubuntu 18.04), GLOG needs to be compiled and installed from source. Note that, alternatively, conda via conda-forge might have a sufficient version of <cite>glog</cite>.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span> /some/directory
+git clone https://github.com/google/glog.git
+<span class="nb">cd</span> glog
+mkdir build
+<span class="nb">cd</span> build
+cmake -DCMAKE_BUILD_TYPE<span class="o">=</span>Release -G <span class="s2">&quot;CodeBlocks - Unix Makefiles&quot;</span> -DBUILD_SHARED_LIBS<span class="o">=</span>ON ..
+make
+sudo make install
+</pre></div>
+</div>
+<p>If you get an error like <cite>ERROR: flag ‘logtostderr’ was defined more than once (in files ‘src/logging.cc’ and ‘/some/path/to/logging.cc’).</cite>, then you might have multiple installations of GLOG / GFlags. To fix this, you can have CMake build GLOG from source instead of relying on your system versions of GLOG. Do this by uninstalling glog:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo apt remove libgflags-dev libglog-dev
+</pre></div>
+</div>
+</div>
+<div class="section" id="installing-boost-on-linux">
+<h4>Installing Boost on Linux<a class="headerlink" href="#installing-boost-on-linux" title="Permalink to this headline">¶</a></h4>
+<p>In some Linux distributions, the packaged version of Boost might be too old. If you’re using conda, conda-forge should have an updated version. If you’re not, you’ll have to install via source. In order to install Boost from source, follow [the Boost website](<a class="reference external" href="https://www.boost.org/doc/libs/1_57_0/more/getting_started/unix-variants.html">https://www.boost.org/doc/libs/1_57_0/more/getting_started/unix-variants.html</a>). In particular, the following commands will install the libraries needed, once you’ve downloaded the most recent release and un-tar’d it:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./bootstrap --with-libraries<span class="o">=</span>filesystem,graph,program_options,system,headers,thread
+./b2
+sudo ./b2 install
+</pre></div>
+</div>
+</div>
+<div class="section" id="installing-boost-on-windows">
+<h4>Installing Boost on Windows<a class="headerlink" href="#installing-boost-on-windows" title="Permalink to this headline">¶</a></h4>
+<p>Boost can be installed via a precompiled binary posted by the boost team. [Go here](<a class="reference external" href="https://sourceforge.net/projects/boost/files/boost-binaries">https://sourceforge.net/projects/boost/files/boost-binaries</a>) to find the latest precompiled Boost binaries. You can also install via conda.</p>
+</div>
+</div>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="River" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="tutorial.html" class="btn btn-neutral float-right" title="Tutorial" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, Paul Botros.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
