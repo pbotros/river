@@ -21,9 +21,11 @@ bibliography: paper.bib
 
 ---
 
-# Summary
+# Statement of Need
 
 Modern experiments in neuroscience demand increasingly complex and performant systems. Technological advances in the past decades have led to an explosion in neural data volume, with current technologies capable of simultaneous recordings of thousands of individual neurons [@Ota; @Steinmetz]. Concomitantly, to improve scientific efficiency [@Chen] or modulate neural or physical systems [@Shanechi], closed-loop experimental paradigms that multiplex neural and non-neural (e.g. kinematic) data have come to the forefront of research, where real-time computations on various data streams directly influence the experiment. Considering these ever-increasing demands on both latency and throughput of data, there is a dire need in the field to stream high-throughput data between devices, balancing requirements for performance with simplicity for non-software experts.
+
+# Summary
 
 To tackle these problems, we developed River, a structured streaming solution to streamline data management for modern neuroscience experiments. Producers of data – “writers” – first define a structure for each data sample for a particular stream. Then, utilizing function calls similar to those of file I/O, writers can then write data to that stream, while an unlimited number of “readers” can consume this data in real-time by specifying the appropriate stream name. Each reader can read at its own pace, with support for blocking for a given period of time or number of samples. Readers and writers only require network connectivity to a centralized server, enabling a horizontal scaling paradigm useful for computationally-intensive or cloud-reliant experiments. Finally, leveraging the structured nature of each stream, a separate “ingester” process consumes each stream’s data and writes data to disk in a cross-platform tabular format, [Parquet](https://github.com/apache/parquet-format), for post-hoc analysis. Once persisted by the ingester, sufficiently stale data is then deleted from the River stream, enabling streams to be indefinitely long. River is written in C++ with Python and MATLAB bindings and works under Linux, Mac OSX, and Windows.
 
