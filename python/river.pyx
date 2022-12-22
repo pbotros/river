@@ -63,6 +63,7 @@ cdef class RedisConnection:
 cpdef enum FieldType:
     DOUBLE = criver.FIELD_DEFINITION_DOUBLE
     FLOAT = criver.FIELD_DEFINITION_FLOAT
+    INT16 = criver.FIELD_DEFINITION_INT16
     INT32 = criver.FIELD_DEFINITION_INT32
     INT64 = criver.FIELD_DEFINITION_INT64
     FIXED_WIDTH_BYTES = criver.FIELD_DEFINITION_FIXED_WIDTH_BYTES
@@ -90,6 +91,8 @@ cdef class FieldDefinition:
                 size = 8
             elif type == FieldType.FLOAT:
                 size = 4
+            elif type == FieldType.INT16:
+                size = 2
             elif type == FieldType.INT32:
                 size = 4
             elif type == FieldType.INT64:
@@ -176,6 +179,8 @@ cdef class StreamSchema:
                 dtypes.append((field_name, np.float64))
             elif type == criver.FieldDefinition_Type.FIELD_DEFINITION_FLOAT:
                 dtypes.append((field_name, np.float32))
+            elif type == criver.FieldDefinition_Type.FIELD_DEFINITION_INT16:
+                dtypes.append((field_name, np.int16))
             elif type == criver.FieldDefinition_Type.FIELD_DEFINITION_INT64:
                 dtypes.append((field_name, np.int64))
             elif type == criver.FieldDefinition_Type.FIELD_DEFINITION_INT32:
@@ -206,6 +211,8 @@ cdef class StreamSchema:
                 field_definitions.append(FieldDefinition(field_name, FieldType.DOUBLE))
             elif type == np.float32:
                 field_definitions.append(FieldDefinition(field_name, FieldType.FLOAT))
+            elif type == np.int16:
+                field_definitions.append(FieldDefinition(field_name, FieldType.INT16))
             elif type == np.int64:
                 field_definitions.append(FieldDefinition(field_name, FieldType.INT64))
             elif type == np.int32:

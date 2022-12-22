@@ -1,4 +1,4 @@
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_VERBOSE_MAKEFILE TRUE)
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
@@ -51,7 +51,7 @@ set(RIVER_HEADERS writer.h river.h reader.h redis.h schema.h)
 set(RIVER_SOURCES writer.cpp reader.cpp redis.cpp schema.cpp)
 
 add_library(river SHARED ${RIVER_HEADERS} ${RIVER_SOURCES})
-target_compile_features(river PRIVATE cxx_std_14)
+target_compile_features(river PRIVATE cxx_std_17)
 target_link_libraries(river PRIVATE ${LIBRARIES_TO_LINK})
 target_link_libraries(river PUBLIC hiredis)
 
@@ -69,22 +69,22 @@ target_include_directories(river
 
 add_executable(river_benchmark tools/river_benchmark.cpp)
 add_dependencies(river_benchmark river)
-target_compile_features(river_benchmark PRIVATE cxx_std_14)
+target_compile_features(river_benchmark PRIVATE cxx_std_17)
 target_link_libraries(river_benchmark PRIVATE river ${LIBRARIES_TO_LINK})
 
 add_executable(river_writer tools/river_writer.cpp)
 add_dependencies(river_writer river)
-target_compile_features(river_writer PRIVATE cxx_std_14)
+target_compile_features(river_writer PRIVATE cxx_std_17)
 target_link_libraries(river_writer PRIVATE river ${LIBRARIES_TO_LINK})
 
 add_executable(river_reader tools/river_reader.cpp)
 add_dependencies(river_reader river)
-target_compile_features(river_reader PRIVATE cxx_std_14)
+target_compile_features(river_reader PRIVATE cxx_std_17)
 target_link_libraries(river_reader PRIVATE river ${LIBRARIES_TO_LINK})
 
 add_executable(river_example tools/river_example.cpp)
 add_dependencies(river_example river)
-target_compile_features(river_example PRIVATE cxx_std_14)
+target_compile_features(river_example PRIVATE cxx_std_17)
 target_link_libraries(river_example PRIVATE river ${LIBRARIES_TO_LINK})
 
 
@@ -127,11 +127,6 @@ if (RIVER_INSTALL)
     ${version_config}
     VERSION ${PACKAGE_VERSION}
     COMPATIBILITY AnyNewerVersion)
-
-  cmake_path(
-    APPEND libdir_for_pc_file "${CMAKE_INSTALL_LIBDIR}" "\${exec_prefix}")
-  cmake_path(
-    APPEND includedir_for_pc_file "${CMAKE_INSTALL_INCLUDEDIR}" "\${prefix}")
 
   configure_file(
     "${CMAKE_CURRENT_SOURCE_DIR}/river.pc.in"
@@ -176,7 +171,7 @@ endif()
 if (RIVER_BUILD_TESTS)
   add_executable(river_test tests/river_test.cpp tests/reader_test.cpp tests/writer_test.cpp tests/redis_test.cpp tests/integration_test.cpp)
   add_dependencies(river_test river)
-  target_compile_features(river_test PRIVATE cxx_std_14)
+  target_compile_features(river_test PRIVATE cxx_std_17)
   target_link_libraries(river_test PRIVATE river ${LIBRARIES_TO_LINK} gtest gtest_main)
   add_test(NAME river_test COMMAND river_test)
   target_compile_options(river_test PUBLIC "$<$<CONFIG:DEBUG>:${MY_CXX_DEBUG_OPTIONS}>")

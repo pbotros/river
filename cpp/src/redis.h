@@ -113,9 +113,14 @@ public:
 
     std::unique_ptr<std::unordered_map<std::string, std::string>> GetUserMetadata(const std::string &stream_name);
 
+    // Atomically set internal and user metadata at the same time to prevent race conditions.
+    int SetMetadataAndUserMetadata(const std::string &stream_name,
+                                   std::initializer_list<std::pair<std::string, std::string>> key_value_pairs,
+                                   const std::unordered_map<std::string, std::string> &user_metadata);
+
     void SetUserMetadata(const std::string &stream_name, const std::unordered_map<std::string, std::string> &metadata);
 
-    int SetMetadata(const std::string &stream_name, std::initializer_list<std::pair<std::string, std::string>> key_value_pairs);
+    int SetMetadata(const std::string &stream_name, const std::vector<std::pair<std::string, std::string>>& key_value_pairs);
 
     void DeleteMetadata(const std::string &stream_name);
 

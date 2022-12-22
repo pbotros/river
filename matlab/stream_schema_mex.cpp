@@ -83,6 +83,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       } else if (!strcmp(field_type_char, "float")) {
         field_type = FieldDefinition::FLOAT;
         size = 4;
+      } else if (!strcmp(field_type_char, "int16")) {
+        field_type = FieldDefinition::INT16;
+        size = 2;
       } else if (!strcmp(field_type_char, "int32")) {
         field_type = FieldDefinition::INT32;
         size = 4;

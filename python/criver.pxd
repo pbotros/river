@@ -21,6 +21,7 @@ cdef extern from "<river/river.h>" namespace "river" nogil:
     ctypedef enum FieldDefinition_Type "river::FieldDefinition::Type":
         FIELD_DEFINITION_DOUBLE "river::FieldDefinition::Type::DOUBLE"
         FIELD_DEFINITION_FLOAT "river::FieldDefinition::Type::FLOAT"
+        FIELD_DEFINITION_INT16 "river::FieldDefinition::Type::INT16"
         FIELD_DEFINITION_INT32 "river::FieldDefinition::Type::INT32"
         FIELD_DEFINITION_INT64 "river::FieldDefinition::Type::INT64"
         FIELD_DEFINITION_FIXED_WIDTH_BYTES "river::FieldDefinition::Type::FIXED_WIDTH_BYTES"

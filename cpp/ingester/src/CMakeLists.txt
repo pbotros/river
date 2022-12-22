@@ -10,29 +10,32 @@ else()
     # Boost >= 1.68 required: includes a needed fix https://github.com/boostorg/python/pull/218
     find_package(Boost 1.68 COMPONENTS program_options filesystem system thread REQUIRED)
     add_definitions(-D_GNU_SOURCE)
+    # https://github.com/msys2/MINGW-packages/issues/9827
+    add_compile_definitions(BOOST_ASIO_DISABLE_STD_ALIGNED_ALLOC)
 endif()
 
 # ===== External Dependency: glog
 find_package(glog REQUIRED)
 
 find_package(Arrow REQUIRED)
-add_library(arrow SHARED IMPORTED)
-set_target_properties(arrow PROPERTIES IMPORTED_LOCATION ${ARROW_SHARED_LIB})
 
-find_package(Parquet REQUIRED)
-add_library(parquet SHARED IMPORTED)
-set_target_properties(parquet PROPERTIES IMPORTED_LOCATION ${PARQUET_SHARED_LIB})
-
-if (${MSVC})
-    # Windows uses the "Shared Imp Lib"
-    set(ARROW_PARQUET_LIBS ${ARROW_SHARED_IMP_LIB} ${PARQUET_SHARED_IMP_LIB})
-    set(DL_LIB "")
+# This should work on Arrow 10.0+. Not Required though?
+find_package(Parquet)
+if (TARGET Parquet::parquet_shared)
+  SET(PARQUET_LIB Parquet::parquet_shared)
+elseif(TARGET parquet_shared)
+  SET(PARQUET_LIB parquet_shared)
 else()
-    set(ARROW_PARQUET_LIBS ${ARROW_SHARED_LIB} ${PARQUET_SHARED_LIB})
-    set(DL_LIB "dl")
+  SET(PARQUET_LIB parquet)
 endif()
 
-set(INCLUDE_DIRS ${ARROW_INCLUDE_DIR} ${PARQUET_INCLUDE_DIR} ${BOOST_INCLUDE_DIRS} "${river_SOURCE_DIR}/src" "${hiredis_SOURCE_DIR}")
+set(INCLUDE_DIRS
+        ${ARROW_INCLUDE_DIR}
+        ${PARQUET_INCLUDE_DIR}
+        ${BOOST_INCLUDE_DIRS}
+        "${river_SOURCE_DIR}/src"
+        "${hiredis_SOURCE_DIR}"
+)
 set(LIBRARIES_TO_LINK
         "river"
         "fmt"
@@ -42,8 +45,16 @@ set(LIBRARIES_TO_LINK
         "Boost::thread"
         "glog::glog"
         "hiredis"
-        ${DL_LIB}
-        ${ARROW_PARQUET_LIBS})
+        arrow_shared
+        ${PARQUET_LIB}
+)
+
+if (NOT CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+    # Windows uses the "Shared Imp Lib", Linux does not
+    list(APPEND LIBRARIES_TO_LINK "dl")
+endif()
+
+
 
 set(INGESTER_HEADERS ingester.h ingester_threadpool.h)
 set(INGESTER_SOURCES ingester.cpp)

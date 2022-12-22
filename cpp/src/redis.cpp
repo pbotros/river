@@ -174,6 +174,20 @@ unique_ptr<unordered_map<string, string>> Redis::GetUserMetadata(const string &s
     return make_unique<unordered_map<string, string>>(ret);
 }
 
+int Redis::SetMetadataAndUserMetadata(const string &stream_name,
+                                      initializer_list <std::pair<string, string>> key_value_pairs,
+                                      const unordered_map <string, string> &user_metadata) {
+    json parent;
+    for (auto &it : user_metadata) {
+        parent[it.first] = it.second;
+    }
+
+    string out = parent.dump();
+    vector<std::pair<string, string>> key_value_pairs_all(key_value_pairs);
+    key_value_pairs_all.emplace_back("user_metadata", out);
+    return this->SetMetadata(stream_name, key_value_pairs_all);
+}
+
 void Redis::SetUserMetadata(const string &stream_name, const unordered_map<string, string> &metadata) {
     json parent;
     for (auto &it : metadata) {
@@ -184,7 +198,7 @@ void Redis::SetUserMetadata(const string &stream_name, const unordered_map<strin
     this->SetMetadata(stream_name, {{"user_metadata", out}});
 }
 
-int Redis::SetMetadata(const string &stream_name, initializer_list<std::pair<string, string>> key_value_pairs) {
+int Redis::SetMetadata(const string &stream_name, const vector<std::pair<string, string>>& key_value_pairs) {
     vector<string> parts;
 
     parts.push_back("HSET");

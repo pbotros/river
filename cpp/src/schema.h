@@ -29,6 +29,7 @@ typedef struct FieldDefinition {
     typedef enum type {
         DOUBLE,
         FLOAT,
+        INT16,
         INT32,
         INT64,
         FIXED_WIDTH_BYTES,
