@@ -1,4 +1,4 @@
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_VERBOSE_MAKEFILE TRUE)
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
@@ -50,7 +50,7 @@ set(INGESTER_SOURCES ingester.cpp)
 
 add_executable(ingester ingester_main.cpp ${INGESTER_HEADERS} ${INGESTER_SOURCES})
 target_link_libraries(ingester PRIVATE ${LIBRARIES_TO_LINK})
-target_compile_features(ingester PRIVATE cxx_std_14)
+target_compile_features(ingester PRIVATE cxx_std_17)
 target_include_directories(ingester PRIVATE ${INCLUDE_DIRS})
 set_target_properties(ingester PROPERTIES OUTPUT_NAME "river-ingester")
 
@@ -71,7 +71,7 @@ if (RIVER_BUILD_TESTS)
   add_executable(ingester_test ${INGESTER_HEADERS} ${INGESTER_SOURCES} ${INGESTER_TEST_SOURCES} ${INGESTER_TEST_HEADERS})
   add_dependencies(ingester_test river)
   target_link_libraries(ingester_test PRIVATE ${LIBRARIES_TO_LINK} gtest gtest_main)
-  target_compile_features(ingester_test PRIVATE cxx_std_14)
+  target_compile_features(ingester_test PRIVATE cxx_std_17)
   target_include_directories(ingester_test PRIVATE ${INCLUDE_DIRS})
   add_test(NAME ingester_test COMMAND ingester_test)
   target_compile_options(ingester_test PUBLIC "$<$<CONFIG:DEBUG>:${MY_CXX_DEBUG_OPTIONS}>")
