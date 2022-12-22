@@ -128,10 +128,8 @@ if (RIVER_INSTALL)
     VERSION ${PACKAGE_VERSION}
     COMPATIBILITY AnyNewerVersion)
 
-  cmake_path(
-    APPEND libdir_for_pc_file "${CMAKE_INSTALL_LIBDIR}" "\${exec_prefix}")
-  cmake_path(
-    APPEND includedir_for_pc_file "${CMAKE_INSTALL_INCLUDEDIR}" "\${prefix}")
+  get_filename_component(libdir_for_pc_file ${CMAKE_INSTALL_LIBDIR}/${exec_prefix} ABSOLUTE)
+  get_filename_component(includedir_for_pc_file ${CMAKE_INSTALL_INCLUDEDIR}/${prefix} ABSOLUTE)
 
   configure_file(
     "${CMAKE_CURRENT_SOURCE_DIR}/river.pc.in"
