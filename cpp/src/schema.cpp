@@ -22,6 +22,9 @@ std::string StreamSchema::ToJson() const {
       case FieldDefinition::FLOAT:
         field["type"] = "FLOAT";
         break;
+      case FieldDefinition::INT16:
+        field["type"] = "INT16";
+        break;
       case FieldDefinition::INT32:
         field["type"] = "INT32";
         break;
@@ -62,6 +65,8 @@ StreamSchema StreamSchema::FromJson(std::string json_str) {
         type = FieldDefinition::DOUBLE;
       } else if (type_str == "FLOAT") {
         type = FieldDefinition::FLOAT;
+      } else if (type_str == "INT16") {
+        type = FieldDefinition::INT32;
       } else if (type_str == "INT32") {
         type = FieldDefinition::INT32;
       } else if (type_str == "INT64") {

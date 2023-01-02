@@ -64,8 +64,11 @@ inline shared_ptr<arrow::Table> read_data_file(const string &directory, const st
     PARQUET_THROW_NOT_OK(
             parquet::arrow::OpenFile(infile, arrow::default_memory_pool(), &reader));
     PARQUET_THROW_NOT_OK(reader->ReadTable(&table));
-    LOG(INFO) << "Loaded " << table->num_rows() << " rows in " << table->num_columns()
-              << " columns. [filename " << data_filename << "]." << std::endl;
+
+    std::stringstream ss;
+    ss << "Loaded " << table->num_rows() << " rows in " << table->num_columns()
+       << " columns. [filename " << data_filename << "]." << std::endl;
+    LOG(INFO) << ss.str();
     return table;
 }
 }

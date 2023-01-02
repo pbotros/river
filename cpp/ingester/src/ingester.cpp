@@ -229,8 +229,10 @@ StreamIngestionResult SingleStreamIngester::Ingest() {
         int64_t row_group_size = 0;
         string eof_key;
         while (should_ingest && !(*_terminated) && row_group_size < _samples_per_row_group) {
-            LOG_EVERY_N(INFO, 500) << "Fetching new samples. Size " << row_group_size
-                                  << " for stream " << stream_name_;
+            std::stringstream ss;
+            ss << "Fetching new samples. Size " << row_group_size
+               << " for stream " << stream_name_;
+            LOG_EVERY_N(INFO, 500) << ss.str();
             int64_t remaining_samples_in_row_group = _samples_per_row_group - row_group_size;
             auto samples_to_read = remaining_samples_in_row_group > SAMPLES_PER_READ ? SAMPLES_PER_READ
                                                                                      : remaining_samples_in_row_group;
@@ -273,7 +275,9 @@ StreamIngestionResult SingleStreamIngester::Ingest() {
                         fmt::format("Data file already exists; we will not overwrite. File={}", this_data_filepath));
             }
 
-            LOG(INFO) << "Creating batch of length " << row_group_size << ". Total offset is now " << global_offset;
+            std::stringstream ss;
+            ss << "Creating batch of length " << row_group_size << ". Total offset is now " << global_offset;
+            LOG(INFO) << ss.str();
 
             std::vector<std::shared_ptr<arrow::Array>> arrays;
 
@@ -597,10 +601,18 @@ void SingleStreamIngester::combine_all_files() {
 
         // And then write this table to the existing file
         int64_t num_rows = table->num_rows();
-        LOG(INFO) << "Writing contents of " << path
-                  << " to combined data filepath (" << num_rows << " rows)" << endl;
+        {
+            std::stringstream ss;
+            ss << "Writing contents of " << path
+               << " to combined data filepath (" << num_rows << " rows)" << endl;
+            LOG(INFO) << ss.str();
+        }
         PARQUET_THROW_NOT_OK(writer->WriteTable(*table.get(), num_rows));
-        LOG(INFO) << "Done writing " << num_rows << " rows." << endl;
+        {
+            std::stringstream ss;
+            ss << "Done writing " << num_rows << " rows." << endl;
+            LOG(INFO) << ss.str();
+        }
     }
 
     PARQUET_THROW_NOT_OK(writer->Close());

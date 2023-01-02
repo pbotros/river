@@ -72,15 +72,15 @@ void StreamWriter::Initialize(const string &stream_name,
         {"first_stream_key", first_stream_key},
         {"schema", serialized_schema},
         {"local_minus_server_clock_us", local_minus_server_clock_f},
-        {"initialized_at_us", initialized_at_us_f},
-        {"user_metadata", "{}"}};
-    auto num_fields_added = static_cast<size_t>(redis_->SetMetadata(stream_name, fields));
-    if (fields.size() != num_fields_added) {
+        {"initialized_at_us", initialized_at_us_f}};
+    auto num_fields_added = static_cast<size_t>(
+            redis_->SetMetadataAndUserMetadata(stream_name, fields, user_metadata));
+    // Ensure to add 1 for user_metadata
+    if (fields.size() + 1 != num_fields_added) {
         throw StreamWriterException(
                 fmt::format("Stream exists already! stream {}. Expected {} fields to be written but {} were written.",
                             stream_name, fields.size(), num_fields_added));
     }
-    redis_->SetUserMetadata(stream_name, user_metadata);
 
     auto metadata = redis_->GetMetadata(stream_name);
     if (!metadata) {
@@ -89,7 +89,15 @@ void StreamWriter::Initialize(const string &stream_name,
 
     LOG(INFO) << "Stream metadata:" << endl;
     for (const auto& pair : *metadata) {
-        LOG(INFO) << "=> " << pair.first << ": " << pair.second << endl;
+        // Truncate for very long metadatas/schemas:
+        std::stringstream ss;
+        ss << "=> " << pair.first << ": " << pair.second;
+        std::string ss_str = ss.str();
+        if (ss_str.length() >= 120) {
+            LOG(INFO) << (ss_str.substr(0, 120 - 3) + "...") << endl;
+        } else {
+            LOG(INFO) << ss_str << endl;
+        }
     }
 
     this->stream_name_ = stream_name;
@@ -228,7 +236,10 @@ int64_t StreamWriter::ComputeLocalMinusServerClocks() {
     }
 
     auto delta = sum_deltas / num_round_trips;
-    LOG(INFO) << "Relative time (local - server) = " << delta << " us" << endl;
+    std::stringstream  ss;
+    ss << "Relative time (local - server) = " << delta << " us" << endl;
+    std::string s = ss.str();
+    LOG(INFO) << s;
     return delta;
 }
 

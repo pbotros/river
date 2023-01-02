@@ -143,6 +143,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
               *((float *) buffer_offset) = data_col[row_idx];
             }
           } break;
+        case FieldDefinition::INT16:
+          {
+            mxInt16 *data_col = mxGetInt16s(mxGetCell(data, col_idx));
+            for (int row_idx = 0; row_idx < n_to_write; row_idx++) {
+              const char *buffer_offset = &buffer[row_idx * sample_size + col_offset_bytes];
+              *((int16_t *) buffer_offset) = data_col[row_idx];
+            }
+          } break;
         case FieldDefinition::INT32:
           {
             mxInt32 *data_col = mxGetInt32s(mxGetCell(data, col_idx));

@@ -36,6 +36,9 @@ mxArray *schema_field_types(const StreamSchema& schema) {
       case FieldDefinition::FLOAT:
         mxSetCell(ret, i, from_string("single"));
         break;
+      case FieldDefinition::INT16:
+        mxSetCell(ret, i, from_string("int16"));
+        break;
       case FieldDefinition::INT32:
         mxSetCell(ret, i, from_string("int32"));
         break;

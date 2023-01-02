@@ -196,8 +196,13 @@ int64_t StreamReader::ReadBytes(
             }
 
             int64_t last_sample_index = strtoll(sample_index_str, nullptr, 10);
-            LOG(INFO) << "EOF received! Ending stream with " << samples_fetched << " elements at sample "
-                      << last_sample_index << endl;
+
+            // NB: For some reason on M1 Macs, LOG(INFO) with a number (int64_t here) causes a SIGBUS / EXC_BAD_ACCESS
+            // error to be thrown. Putting it through a stringstream seems to work. Glog 0.6.0 and C++14/17.
+            std::stringstream ss;
+            ss << "EOF received! Ending stream with " << samples_fetched << " elements at sample "
+               << last_sample_index << endl;
+            LOG(INFO) << ss.str();
             FireStreamKeyChange(current_stream_key_, "");
             is_eof_ = true;
             eof_key_ = std::string(last_element->element[0]->str);

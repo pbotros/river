@@ -180,6 +180,16 @@ TEST_F(StreamReaderTest, TestInteger) {
     });
 }
 
+TEST_F(StreamReaderTest, TestInt16) {
+    int16_t data[NUM_ELEMENTS];
+    for (int i = 0; i < NUM_ELEMENTS; i++) {
+        data[i] = i;
+    }
+    assert_read_works<int16_t>(data, sizeof(int16_t), [](int16_t element, int index) {
+        ASSERT_EQ(element, (int16_t) index);
+    });
+}
+
 TEST_F(StreamReaderTest, TestVariableBinaryRequiresSizes) {
     shared_ptr<StreamReader> r = NewStreamReader<char>(10000, FieldDefinition::VARIABLE_WIDTH_BYTES);
     r->Initialize(stream_name);
