@@ -4,7 +4,10 @@ file(STRINGS "../VERSION" PACKAGE_VERSION)
 
 option(RIVER_INSTALL "Set to ON to install River (set to OFF if embedding in another project)" ON)
 
-find_package (Python3 COMPONENTS Interpreter Development)
+if (NOT Python3_EXECUTABLE)
+  find_package (Python3 COMPONENTS Interpreter Development)
+endif()
+
 find_package (river REQUIRED)
 
 set(SETUP_PY_IN "${CMAKE_CURRENT_SOURCE_DIR}/setup.py.in")
