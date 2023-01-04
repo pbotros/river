@@ -14,6 +14,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Mo
 option(RIVER_BUILD_TESTS "Set to ON to build tests" ON)
 option(RIVER_BUILD_INGESTER "Set to ON to build the ingester" OFF)
 option(RIVER_INSTALL "Set to ON to install River (set to OFF if embedding in another project)" ON)
+option(RIVER_INSTALL_BENCHMARK "Set to ON to install river_benchmark binary (ignored if RIVER_INSTALL is OFF)" OFF)
 
 add_subdirectory(src)
 

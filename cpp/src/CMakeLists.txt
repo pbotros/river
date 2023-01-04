@@ -114,6 +114,11 @@ if (RIVER_INSTALL)
     PUBLIC_HEADER DESTINATION include/river)
   install(TARGETS hiredis DESTINATION lib)
 
+  if (RIVER_INSTALL_BENCHMARK)
+    install(TARGETS river_benchmark DESTINATION lib)
+  endif()
+
+
   #########################################
   # Handle .cmake and pkg-config .pc files
   # Below copied from fmt and from glog

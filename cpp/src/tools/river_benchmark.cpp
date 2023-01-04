@@ -48,7 +48,8 @@ int main(int argc, char **argv) {
 
   river::RedisConnection connection(redis_hostname, redis_port, redis_password);
   StreamReader reader(connection);
-  StreamWriter writer(connection);
+  // Ignore batch size
+  StreamWriter writer(connection, int64_t{1LL << 24}, 1 << 20);
 
   string stream_name = uuid::generate_uuid_v4();
 
