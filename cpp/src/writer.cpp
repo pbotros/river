@@ -127,7 +127,13 @@ void StreamWriter::WriteBytes(const char *data, int64_t num_samples, const int *
 
     int64_t data_index = 0;
     int64_t samples_written = 0;
+
+    double elapsed_sending_secs = 0.0;
+    double elapsed_waiting_secs = 0.0;
+
     while (samples_written < num_samples) {
+        auto latest = std::chrono::high_resolution_clock::now();
+
         auto samples_remaining = num_samples - samples_written;
         int64_t samples_to_write_in_batch =
             samples_remaining > redis_batch_size_ ? redis_batch_size_ : samples_remaining;
@@ -204,6 +210,9 @@ void StreamWriter::WriteBytes(const char *data, int64_t num_samples, const int *
         delete[] append_argv;
         delete[] append_arglens;
 
+        elapsed_sending_secs += std::chrono::duration<double>(std::chrono::high_resolution_clock::now() - latest).count();
+        latest = std::chrono::high_resolution_clock::now();
+
         for (int64_t i = 0; i < samples_to_write_in_batch; i++) {
             auto reply = redis_->GetReply();
             if (reply->type != REDIS_REPLY_STRING || reply->len == 0) {
@@ -213,9 +222,15 @@ void StreamWriter::WriteBytes(const char *data, int64_t num_samples, const int *
             }
         }
 
+        elapsed_waiting_secs += std::chrono::duration<double>(std::chrono::high_resolution_clock::now() - latest).count();
+        latest = std::chrono::high_resolution_clock::now();
+
         samples_written += samples_to_write_in_batch;
         total_samples_written_ += samples_to_write_in_batch;
     }
+
+    // TODO: TAKE THIS OUT
+    std::cout << "DEBUG: Took " << elapsed_sending_secs << " secs to send; " << elapsed_waiting_secs << " secs to receive." << std::endl;
 }
 
 int64_t StreamWriter::initialized_at_us() {
