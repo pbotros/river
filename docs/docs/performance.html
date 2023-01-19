@@ -1,18 +1,22 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Performance &mdash; river  documentation</title><link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
-    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <title>Performance &mdash; river  documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
-  <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
-        <script src="_static/language_data.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -63,8 +67,8 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
-      <li>Performance</li>
+      <li><a href="index.html" class="icon icon-home"></a></li>
+      <li class="breadcrumb-item active">Performance</li>
       <li class="wy-breadcrumbs-aside">
             <a href="_sources/performance.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -74,28 +78,30 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="performance">
-<h1>Performance<a class="headerlink" href="#performance" title="Permalink to this headline">¶</a></h1>
+  <section id="performance">
+<h1>Performance<a class="headerlink" href="#performance" title="Permalink to this heading"></a></h1>
 <p>There are a few ways to measure performance of a streaming framework, with different metrics useful to different use cases.</p>
 <p>For use cases involving small but time-sensitive events that needed to be communicated across devices, the raw latency of the system is important. On the other hand, for use cases in which there is a large volume of data being produced on a regular basis (e.g. from a data acquisition device), then a more relevant metric may be the throughput at which reading/writing to the stream no longer keeps up with the production of data.</p>
 <p>For the below tests, we streamed samples across a network with simultaneous readers and writers to simulate various real-world scenarios. The size, volume, and number of simultaneous readers were varied.</p>
-<div class="section" id="latency">
-<h2>Latency<a class="headerlink" href="#latency" title="Permalink to this headline">¶</a></h2>
+<section id="latency">
+<h2>Latency<a class="headerlink" href="#latency" title="Permalink to this heading"></a></h2>
 <p>To test latency, we streamed events in the form of a single sample every 1ms (i.e. at 1 kHz) and measured the time between immediately before the sample was written to the time immediately after the corresponding sample was read from the stream. When there was more than 1 reader, the maximum latency across all latencies for each sample was taken.</p>
 <p>95th percentile latencies for events were well under a millisecond, even with a larger number of readers (16) and larger sample sizes (128 bytes). Note that Redis 5 was used in these tests; Redis 6.0+ introduced multi-threaded I/O and could lead to increased performance, especially when handling concurrent reads.</p>
 <div class="line-block">
 <div class="line"><br /></div>
 </div>
-<div class="figure align-center" id="id1">
+<figure class="align-center" id="id1">
 <img alt="_images/event_latencies-01.png" src="_images/event_latencies-01.png" />
-<p class="caption"><span class="caption-text">95th percentile latencies from writing to reading of a single sample every 1ms, when the number of simultaneous readers (colors) and the size of a single sample (x-axis) were varied.</span><a class="headerlink" href="#id1" title="Permalink to this image">¶</a></p>
-</div>
+<figcaption>
+<p><span class="caption-text">95th percentile latencies from writing to reading of a single sample every 1ms, when the number of simultaneous readers (colors) and the size of a single sample (x-axis) were varied.</span><a class="headerlink" href="#id1" title="Permalink to this image"></a></p>
+</figcaption>
+</figure>
 <div class="line-block">
 <div class="line"><br /></div>
 </div>
-</div>
-<div class="section" id="throughput">
-<h2>Throughput<a class="headerlink" href="#throughput" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="throughput">
+<h2>Throughput<a class="headerlink" href="#throughput" title="Permalink to this heading"></a></h2>
 <p>To test throughput, we considered a stream of data to be written then read of some fixed generating sampling rate. In particular, we considered a stream generated at 32 kHz, with each sample being 768 bytes (i.e. fairly large but believable for the neuroscience community). This equates to a throughput of 23.4 MB/s.</p>
 <p>We then can write/read this data in various batch sizes, i.e. chunks of data at a time. Due to non-trivial overhead from network calls and Redis protocol, for very small batch sizes there will be non-negligible overhead for each write/read and thus could lead to writing outpacing reading of the stream. Larger batch sizes should handle higher-throughput data streams, with a tradeoff in latency.</p>
 <p>The below shows the results of the 95th percentile latencies for simultaneous writing and reading of this 23.4 MB/s data stream. The black dotted line indicates the (putative) threshold at which the writing of the stream may begin to outpace the reading, i.e. when the latency of the reader is larger than the period at which the batches are written.</p>
@@ -103,34 +109,38 @@
 <div class="line-block">
 <div class="line"><br /></div>
 </div>
-<div class="figure align-center" id="id2">
+<figure class="align-center" id="id2">
 <img alt="_images/throughputs-01.png" src="_images/throughputs-01.png" />
-<p class="caption"><span class="caption-text">95th percentile latencies as a function of sample size when writing a 23.4 MB/s stream of data. Black dotted line indicates the threshold of latency at which the reading of the stream may begin to fall behind the production of the data.</span><a class="headerlink" href="#id2" title="Permalink to this image">¶</a></p>
-</div>
+<figcaption>
+<p><span class="caption-text">95th percentile latencies as a function of sample size when writing a 23.4 MB/s stream of data. Black dotted line indicates the threshold of latency at which the reading of the stream may begin to fall behind the production of the data.</span><a class="headerlink" href="#id2" title="Permalink to this image"></a></p>
+</figcaption>
+</figure>
 <div class="line-block">
 <div class="line"><br /></div>
 </div>
-</div>
-<div class="section" id="max-throughput">
-<h2>Max throughput<a class="headerlink" href="#max-throughput" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="max-throughput">
+<h2>Max throughput<a class="headerlink" href="#max-throughput" title="Permalink to this heading"></a></h2>
 <p>The above tests for throughput test a realistic case of having simultaneous readers and writers. However, another useful performance test could be a test of the maximum write and read throughput with no other activity within River ongoing. To test this, we fixed the amount of samples and data to be written, and measured total time to write and then read that data in its entirety. Again, batch size – i.e., the number of samples written at a time – will affect performance, and so batch size was varied.</p>
 <p>Read and write throughputs exceeeded 30 MB/s when appropriate batch sizes were used. It is highly likely the performance-limiting factors are network speeds and memory bandwidth speeds, not necessarily CPU.</p>
 <div class="line-block">
 <div class="line"><br /></div>
 </div>
-<div class="figure align-center" id="id3">
+<figure class="align-center" id="id3">
 <img alt="_images/raw_throughputs-01.png" src="_images/raw_throughputs-01.png" />
-<p class="caption"><span class="caption-text">Total time taken to read (blue) and write (orange) 31.25MB of data, where reading and writing took place sequentially with varying batch sizes.</span><a class="headerlink" href="#id3" title="Permalink to this image">¶</a></p>
-</div>
+<figcaption>
+<p><span class="caption-text">Total time taken to read (blue) and write (orange) 31.25MB of data, where reading and writing took place sequentially with varying batch sizes.</span><a class="headerlink" href="#id3" title="Permalink to this image"></a></p>
+</figcaption>
+</figure>
 <div class="line-block">
 <div class="line"><br /></div>
 </div>
-</div>
-<div class="section" id="implementation-details">
-<h2>Implementation details<a class="headerlink" href="#implementation-details" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="implementation-details">
+<h2>Implementation details<a class="headerlink" href="#implementation-details" title="Permalink to this heading"></a></h2>
 <p>The above tests were run with Redis server version 5.0.6 running on Ubuntu 18.04, on a Dell Precision 5820 Tower running an Intel Xeon W-2135 CPU &#64; 3.70GHz. The reading/writing was run on a separate computer on the same local network running an Intel Xeon E3-1200 v5/E3-1500. Both used the built-in 1-Gigabit network cards, and were networked via the MikroTik hEX S Gigabit Ethernet Router (RB760iGS). Python code for testing performance can be found in performance/performance.py.</p>
-</div>
-</div>
+</section>
+</section>
 
 
            </div>

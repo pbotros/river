@@ -3,6 +3,6 @@ API
 =====
 
 .. toctree::
+
   python
   cpp
-

@@ -5,13 +5,17 @@ Installation
 Pre-packaged
 ------------
 
-For the C++ library and the ingester binary, installation via Conda is the preferred way:
+For the C++ library, installation via Conda is the preferred way:
 
 .. code-block:: bash
 
   conda install -c conda-forge river-cpp
 
-**NOTE: the ingester binary isn't available on Windows due to compilation issues. Use WSL or Linux/Mac for the ingester**.
+For installing the ingester, it's a separate conda install as well: **NOTE: the ingester binary isn't available on Windows due to compilation issues. Use WSL or Linux/Mac for the ingester**.
+
+.. code-block:: bash
+
+  conda install -c conda-forge river-ingester
 
 For the Python bindings, conda is also preferred:
 
@@ -22,6 +26,17 @@ For the Python bindings, conda is also preferred:
 For the (experimental) MATLAB bindings, see the MATLAB README for details.
 
 
+CMake
+-----
+The above instructions install River's C++ libraries, binaries, and/or Python bindings into standard system directories. This process also installs the appropriate pkg-config to enable CMake in your project to find River in a standard fashion. If you want to use River in your own C++ CMake project, you should be able to do:
+
+.. code-block:: cmake
+
+  find_package(river REQUIRED)
+  ...
+  target_link_libraries(my_target PRIVATE river::river)
+
+
 Compiling from Source
 ---------------------
 You can also compile by source and install manually. The below steps will compile the C++ library and install both the C++ library/headers and the Python bindings. This project uses CMake.
@@ -29,23 +44,19 @@ You can also compile by source and install manually. The below steps will compil
 Prerequisites
 ^^^^^^^^^^^^^
 
-River expects several packages to be installed in the standard system-wide directories, including:
+In order to build the core C++ library for River, the only package expected to be installed should be Google Log (glog). 
 
-- Python 3.7+
-- Google Log (glog)
-
-If you're also building and installing the Ingester, you'll need:
+If you're building the Python bindings, then you'll need Python 3.7+. If you're also building and installing the Ingester, you'll need:
 - Boost 1.67+
 - Apache Arrow and Parquet
 
-Use your favorite package manager to install the above. For instance, run:
+Use your favorite package manager to install the above. For instance, if you use conda, run:
 
 .. code-block:: bash
 
   conda install -c conda-forge pkg-config cmake # build tools
   conda install -c conda-forge glog  # Google Log
-  # brew install python3-dev  # If not already installed via conda
-  # conda install -c conda-forge boost-cpp arrow-cpp # Boost/Arrow/Parquet, if installing ingester
+  conda install -c conda-forge boost-cpp arrow-cpp # Boost/Arrow/Parquet, if installing ingester
 
 Installing
 ^^^^^^^^^^
@@ -55,7 +66,7 @@ Since River uses CMake, you can use standard CMake commands such as (if on Mac o
 .. code-block:: bash
 
   git clone git@github.com:pbotros/river.git
-  cd river
+  cd river/cpp
   mkdir -p build/release
   cd build/release
   cmake -G "Unix Makefiles" -DRIVER_BUILD_INGESTER=0 -DCMAKE_BUILD_TYPE=Release ../..
@@ -75,7 +86,21 @@ To enable building the ingester, enable the CMake flag `RIVER_BUILD_INGESTER` as
   make
   sudo make install
 
-This will build and install a `river-ingester` binary in your default install path, e.g., `/usr/local/bin/` on modern Mac/Unix systems. Run it with the `--help` option for more details.
+This will build and install a `river-ingester` binary in your default install path, e.g., `/usr/local/bin/` on modern Mac/Unix systems. Run the `river-ingester` binary with the `--help` option for more details.
+
+Finally, to build and install the Python bindings, you can take similar steps:
+
+.. code-block:: bash
+
+  cd /path/to/river/repo
+  cd python
+  mkdir -p build/release
+  cd build/release
+  cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release ../..
+  make
+  sudo make install  # if on Mac, can omit sudo
+
+This should install it in the default installation site. To pass a custom python3 executable in the case of cross-compilation or when manually handling different python3 versions, you can invoke `cmake` with the `-DPython3_EXECUTABLE=/path/to/custom/python3` to override the Python used.
 
 Verifying Installation
 ^^^^^^^^^^^^^^^^^^^^^^
@@ -85,9 +110,10 @@ To test whether the installation was correct, run the benchmark, assuming you're
 .. code-block:: bash
 
   # From the root of the river repository
-  cd build/release/src
+  cd cpp/build/release/src
   ./river_benchmark --redis_hostname 127.0.0.1  --batch_size 1 --sample_size 128 --num_samples 1000
 
+Exact results of the River benchmark will vary depending on the batch size, sample size, number of samples, and your hardware.
 
 
 Troubleshooting

@@ -17,5 +17,7 @@ C++ Docs
 .. doxygenstruct:: river::FieldDefinition
    :members:
 
+.. doxygenenum:: river::FieldDefinition::type
+
 .. doxygenclass:: river::internal::RedisException
    :members:

@@ -1,18 +1,22 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Tutorial &mdash; river  documentation</title><link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
-    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <title>Tutorial &mdash; river  documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
-  <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
-        <script src="_static/language_data.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -63,8 +67,8 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
-      <li>Tutorial</li>
+      <li><a href="index.html" class="icon icon-home"></a></li>
+      <li class="breadcrumb-item active">Tutorial</li>
       <li class="wy-breadcrumbs-aside">
             <a href="_sources/tutorial.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -74,16 +78,16 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="tutorial">
-<h1>Tutorial<a class="headerlink" href="#tutorial" title="Permalink to this headline">¶</a></h1>
+  <section id="tutorial">
+<h1>Tutorial<a class="headerlink" href="#tutorial" title="Permalink to this heading"></a></h1>
 <p>Let’s do your first stream with River. The following tutorial is written in Python, but the concepts and method names are very similar in C++. Similar example code in C++ can be found in <a class="reference external" href="https://github.com/pbotros/river/blob/master/cpp/src/tools/river_example.cpp">river_example.cpp</a>.</p>
-<div class="section" id="redis">
-<h2>Redis<a class="headerlink" href="#redis" title="Permalink to this headline">¶</a></h2>
+<section id="redis">
+<h2>Redis<a class="headerlink" href="#redis" title="Permalink to this heading"></a></h2>
 <p>River utilizes Redis as its underlying database. If you don’t have it running, the [Redis website](<a class="reference external" href="https://redis.io/">https://redis.io/</a>) has great instructions on downloading and installing. Note that Redis is currently only supported on Linux, Mac, and Windows Subsystem for Linux (WSL).</p>
 <p>This tutorial assumes Redis is running at localhost <cite>127.0.0.1</cite> on the standard port 6379, but adjust the following if it’s not.</p>
-</div>
-<div class="section" id="writing">
-<h2>Writing<a class="headerlink" href="#writing" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="writing">
+<h2>Writing<a class="headerlink" href="#writing" title="Permalink to this heading"></a></h2>
 <p>First, let’s create your first stream via river’s <cite>StreamWriter</cite>:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">river</span>
 <span class="kn">import</span> <span class="nn">uuid</span>
@@ -122,9 +126,9 @@
 <span class="c1"># end of your stream, waiting for more samples.</span>
 </pre></div>
 </div>
-</div>
-<div class="section" id="reading">
-<h2>Reading<a class="headerlink" href="#reading" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="reading">
+<h2>Reading<a class="headerlink" href="#reading" title="Permalink to this heading"></a></h2>
 <p>Great! You have your first stream. In the same Python session, let’s read it back and print out the contents:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Create the Reader and then initialize it with the stream we want to read from.</span>
 <span class="n">r</span> <span class="o">=</span> <span class="n">river</span><span class="o">.</span><span class="n">StreamReader</span><span class="p">(</span><span class="n">river</span><span class="o">.</span><span class="n">RedisConnection</span><span class="p">(</span><span class="s2">&quot;127.0.0.1&quot;</span><span class="p">,</span> <span class="mi">6379</span><span class="p">))</span>
@@ -168,42 +172,42 @@
 </pre></div>
 </div>
 <p>Your output should print out 0.0, 1.0, 2.0, …, 9.0. Note that, although in this example we wrote the stream and then read back the stream sequentially, both chunks of code can be run simultaneously; the reader will block as requested if there are not enough samples in the stream.</p>
-</div>
-<div class="section" id="ingestion">
-<h2>Ingestion<a class="headerlink" href="#ingestion" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="ingestion">
+<h2>Ingestion<a class="headerlink" href="#ingestion" title="Permalink to this heading"></a></h2>
 <p>Now let’s ingest some data via the <cite>river-ingester</cite> binary:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">GLOG_alsologtostderr</span><span class="o">=</span><span class="m">1</span> river-ingester -h <span class="m">127</span>.0.0.1 -o river_streams
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">GLOG_alsologtostderr</span><span class="o">=</span><span class="m">1</span><span class="w"> </span>river-ingester<span class="w"> </span>-h<span class="w"> </span><span class="m">127</span>.0.0.1<span class="w"> </span>-o<span class="w"> </span>river_streams
 </pre></div>
 </div>
 <p>This will begin the <cite>ingester</cite>, which will check Redis for any existing streams. River uses GLOG for logging, and so the environment variable <cite>GLOG_alsologtostderr</cite> prints out any logging information to STDERR.</p>
 <p>The logs should include:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>...
-Starting ingestion of stream &lt;your stream name&gt;
+Starting<span class="w"> </span>ingestion<span class="w"> </span>of<span class="w"> </span>stream<span class="w"> </span>&lt;your<span class="w"> </span>stream<span class="w"> </span>name&gt;
 ...
-Stream metadata <span class="k">for</span> &lt;your stream name&gt; deleted.
+Stream<span class="w"> </span>metadata<span class="w"> </span><span class="k">for</span><span class="w"> </span>&lt;your<span class="w"> </span>stream<span class="w"> </span>name&gt;<span class="w"> </span>deleted.
 ...
 </pre></div>
 </div>
 <p>After these log lines, you can ctrl-C the ingester. The following files should have been written in the <cite>river_streams</cite> directory:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$&gt; ls -R river_streams
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$&gt;<span class="w"> </span>ls<span class="w"> </span>-R<span class="w"> </span>river_streams
 ...
-river_streams/&lt;your stream name&gt;:
-data.parquet  metadata.json
+river_streams/&lt;your<span class="w"> </span>stream<span class="w"> </span>name&gt;:
+data.parquet<span class="w">  </span>metadata.json
 </pre></div>
 </div>
 <p>You can then print out the contents of <cite>data.parquet</cite> via Pandas and confirm it’s what’s expected:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python -c <span class="s1">&#39;import pandas as pd; print(pd.read_parquet(&quot;river_streams/&lt;your stream name&gt;/data.parquet&quot;))&#39;</span>
-   sample_index              key   timestamp_ms  col1
-<span class="m">0</span>             <span class="m">0</span>  <span class="m">1591593828887</span>-0  <span class="m">1591593828887</span>   <span class="m">0</span>.0
-<span class="m">1</span>             <span class="m">1</span>  <span class="m">1591593828887</span>-1  <span class="m">1591593828887</span>   <span class="m">1</span>.0
-<span class="m">2</span>             <span class="m">2</span>  <span class="m">1591593828887</span>-2  <span class="m">1591593828887</span>   <span class="m">2</span>.0
-<span class="m">3</span>             <span class="m">3</span>  <span class="m">1591593828887</span>-3  <span class="m">1591593828887</span>   <span class="m">3</span>.0
-<span class="m">4</span>             <span class="m">4</span>  <span class="m">1591593828887</span>-4  <span class="m">1591593828887</span>   <span class="m">4</span>.0
-<span class="m">5</span>             <span class="m">5</span>  <span class="m">1591593828887</span>-5  <span class="m">1591593828887</span>   <span class="m">5</span>.0
-<span class="m">6</span>             <span class="m">6</span>  <span class="m">1591593828887</span>-6  <span class="m">1591593828887</span>   <span class="m">6</span>.0
-<span class="m">7</span>             <span class="m">7</span>  <span class="m">1591593828887</span>-7  <span class="m">1591593828887</span>   <span class="m">7</span>.0
-<span class="m">8</span>             <span class="m">8</span>  <span class="m">1591593828887</span>-8  <span class="m">1591593828887</span>   <span class="m">8</span>.0
-<span class="m">9</span>             <span class="m">9</span>  <span class="m">1591593828887</span>-9  <span class="m">1591593828887</span>   <span class="m">9</span>.0
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-c<span class="w"> </span><span class="s1">&#39;import pandas as pd; print(pd.read_parquet(&quot;river_streams/&lt;your stream name&gt;/data.parquet&quot;))&#39;</span>
+<span class="w">   </span>sample_index<span class="w">              </span>key<span class="w">   </span>timestamp_ms<span class="w">  </span>col1
+<span class="m">0</span><span class="w">             </span><span class="m">0</span><span class="w">  </span><span class="m">1591593828887</span>-0<span class="w">  </span><span class="m">1591593828887</span><span class="w">   </span><span class="m">0</span>.0
+<span class="m">1</span><span class="w">             </span><span class="m">1</span><span class="w">  </span><span class="m">1591593828887</span>-1<span class="w">  </span><span class="m">1591593828887</span><span class="w">   </span><span class="m">1</span>.0
+<span class="m">2</span><span class="w">             </span><span class="m">2</span><span class="w">  </span><span class="m">1591593828887</span>-2<span class="w">  </span><span class="m">1591593828887</span><span class="w">   </span><span class="m">2</span>.0
+<span class="m">3</span><span class="w">             </span><span class="m">3</span><span class="w">  </span><span class="m">1591593828887</span>-3<span class="w">  </span><span class="m">1591593828887</span><span class="w">   </span><span class="m">3</span>.0
+<span class="m">4</span><span class="w">             </span><span class="m">4</span><span class="w">  </span><span class="m">1591593828887</span>-4<span class="w">  </span><span class="m">1591593828887</span><span class="w">   </span><span class="m">4</span>.0
+<span class="m">5</span><span class="w">             </span><span class="m">5</span><span class="w">  </span><span class="m">1591593828887</span>-5<span class="w">  </span><span class="m">1591593828887</span><span class="w">   </span><span class="m">5</span>.0
+<span class="m">6</span><span class="w">             </span><span class="m">6</span><span class="w">  </span><span class="m">1591593828887</span>-6<span class="w">  </span><span class="m">1591593828887</span><span class="w">   </span><span class="m">6</span>.0
+<span class="m">7</span><span class="w">             </span><span class="m">7</span><span class="w">  </span><span class="m">1591593828887</span>-7<span class="w">  </span><span class="m">1591593828887</span><span class="w">   </span><span class="m">7</span>.0
+<span class="m">8</span><span class="w">             </span><span class="m">8</span><span class="w">  </span><span class="m">1591593828887</span>-8<span class="w">  </span><span class="m">1591593828887</span><span class="w">   </span><span class="m">8</span>.0
+<span class="m">9</span><span class="w">             </span><span class="m">9</span><span class="w">  </span><span class="m">1591593828887</span>-9<span class="w">  </span><span class="m">1591593828887</span><span class="w">   </span><span class="m">9</span>.0
 </pre></div>
 </div>
 <p>You can see a couple columns in addition to the data we wrote have been added, namely:</p>
@@ -214,12 +218,12 @@ data.parquet  metadata.json
 </ul>
 <p>For those interested in interrogating data while a stream is ongoing: the <cite>ingester</cite> writes intermediate files in the form of <cite>data_XXXX.parquet</cite> in the given output directory while the stream is ongoing, where <cite>XXXX</cite> is of the form <cite>0000, 0001, …</cite> . Each Parquet file represents a disjoint set of data written in ascending <cite>sample_index</cite> .</p>
 <p>Finally, let’s look at the <cite>metadata.json</cite> and highlight a few key fields:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$&gt; cat river_streams/&lt;your stream name&gt;/metadata.json <span class="p">|</span> jq
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$&gt;<span class="w"> </span>cat<span class="w"> </span>river_streams/&lt;your<span class="w"> </span>stream<span class="w"> </span>name&gt;/metadata.json<span class="w"> </span><span class="p">|</span><span class="w"> </span>jq
 <span class="o">{</span>
-  <span class="s2">&quot;stream_name&quot;</span>: <span class="s2">&quot;57031e25-ad00-49f6-8e42-3b69a4684fa9&quot;</span>,
-  <span class="s2">&quot;local_minus_server_clock_us&quot;</span>: <span class="s2">&quot;0&quot;</span>,
-  <span class="s2">&quot;initialized_at_us&quot;</span>: <span class="s2">&quot;1591593828887568&quot;</span>,
-  <span class="s2">&quot;ingestion_status&quot;</span>: <span class="s2">&quot;COMPLETED&quot;</span>
+<span class="w">  </span><span class="s2">&quot;stream_name&quot;</span>:<span class="w"> </span><span class="s2">&quot;57031e25-ad00-49f6-8e42-3b69a4684fa9&quot;</span>,
+<span class="w">  </span><span class="s2">&quot;local_minus_server_clock_us&quot;</span>:<span class="w"> </span><span class="s2">&quot;0&quot;</span>,
+<span class="w">  </span><span class="s2">&quot;initialized_at_us&quot;</span>:<span class="w"> </span><span class="s2">&quot;1591593828887568&quot;</span>,
+<span class="w">  </span><span class="s2">&quot;ingestion_status&quot;</span>:<span class="w"> </span><span class="s2">&quot;COMPLETED&quot;</span>
 <span class="o">}</span>
 </pre></div>
 </div>
@@ -228,8 +232,8 @@ data.parquet  metadata.json
 <li><p><cite>local_minus_server_clock_us</cite>: estimated difference between the local and server (i.e. Redis) clocks in microseconds.</p></li>
 <li><p><cite>initialized_at_us</cite>: the local UNIX timestamp in microseconds at which <cite>StreamWriter#initialize()</cite> was called.</p></li>
 </ul>
-</div>
-</div>
+</section>
+</section>
 
 
            </div>

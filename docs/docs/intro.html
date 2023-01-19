@@ -1,18 +1,22 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Introduction &mdash; river  documentation</title><link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
-    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <title>Introduction &mdash; river  documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
-  <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
-        <script src="_static/language_data.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -61,8 +65,8 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
-      <li>Introduction</li>
+      <li><a href="index.html" class="icon icon-home"></a></li>
+      <li class="breadcrumb-item active">Introduction</li>
       <li class="wy-breadcrumbs-aside">
             <a href="_sources/intro.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -72,8 +76,8 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="introduction">
-<h1>Introduction<a class="headerlink" href="#introduction" title="Permalink to this headline">¶</a></h1>
+  <section id="introduction">
+<h1>Introduction<a class="headerlink" href="#introduction" title="Permalink to this heading"></a></h1>
 <p><em>A high-throughput, structured streaming library for C++, Python, and MATLAB</em>.</p>
 <p>River is a C++ framework that affords for <em>simple</em>, <em>schema’d</em> streaming of data, without any compromises on latency or throughput. River allows for a <em>writer</em> to write data to a <em>stream</em>, and an unlimited number of <em>readers</em> to read data from that <em>stream</em> in real-time, with an API similar to that of typical file I/O. Optionally, River supports <em>ingestion</em> of all streams to dump streams to disk for retrospective analysis and to support indefinitely long streams.</p>
 <p>Under the hood, River utilizes <a class="reference external" href="https://redis.io">Redis</a>, an industry-standard in-memory database, which allows for low latency, high throughput, and simplified architecture.</p>
@@ -81,26 +85,28 @@
 <div class="line-block">
 <div class="line"><br /></div>
 </div>
-<div class="figure align-center" id="id1">
+<figure class="align-center" id="id1">
 <img alt="_images/overview-01.png" src="_images/overview-01.png" />
-<p class="caption"><span class="caption-text">Example schematic of a stream with two fields, a 32-bit int <cite>col1</cite> and 64-bit double <cite>col2</cite>, with a writer and two readers. Readers each have their own independent cursor to consume data from the stream, while the writer appends to the end of the stream.</span><a class="headerlink" href="#id1" title="Permalink to this image">¶</a></p>
-</div>
+<figcaption>
+<p><span class="caption-text">Example schematic of a stream with two fields, a 32-bit int <cite>col1</cite> and 64-bit double <cite>col2</cite>, with a writer and two readers. Readers each have their own independent cursor to consume data from the stream, while the writer appends to the end of the stream.</span><a class="headerlink" href="#id1" title="Permalink to this image"></a></p>
+</figcaption>
+</figure>
 <div class="line-block">
 <div class="line"><br /></div>
 </div>
-<div class="section" id="getting-started">
-<h2>Getting Started<a class="headerlink" href="#getting-started" title="Permalink to this headline">¶</a></h2>
+<section id="getting-started">
+<h2>Getting Started<a class="headerlink" href="#getting-started" title="Permalink to this heading"></a></h2>
 <p>Eager to get started? Check out the <a class="reference internal" href="install.html"><span class="doc">installation</span></a> and <a class="reference internal" href="tutorial.html"><span class="doc">tutorial</span></a>. Otherwise, read on for some motivation about River.</p>
-</div>
-<div class="section" id="premise">
-<h2>Premise<a class="headerlink" href="#premise" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="premise">
+<h2>Premise<a class="headerlink" href="#premise" title="Permalink to this heading"></a></h2>
 <p>Research and Internet-of-Things (IoT) applications often need to pipe data between devices in near-realtime – a temperature sensor relays data to a microcontroller that controls a thermostat. While a home-grown solution can likely work for simple systems, more complex systems will inevitably require data produced by a single device to be read by multiple sources, often simultaneously – that temperature sensor might need to also relay its data to a computer for a realtime display. These requirements intensify with the growing data capabilities of our hardware. Crafting a multi-reader system like this from scratch quickly becomes an untenable effort.</p>
 <p>Enter streaming frameworks: libraries designed to “produce” data to many “consumers”. There are many robust and industry-standard streaming frameworks out there such as <a class="reference external" href="https://www.rabbitmq.com/">RabbitMQ</a>, <a class="reference external" href="https://kafka.apache.org/">Kafka</a>, and <a class="reference external" href="https://zeromq.org/">ZeroMQ</a>; however, they can be cumbersome to install &amp; manage for non-enterprise environments (e.g. Kafka), have limited single-stream throughput (e.g., RabbitMQ’s <a class="reference external" href="https://www.cloudamqp.com/blog/2018-01-08-part2-rabbitmq-best-practice-for-high-performance.html">~50k messages/sec</a> max even with persistence disabled), or require non-trivial application-level code to be usable for multi-reader streaming (e.g., ZeroMQ). These frameworks are tailored towards stricter requirements than is often required for our settings here, where network partitions are rare and availability guarantees are more relaxed.</p>
 <p><strong>River</strong> was created to meet the needs of streaming in a research or IoT world: stream data from one device to many others, prioritizing minimal setup and high performance over strict guarantees on message delivery and persistence*. River is built on the high-throughput <a class="reference external" href="https://redis.io/topics/streams-intro">Redis Streams</a>, released in Redis 5.0, and then layers a schema and metadata to make it easy to stream.</p>
 <p>However, streaming is often only the <em>first</em> part of the story. Researchers and makers often want to see what was streamed after-the-fact - to analyze that data offline. River addresses this unmet need with its “data ingestion”: persisting data that was streamed via River to disk. Packaged in a separate binary, the <cite>ingester</cite> is a long-running server process that polls for River streams created in Redis and automatically writes the data in batches to disk using a columnar data storage format, <a class="reference external" href="https://parquet.apache.org">Apache Parquet</a>. Once a segment of data is persisted and considered sufficiently stale, the <cite>ingester</cite> will delete this data from Redis, thus affording for indefinitely large streams.</p>
 <p>* River utilizes Redis for all data storage and thus has the same data consistency guarantees as is configured in your Redis server.</p>
-</div>
-</div>
+</section>
+</section>
 
 
            </div>

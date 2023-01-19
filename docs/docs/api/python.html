@@ -1,18 +1,22 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Python Docs &mdash; river  documentation</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
-    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <title>Python Docs &mdash; river  documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="../_static/js/html5shiv.min.js"></script>
   <![endif]-->
-  <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
         <script src="../_static/jquery.js"></script>
         <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../_static/doctools.js"></script>
-        <script src="../_static/language_data.js"></script>
+        <script src="../_static/sphinx_highlight.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -42,7 +46,67 @@
 <li class="toctree-l1"><a class="reference internal" href="../performance.html">Performance</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../contributing.html">Contributing</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="index.html">API</a><ul class="current">
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Python Docs</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Python Docs</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#river.StreamReader"><code class="docutils literal notranslate"><span class="pre">StreamReader</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#river.StreamReader.good"><code class="docutils literal notranslate"><span class="pre">StreamReader.good</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#river.StreamReader.initialize"><code class="docutils literal notranslate"><span class="pre">StreamReader.initialize()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#river.StreamReader.initialized_at_us"><code class="docutils literal notranslate"><span class="pre">StreamReader.initialized_at_us</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#river.StreamReader.metadata"><code class="docutils literal notranslate"><span class="pre">StreamReader.metadata</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#river.StreamReader.new_buffer"><code class="docutils literal notranslate"><span class="pre">StreamReader.new_buffer()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#river.StreamReader.read"><code class="docutils literal notranslate"><span class="pre">StreamReader.read()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#river.StreamReader.schema"><code class="docutils literal notranslate"><span class="pre">StreamReader.schema</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#river.StreamReader.stop"><code class="docutils literal notranslate"><span class="pre">StreamReader.stop()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#river.StreamReader.stream_name"><code class="docutils literal notranslate"><span class="pre">StreamReader.stream_name</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#river.StreamReader.tail"><code class="docutils literal notranslate"><span class="pre">StreamReader.tail()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#river.StreamReader.total_samples_read"><code class="docutils literal notranslate"><span class="pre">StreamReader.total_samples_read</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#river.StreamWriter"><code class="docutils literal notranslate"><span class="pre">StreamWriter</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#river.StreamWriter.initialize"><code class="docutils literal notranslate"><span class="pre">StreamWriter.initialize()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#river.StreamWriter.initialized_at_us"><code class="docutils literal notranslate"><span class="pre">StreamWriter.initialized_at_us</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#river.StreamWriter.metadata"><code class="docutils literal notranslate"><span class="pre">StreamWriter.metadata</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#river.StreamWriter.new_buffer"><code class="docutils literal notranslate"><span class="pre">StreamWriter.new_buffer()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#river.StreamWriter.schema"><code class="docutils literal notranslate"><span class="pre">StreamWriter.schema</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#river.StreamWriter.stop"><code class="docutils literal notranslate"><span class="pre">StreamWriter.stop()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#river.StreamWriter.stream_name"><code class="docutils literal notranslate"><span class="pre">StreamWriter.stream_name</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#river.StreamWriter.total_samples_written"><code class="docutils literal notranslate"><span class="pre">StreamWriter.total_samples_written</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#river.StreamWriter.write"><code class="docutils literal notranslate"><span class="pre">StreamWriter.write()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#river.RedisConnection"><code class="docutils literal notranslate"><span class="pre">RedisConnection</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#river.RedisConnection.redis_hostname"><code class="docutils literal notranslate"><span class="pre">RedisConnection.redis_hostname</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#river.RedisConnection.redis_password"><code class="docutils literal notranslate"><span class="pre">RedisConnection.redis_password</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#river.RedisConnection.redis_port"><code class="docutils literal notranslate"><span class="pre">RedisConnection.redis_port</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#river.StreamSchema"><code class="docutils literal notranslate"><span class="pre">StreamSchema</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#river.StreamSchema.dtype"><code class="docutils literal notranslate"><span class="pre">StreamSchema.dtype()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#river.StreamSchema.field_definitions"><code class="docutils literal notranslate"><span class="pre">StreamSchema.field_definitions</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#river.StreamSchema.from_dtype"><code class="docutils literal notranslate"><span class="pre">StreamSchema.from_dtype()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#river.FieldDefinition"><code class="docutils literal notranslate"><span class="pre">FieldDefinition</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#river.FieldDefinition.name"><code class="docutils literal notranslate"><span class="pre">FieldDefinition.name</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#river.FieldDefinition.type"><code class="docutils literal notranslate"><span class="pre">FieldDefinition.type</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#river.FieldType"><code class="docutils literal notranslate"><span class="pre">FieldType</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#river.FieldType.DOUBLE"><code class="docutils literal notranslate"><span class="pre">FieldType.DOUBLE</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#river.FieldType.FIXED_WIDTH_BYTES"><code class="docutils literal notranslate"><span class="pre">FieldType.FIXED_WIDTH_BYTES</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#river.FieldType.FLOAT"><code class="docutils literal notranslate"><span class="pre">FieldType.FLOAT</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#river.FieldType.INT16"><code class="docutils literal notranslate"><span class="pre">FieldType.INT16</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#river.FieldType.INT32"><code class="docutils literal notranslate"><span class="pre">FieldType.INT32</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#river.FieldType.INT64"><code class="docutils literal notranslate"><span class="pre">FieldType.INT64</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#river.FieldType.VARIABLE_WIDTH_BYTES"><code class="docutils literal notranslate"><span class="pre">FieldType.VARIABLE_WIDTH_BYTES</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#river.RedisException"><code class="docutils literal notranslate"><span class="pre">RedisException</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#river.StreamReaderException"><code class="docutils literal notranslate"><span class="pre">StreamReaderException</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#river.StreamWriterException"><code class="docutils literal notranslate"><span class="pre">StreamWriterException</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#river.StreamDoesNotExistException"><code class="docutils literal notranslate"><span class="pre">StreamDoesNotExistException</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#river.StreamExistsException"><code class="docutils literal notranslate"><span class="pre">StreamExistsException</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="cpp.html">C++ Docs</a></li>
 </ul>
 </li>
@@ -61,9 +125,9 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
-          <li><a href="index.html">API</a> &raquo;</li>
-      <li>Python Docs</li>
+      <li><a href="../index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">API</a></li>
+      <li class="breadcrumb-item active">Python Docs</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../_sources/api/python.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -73,50 +137,50 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="python-docs">
-<h1>Python Docs<a class="headerlink" href="#python-docs" title="Permalink to this headline">¶</a></h1>
+  <section id="python-docs">
+<h1>Python Docs<a class="headerlink" href="#python-docs" title="Permalink to this heading"></a></h1>
 <dl class="py class">
-<dt id="river.StreamReader">
-<em class="property">class </em><code class="sig-prename descclassname">river.</code><code class="sig-name descname">StreamReader</code><a class="headerlink" href="#river.StreamReader" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="river.StreamReader">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">river.</span></span><span class="sig-name descname"><span class="pre">StreamReader</span></span><a class="headerlink" href="#river.StreamReader" title="Permalink to this definition"></a></dt>
 <dd><p>The main entry point for River for reading an existing stream. This class is initialized with a stream name
 corresponding to an existing stream, and allows for batch consumption of the stream. Reads requesting more data than
 is present in the stream will block.</p>
 <p>After constructing a StreamReader, you must call initialize with the name of the stream you wish to read.</p>
 <dl class="py attribute">
-<dt id="river.StreamReader.good">
-<code class="sig-name descname">good</code><a class="headerlink" href="#river.StreamReader.good" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="river.StreamReader.good">
+<span class="sig-name descname"><span class="pre">good</span></span><a class="headerlink" href="#river.StreamReader.good" title="Permalink to this definition"></a></dt>
 <dd><p>Whether this stream is “good” for reading (similar to std::ifstream’s #good()). Synonymous with casting to bool.
 Indicates whether more samples can be read from this stream via this StreamReader.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="river.StreamReader.initialize">
-<code class="sig-name descname">initialize</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">unicode stream_name: str</em>, <em class="sig-param">timeout_ms: int = -1</em><span class="sig-paren">)</span><a class="headerlink" href="#river.StreamReader.initialize" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="river.StreamReader.initialize">
+<span class="sig-name descname"><span class="pre">initialize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">unicode</span> <span class="pre">stream_name:</span> <span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout_ms:</span> <span class="pre">int</span> <span class="pre">=</span> <span class="pre">-1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#river.StreamReader.initialize" title="Permalink to this definition"></a></dt>
 <dd><p>Initialize this reader to a particular stream. If timeout_ms is positive, this call will wait for up to
 <cite>timeout_ms</cite> milliseconds for the stream to be created. When the timeout is exceeded or if no timeout was given
 and the stream does not exist, a StreamReaderException will be raised.</p>
 </dd></dl>
 
 <dl class="py attribute">
-<dt id="river.StreamReader.initialized_at_us">
-<code class="sig-name descname">initialized_at_us</code><a class="headerlink" href="#river.StreamReader.initialized_at_us" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="river.StreamReader.initialized_at_us">
+<span class="sig-name descname"><span class="pre">initialized_at_us</span></span><a class="headerlink" href="#river.StreamReader.initialized_at_us" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt id="river.StreamReader.metadata">
-<code class="sig-name descname">metadata</code><a class="headerlink" href="#river.StreamReader.metadata" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="river.StreamReader.metadata">
+<span class="sig-name descname"><span class="pre">metadata</span></span><a class="headerlink" href="#river.StreamReader.metadata" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="river.StreamReader.new_buffer">
-<code class="sig-name descname">new_buffer</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">self</span></em>, <em class="sig-param"><span class="n">n</span><span class="p">:</span> <span class="n">int</span></em><span class="sig-paren">)</span> &#x2192; np.ndarray<a class="headerlink" href="#river.StreamReader.new_buffer" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="river.StreamReader.new_buffer">
+<span class="sig-name descname"><span class="pre">new_buffer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">np.ndarray</span></span></span><a class="headerlink" href="#river.StreamReader.new_buffer" title="Permalink to this definition"></a></dt>
 <dd><p>Returns an empty NumPy buffer of size <cite>n</cite> with a dtype matching the stream’s schema. Note that the returned
 buffer is simply allocated and not also zeroed, so there’s likely to be “junk” seen in the returned array.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="river.StreamReader.read">
-<code class="sig-name descname">read</code><span class="sig-paren">(</span><em class="sig-param">self: StreamReader</em>, <em class="sig-param">ndarray arr: np.ndarray</em>, <em class="sig-param">timeout_ms: int = -1</em><span class="sig-paren">)</span> &#x2192; int<a class="headerlink" href="#river.StreamReader.read" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="river.StreamReader.read">
+<span class="sig-name descname"><span class="pre">read</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">StreamReader</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ndarray</span> <span class="pre">arr:</span> <span class="pre">np.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout_ms:</span> <span class="pre">int</span> <span class="pre">=</span> <span class="pre">-1</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="headerlink" href="#river.StreamReader.read" title="Permalink to this definition"></a></dt>
 <dd><p>Read from the stream from where was last consumed. This call blocks until the desired number of samples is
 available in the underlying stream. The return value indicates how many samples were written to the buffer.
 If EOF has been reached, then #good() will return false, and any attempts to #read() will return -1.</p>
@@ -141,25 +205,25 @@ Returns -1 if EOF is encountered; if -1 is returned, buffer is guaranteed to not
 </dd></dl>
 
 <dl class="py attribute">
-<dt id="river.StreamReader.schema">
-<code class="sig-name descname">schema</code><a class="headerlink" href="#river.StreamReader.schema" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="river.StreamReader.schema">
+<span class="sig-name descname"><span class="pre">schema</span></span><a class="headerlink" href="#river.StreamReader.schema" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="river.StreamReader.stop">
-<code class="sig-name descname">stop</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">self</span></em><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#river.StreamReader.stop" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="river.StreamReader.stop">
+<span class="sig-name descname"><span class="pre">stop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#river.StreamReader.stop" title="Permalink to this definition"></a></dt>
 <dd><p>Stops this reader from being used in the future. Redis connections are freed; read() will no longer work; good()
 will return false.</p>
 </dd></dl>
 
 <dl class="py attribute">
-<dt id="river.StreamReader.stream_name">
-<code class="sig-name descname">stream_name</code><a class="headerlink" href="#river.StreamReader.stream_name" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="river.StreamReader.stream_name">
+<span class="sig-name descname"><span class="pre">stream_name</span></span><a class="headerlink" href="#river.StreamReader.stream_name" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="river.StreamReader.tail">
-<code class="sig-name descname">tail</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">ndarray arr</em>, <em class="sig-param">int timeout_ms=-1</em><span class="sig-paren">)</span> &#x2192; int<a class="headerlink" href="#river.StreamReader.tail" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="river.StreamReader.tail">
+<span class="sig-name descname"><span class="pre">tail</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ndarray</span> <span class="pre">arr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">int</span> <span class="pre">timeout_ms=-1</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="headerlink" href="#river.StreamReader.tail" title="Permalink to this definition"></a></dt>
 <dd><p>Returns the last element in the stream after the previously seen elements. Blocks until there’s at least one
 element available in the stream after the current cursor if no timeout is given; else, waits for the timeout.</p>
 <dl class="field-list simple">
@@ -176,35 +240,35 @@ Returns -1 if there is an EOF in the stream.</p>
 </dd></dl>
 
 <dl class="py attribute">
-<dt id="river.StreamReader.total_samples_read">
-<code class="sig-name descname">total_samples_read</code><a class="headerlink" href="#river.StreamReader.total_samples_read" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="river.StreamReader.total_samples_read">
+<span class="sig-name descname"><span class="pre">total_samples_read</span></span><a class="headerlink" href="#river.StreamReader.total_samples_read" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 </dd></dl>
 
 <dl class="py class">
-<dt id="river.StreamWriter">
-<em class="property">class </em><code class="sig-prename descclassname">river.</code><code class="sig-name descname">StreamWriter</code><a class="headerlink" href="#river.StreamWriter" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="river.StreamWriter">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">river.</span></span><span class="sig-name descname"><span class="pre">StreamWriter</span></span><a class="headerlink" href="#river.StreamWriter" title="Permalink to this definition"></a></dt>
 <dd><p>The main entry point for River for writing a new stream. Streams are defined by a schema and a stream name, both of
 which are given in the <cite>initialize()</cite> call. All samples written to this stream must belong to the same schema. Once
 there are no more elements in this stream, call <cite>stop()</cite>; this will signal to any other readers that the stream has
 ended.</p>
 <dl class="py method">
-<dt id="river.StreamWriter.initialize">
-<code class="sig-name descname">initialize</code><span class="sig-paren">(</span><em class="sig-param">self: StreamWriter</em>, <em class="sig-param">unicode stream_name: str</em>, <em class="sig-param">StreamSchema schema: StreamSchema</em>, <em class="sig-param">dict user_metadata: dict = None</em><span class="sig-paren">)</span><a class="headerlink" href="#river.StreamWriter.initialize" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="river.StreamWriter.initialize">
+<span class="sig-name descname"><span class="pre">initialize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self:</span> <span class="pre">StreamWriter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">unicode</span> <span class="pre">stream_name:</span> <span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">StreamSchema</span> <span class="pre">schema:</span> <span class="pre">StreamSchema</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dict</span> <span class="pre">user_metadata:</span> <span class="pre">dict</span> <span class="pre">=</span> <span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#river.StreamWriter.initialize" title="Permalink to this definition"></a></dt>
 <dd><p>Initialize this stream for writing. The given stream name must be unique within the Redis used. This
 initialization puts necessary information (e.g. schemas and timestamps) into redis. Optionally, it can accept
 a dict of user metadata to put in to Redis atomically.</p>
 </dd></dl>
 
 <dl class="py attribute">
-<dt id="river.StreamWriter.initialized_at_us">
-<code class="sig-name descname">initialized_at_us</code><a class="headerlink" href="#river.StreamWriter.initialized_at_us" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="river.StreamWriter.initialized_at_us">
+<span class="sig-name descname"><span class="pre">initialized_at_us</span></span><a class="headerlink" href="#river.StreamWriter.initialized_at_us" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt id="river.StreamWriter.metadata">
-<code class="sig-name descname">metadata</code><a class="headerlink" href="#river.StreamWriter.metadata" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="river.StreamWriter.metadata">
+<span class="sig-name descname"><span class="pre">metadata</span></span><a class="headerlink" href="#river.StreamWriter.metadata" title="Permalink to this definition"></a></dt>
 <dd><p>this does a call to Redis under-the-hood and
 so can incur a little bit of overhead.</p>
 <dl class="field-list simple">
@@ -215,37 +279,37 @@ so can incur a little bit of overhead.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="river.StreamWriter.new_buffer">
-<code class="sig-name descname">new_buffer</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">self</span></em>, <em class="sig-param"><span class="n">n</span><span class="p">:</span> <span class="n">int</span></em><span class="sig-paren">)</span> &#x2192; np.ndarray<a class="headerlink" href="#river.StreamWriter.new_buffer" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="river.StreamWriter.new_buffer">
+<span class="sig-name descname"><span class="pre">new_buffer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">np.ndarray</span></span></span><a class="headerlink" href="#river.StreamWriter.new_buffer" title="Permalink to this definition"></a></dt>
 <dd><p>Returns an empty NumPy buffer of size <cite>n</cite> with a dtype matching the stream’s schema. Note that the returned
 buffer is simply allocated and not also zeroed, so there’s likely to be “junk” seen in the returned array.</p>
 </dd></dl>
 
 <dl class="py attribute">
-<dt id="river.StreamWriter.schema">
-<code class="sig-name descname">schema</code><a class="headerlink" href="#river.StreamWriter.schema" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="river.StreamWriter.schema">
+<span class="sig-name descname"><span class="pre">schema</span></span><a class="headerlink" href="#river.StreamWriter.schema" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="river.StreamWriter.stop">
-<code class="sig-name descname">stop</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">self</span></em><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#river.StreamWriter.stop" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="river.StreamWriter.stop">
+<span class="sig-name descname"><span class="pre">stop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#river.StreamWriter.stop" title="Permalink to this definition"></a></dt>
 <dd><p>Stops this stream permanently. This method must be called once the stream is finished in order to notify readers
 that the stream has terminated.</p>
 </dd></dl>
 
 <dl class="py attribute">
-<dt id="river.StreamWriter.stream_name">
-<code class="sig-name descname">stream_name</code><a class="headerlink" href="#river.StreamWriter.stream_name" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="river.StreamWriter.stream_name">
+<span class="sig-name descname"><span class="pre">stream_name</span></span><a class="headerlink" href="#river.StreamWriter.stream_name" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt id="river.StreamWriter.total_samples_written">
-<code class="sig-name descname">total_samples_written</code><a class="headerlink" href="#river.StreamWriter.total_samples_written" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="river.StreamWriter.total_samples_written">
+<span class="sig-name descname"><span class="pre">total_samples_written</span></span><a class="headerlink" href="#river.StreamWriter.total_samples_written" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="river.StreamWriter.write">
-<code class="sig-name descname">write</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">ndarray arr: np.ndarray</em><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#river.StreamWriter.write" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="river.StreamWriter.write">
+<span class="sig-name descname"><span class="pre">write</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ndarray</span> <span class="pre">arr:</span> <span class="pre">np.ndarray</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#river.StreamWriter.write" title="Permalink to this definition"></a></dt>
 <dd><p>Writes data to the stream. Assumes that each element of the array <cite>arr</cite> is of the correct sample size (as
 defined by the stream’s schema’s sample size), and will write bytes in order of the schema fields. <cite>arr.size</cite>
 samples will be written to the stream.</p>
@@ -254,44 +318,44 @@ samples will be written to the stream.</p>
 </dd></dl>
 
 <dl class="py class">
-<dt id="river.RedisConnection">
-<em class="property">class </em><code class="sig-prename descclassname">river.</code><code class="sig-name descname">RedisConnection</code><a class="headerlink" href="#river.RedisConnection" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="river.RedisConnection">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">river.</span></span><span class="sig-name descname"><span class="pre">RedisConnection</span></span><a class="headerlink" href="#river.RedisConnection" title="Permalink to this definition"></a></dt>
 <dd><dl class="py attribute">
-<dt id="river.RedisConnection.redis_hostname">
-<code class="sig-name descname">redis_hostname</code><a class="headerlink" href="#river.RedisConnection.redis_hostname" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="river.RedisConnection.redis_hostname">
+<span class="sig-name descname"><span class="pre">redis_hostname</span></span><a class="headerlink" href="#river.RedisConnection.redis_hostname" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt id="river.RedisConnection.redis_password">
-<code class="sig-name descname">redis_password</code><a class="headerlink" href="#river.RedisConnection.redis_password" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="river.RedisConnection.redis_password">
+<span class="sig-name descname"><span class="pre">redis_password</span></span><a class="headerlink" href="#river.RedisConnection.redis_password" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt id="river.RedisConnection.redis_port">
-<code class="sig-name descname">redis_port</code><a class="headerlink" href="#river.RedisConnection.redis_port" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="river.RedisConnection.redis_port">
+<span class="sig-name descname"><span class="pre">redis_port</span></span><a class="headerlink" href="#river.RedisConnection.redis_port" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 </dd></dl>
 
 <dl class="py class">
-<dt id="river.StreamSchema">
-<em class="property">class </em><code class="sig-prename descclassname">river.</code><code class="sig-name descname">StreamSchema</code><a class="headerlink" href="#river.StreamSchema" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="river.StreamSchema">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">river.</span></span><span class="sig-name descname"><span class="pre">StreamSchema</span></span><a class="headerlink" href="#river.StreamSchema" title="Permalink to this definition"></a></dt>
 <dd><p>The schema for a particular stream. A stream has exactly one schema over its lifetime; this schema defines both the
 writing and reading structure of the stream (and, if in use, the on-disk representation of the stream).</p>
 <dl class="py method">
-<dt id="river.StreamSchema.dtype">
-<code class="sig-name descname">dtype</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">self</span></em><span class="sig-paren">)</span> &#x2192; np.dtype<a class="headerlink" href="#river.StreamSchema.dtype" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="river.StreamSchema.dtype">
+<span class="sig-name descname"><span class="pre">dtype</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">np.dtype</span></span></span><a class="headerlink" href="#river.StreamSchema.dtype" title="Permalink to this definition"></a></dt>
 <dd><p>Returns the equivalent NumPy dtype for this schema instance.</p>
 </dd></dl>
 
 <dl class="py attribute">
-<dt id="river.StreamSchema.field_definitions">
-<code class="sig-name descname">field_definitions</code><a class="headerlink" href="#river.StreamSchema.field_definitions" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="river.StreamSchema.field_definitions">
+<span class="sig-name descname"><span class="pre">field_definitions</span></span><a class="headerlink" href="#river.StreamSchema.field_definitions" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="river.StreamSchema.from_dtype">
-<em class="property">static </em><code class="sig-name descname">from_dtype</code><span class="sig-paren">(</span><em class="sig-param">dtype dtype: np.dtype</em><span class="sig-paren">)</span><a class="headerlink" href="#river.StreamSchema.from_dtype" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="river.StreamSchema.from_dtype">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_dtype</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dtype</span> <span class="pre">dtype:</span> <span class="pre">np.dtype</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#river.StreamSchema.from_dtype" title="Permalink to this definition"></a></dt>
 <dd><p>Creates a StreamSchema from a given NumPy dtype. This dtype should be a “structured array”
 dtype, where the dtype is a collection of named fields. See
 <a class="reference external" href="https://numpy.org/doc/stable/user/basics.rec.html">https://numpy.org/doc/stable/user/basics.rec.html</a> for more details.</p>
@@ -300,8 +364,8 @@ dtype, where the dtype is a collection of named fields. See
 </dd></dl>
 
 <dl class="py class">
-<dt id="river.FieldDefinition">
-<em class="property">class </em><code class="sig-prename descclassname">river.</code><code class="sig-name descname">FieldDefinition</code><a class="headerlink" href="#river.FieldDefinition" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="river.FieldDefinition">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">river.</span></span><span class="sig-name descname"><span class="pre">FieldDefinition</span></span><a class="headerlink" href="#river.FieldDefinition" title="Permalink to this definition"></a></dt>
 <dd><p>One or more fields that are present in each sample of a particular stream. This definition governs how this will be
 serialized to Redis and the columns in the persisted file. A collection of field definitions are housed within a
 StreamSchema.</p>
@@ -310,79 +374,84 @@ different. If you want to use a variable-width bytes (e.g. a dynamic-length stri
 VARIABLE_WIDTH_BYTES but this must be your only field; this is for simplicity for handling serialization/deserialization.
 In this case, the size should correspond to the MAX size possible for this field, which is needed when serializing/deserializing.</p>
 <dl class="py attribute">
-<dt id="river.FieldDefinition.name">
-<code class="sig-name descname">name</code><a class="headerlink" href="#river.FieldDefinition.name" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="river.FieldDefinition.name">
+<span class="sig-name descname"><span class="pre">name</span></span><a class="headerlink" href="#river.FieldDefinition.name" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt id="river.FieldDefinition.type">
-<code class="sig-name descname">type</code><a class="headerlink" href="#river.FieldDefinition.type" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="river.FieldDefinition.type">
+<span class="sig-name descname"><span class="pre">type</span></span><a class="headerlink" href="#river.FieldDefinition.type" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 </dd></dl>
 
 <dl class="py class">
-<dt id="river.FieldType">
-<em class="property">class </em><code class="sig-prename descclassname">river.</code><code class="sig-name descname">FieldType</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">value</span></em><span class="sig-paren">)</span><a class="headerlink" href="#river.FieldType" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="river.FieldType">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">river.</span></span><span class="sig-name descname"><span class="pre">FieldType</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#river.FieldType" title="Permalink to this definition"></a></dt>
 <dd><p>An enumeration.</p>
 <dl class="py attribute">
-<dt id="river.FieldType.DOUBLE">
-<code class="sig-name descname">DOUBLE</code><em class="property"> = 0</em><a class="headerlink" href="#river.FieldType.DOUBLE" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="river.FieldType.DOUBLE">
+<span class="sig-name descname"><span class="pre">DOUBLE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="headerlink" href="#river.FieldType.DOUBLE" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt id="river.FieldType.FIXED_WIDTH_BYTES">
-<code class="sig-name descname">FIXED_WIDTH_BYTES</code><em class="property"> = 4</em><a class="headerlink" href="#river.FieldType.FIXED_WIDTH_BYTES" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="river.FieldType.FIXED_WIDTH_BYTES">
+<span class="sig-name descname"><span class="pre">FIXED_WIDTH_BYTES</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">5</span></em><a class="headerlink" href="#river.FieldType.FIXED_WIDTH_BYTES" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt id="river.FieldType.FLOAT">
-<code class="sig-name descname">FLOAT</code><em class="property"> = 1</em><a class="headerlink" href="#river.FieldType.FLOAT" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="river.FieldType.FLOAT">
+<span class="sig-name descname"><span class="pre">FLOAT</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></em><a class="headerlink" href="#river.FieldType.FLOAT" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt id="river.FieldType.INT32">
-<code class="sig-name descname">INT32</code><em class="property"> = 2</em><a class="headerlink" href="#river.FieldType.INT32" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="river.FieldType.INT16">
+<span class="sig-name descname"><span class="pre">INT16</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2</span></em><a class="headerlink" href="#river.FieldType.INT16" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt id="river.FieldType.INT64">
-<code class="sig-name descname">INT64</code><em class="property"> = 3</em><a class="headerlink" href="#river.FieldType.INT64" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="river.FieldType.INT32">
+<span class="sig-name descname"><span class="pre">INT32</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">3</span></em><a class="headerlink" href="#river.FieldType.INT32" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt id="river.FieldType.VARIABLE_WIDTH_BYTES">
-<code class="sig-name descname">VARIABLE_WIDTH_BYTES</code><em class="property"> = 5</em><a class="headerlink" href="#river.FieldType.VARIABLE_WIDTH_BYTES" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="river.FieldType.INT64">
+<span class="sig-name descname"><span class="pre">INT64</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">4</span></em><a class="headerlink" href="#river.FieldType.INT64" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="river.FieldType.VARIABLE_WIDTH_BYTES">
+<span class="sig-name descname"><span class="pre">VARIABLE_WIDTH_BYTES</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">6</span></em><a class="headerlink" href="#river.FieldType.VARIABLE_WIDTH_BYTES" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 </dd></dl>
 
 <dl class="py class">
-<dt id="river.RedisException">
-<em class="property">class </em><code class="sig-prename descclassname">river.</code><code class="sig-name descname">RedisException</code><a class="headerlink" href="#river.RedisException" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="river.RedisException">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">river.</span></span><span class="sig-name descname"><span class="pre">RedisException</span></span><a class="headerlink" href="#river.RedisException" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py class">
-<dt id="river.StreamReaderException">
-<em class="property">class </em><code class="sig-prename descclassname">river.</code><code class="sig-name descname">StreamReaderException</code><a class="headerlink" href="#river.StreamReaderException" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="river.StreamReaderException">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">river.</span></span><span class="sig-name descname"><span class="pre">StreamReaderException</span></span><a class="headerlink" href="#river.StreamReaderException" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py class">
-<dt id="river.StreamWriterException">
-<em class="property">class </em><code class="sig-prename descclassname">river.</code><code class="sig-name descname">StreamWriterException</code><a class="headerlink" href="#river.StreamWriterException" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="river.StreamWriterException">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">river.</span></span><span class="sig-name descname"><span class="pre">StreamWriterException</span></span><a class="headerlink" href="#river.StreamWriterException" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py class">
-<dt id="river.StreamDoesNotExistException">
-<em class="property">class </em><code class="sig-prename descclassname">river.</code><code class="sig-name descname">StreamDoesNotExistException</code><a class="headerlink" href="#river.StreamDoesNotExistException" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="river.StreamDoesNotExistException">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">river.</span></span><span class="sig-name descname"><span class="pre">StreamDoesNotExistException</span></span><a class="headerlink" href="#river.StreamDoesNotExistException" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py class">
-<dt id="river.StreamExistsException">
-<em class="property">class </em><code class="sig-prename descclassname">river.</code><code class="sig-name descname">StreamExistsException</code><a class="headerlink" href="#river.StreamExistsException" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="river.StreamExistsException">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">river.</span></span><span class="sig-name descname"><span class="pre">StreamExistsException</span></span><a class="headerlink" href="#river.StreamExistsException" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
-</div>
+</section>
 
 
            </div>

@@ -1,18 +1,22 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>River &mdash; river  documentation</title><link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
-    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <title>River &mdash; river  documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
-  <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
-        <script src="_static/language_data.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -56,8 +60,8 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="#" class="icon icon-home"></a> &raquo;</li>
-      <li>River</li>
+      <li><a href="#" class="icon icon-home"></a></li>
+      <li class="breadcrumb-item active">River</li>
       <li class="wy-breadcrumbs-aside">
             <a href="_sources/index.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -67,8 +71,8 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="section" id="river">
-<h1>River<a class="headerlink" href="#river" title="Permalink to this headline">¶</a></h1>
+  <section id="river">
+<h1>River<a class="headerlink" href="#river" title="Permalink to this heading"></a></h1>
 <div class="toctree-wrapper compound">
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="intro.html">Introduction</a><ul>
@@ -78,6 +82,7 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="install.html">Installation</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="install.html#pre-packaged">Pre-packaged</a></li>
+<li class="toctree-l2"><a class="reference internal" href="install.html#cmake">CMake</a></li>
 <li class="toctree-l2"><a class="reference internal" href="install.html#compiling-from-source">Compiling from Source</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="install.html#prerequisites">Prerequisites</a></li>
 <li class="toctree-l3"><a class="reference internal" href="install.html#installing">Installing</a></li>
@@ -107,25 +112,88 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="contributing.html#regenerating-python-stubs">Regenerating Python Stubs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="contributing.html#testing">Testing</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="contributing.html#regenerating-python-stubs">Regenerating Python Stubs</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="api/index.html">API</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="api/python.html">Python Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/python.html">Python Docs</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api/python.html#river.StreamReader"><code class="docutils literal notranslate"><span class="pre">StreamReader</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/python.html#river.StreamReader.good"><code class="docutils literal notranslate"><span class="pre">StreamReader.good</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/python.html#river.StreamReader.initialize"><code class="docutils literal notranslate"><span class="pre">StreamReader.initialize()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/python.html#river.StreamReader.initialized_at_us"><code class="docutils literal notranslate"><span class="pre">StreamReader.initialized_at_us</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/python.html#river.StreamReader.metadata"><code class="docutils literal notranslate"><span class="pre">StreamReader.metadata</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/python.html#river.StreamReader.new_buffer"><code class="docutils literal notranslate"><span class="pre">StreamReader.new_buffer()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/python.html#river.StreamReader.read"><code class="docutils literal notranslate"><span class="pre">StreamReader.read()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/python.html#river.StreamReader.schema"><code class="docutils literal notranslate"><span class="pre">StreamReader.schema</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/python.html#river.StreamReader.stop"><code class="docutils literal notranslate"><span class="pre">StreamReader.stop()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/python.html#river.StreamReader.stream_name"><code class="docutils literal notranslate"><span class="pre">StreamReader.stream_name</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/python.html#river.StreamReader.tail"><code class="docutils literal notranslate"><span class="pre">StreamReader.tail()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/python.html#river.StreamReader.total_samples_read"><code class="docutils literal notranslate"><span class="pre">StreamReader.total_samples_read</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/python.html#river.StreamWriter"><code class="docutils literal notranslate"><span class="pre">StreamWriter</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/python.html#river.StreamWriter.initialize"><code class="docutils literal notranslate"><span class="pre">StreamWriter.initialize()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/python.html#river.StreamWriter.initialized_at_us"><code class="docutils literal notranslate"><span class="pre">StreamWriter.initialized_at_us</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/python.html#river.StreamWriter.metadata"><code class="docutils literal notranslate"><span class="pre">StreamWriter.metadata</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/python.html#river.StreamWriter.new_buffer"><code class="docutils literal notranslate"><span class="pre">StreamWriter.new_buffer()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/python.html#river.StreamWriter.schema"><code class="docutils literal notranslate"><span class="pre">StreamWriter.schema</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/python.html#river.StreamWriter.stop"><code class="docutils literal notranslate"><span class="pre">StreamWriter.stop()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/python.html#river.StreamWriter.stream_name"><code class="docutils literal notranslate"><span class="pre">StreamWriter.stream_name</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/python.html#river.StreamWriter.total_samples_written"><code class="docutils literal notranslate"><span class="pre">StreamWriter.total_samples_written</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/python.html#river.StreamWriter.write"><code class="docutils literal notranslate"><span class="pre">StreamWriter.write()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/python.html#river.RedisConnection"><code class="docutils literal notranslate"><span class="pre">RedisConnection</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/python.html#river.RedisConnection.redis_hostname"><code class="docutils literal notranslate"><span class="pre">RedisConnection.redis_hostname</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/python.html#river.RedisConnection.redis_password"><code class="docutils literal notranslate"><span class="pre">RedisConnection.redis_password</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/python.html#river.RedisConnection.redis_port"><code class="docutils literal notranslate"><span class="pre">RedisConnection.redis_port</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/python.html#river.StreamSchema"><code class="docutils literal notranslate"><span class="pre">StreamSchema</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/python.html#river.StreamSchema.dtype"><code class="docutils literal notranslate"><span class="pre">StreamSchema.dtype()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/python.html#river.StreamSchema.field_definitions"><code class="docutils literal notranslate"><span class="pre">StreamSchema.field_definitions</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/python.html#river.StreamSchema.from_dtype"><code class="docutils literal notranslate"><span class="pre">StreamSchema.from_dtype()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/python.html#river.FieldDefinition"><code class="docutils literal notranslate"><span class="pre">FieldDefinition</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/python.html#river.FieldDefinition.name"><code class="docutils literal notranslate"><span class="pre">FieldDefinition.name</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/python.html#river.FieldDefinition.type"><code class="docutils literal notranslate"><span class="pre">FieldDefinition.type</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/python.html#river.FieldType"><code class="docutils literal notranslate"><span class="pre">FieldType</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/python.html#river.FieldType.DOUBLE"><code class="docutils literal notranslate"><span class="pre">FieldType.DOUBLE</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/python.html#river.FieldType.FIXED_WIDTH_BYTES"><code class="docutils literal notranslate"><span class="pre">FieldType.FIXED_WIDTH_BYTES</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/python.html#river.FieldType.FLOAT"><code class="docutils literal notranslate"><span class="pre">FieldType.FLOAT</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/python.html#river.FieldType.INT16"><code class="docutils literal notranslate"><span class="pre">FieldType.INT16</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/python.html#river.FieldType.INT32"><code class="docutils literal notranslate"><span class="pre">FieldType.INT32</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/python.html#river.FieldType.INT64"><code class="docutils literal notranslate"><span class="pre">FieldType.INT64</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/python.html#river.FieldType.VARIABLE_WIDTH_BYTES"><code class="docutils literal notranslate"><span class="pre">FieldType.VARIABLE_WIDTH_BYTES</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/python.html#river.RedisException"><code class="docutils literal notranslate"><span class="pre">RedisException</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/python.html#river.StreamReaderException"><code class="docutils literal notranslate"><span class="pre">StreamReaderException</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/python.html#river.StreamWriterException"><code class="docutils literal notranslate"><span class="pre">StreamWriterException</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/python.html#river.StreamDoesNotExistException"><code class="docutils literal notranslate"><span class="pre">StreamDoesNotExistException</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/python.html#river.StreamExistsException"><code class="docutils literal notranslate"><span class="pre">StreamExistsException</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="api/cpp.html">C++ Docs</a></li>
 </ul>
 </li>
 </ul>
 </div>
-<div class="section" id="indices-and-tables">
-<h2>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h2>
+<section id="indices-and-tables">
+<h2>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this heading"></a></h2>
 <ul class="simple">
 <li><p><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></p></li>
 <li><p><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></p></li>
 <li><p><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></p></li>
 </ul>
-</div>
-</div>
+</section>
+</section>
 
 
            </div>
