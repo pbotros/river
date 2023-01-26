@@ -326,6 +326,11 @@ StreamIngestionResult SingleStreamIngester::Ingest() {
                                 row_group_size, within_sample_offset, &sizes.front(), &read_buffer.front(), column_array);
                         break;
                     }
+                    case FieldDefinition::INT16: {
+                        write_to_numeric_array<int16_t, arrow::Int16Builder>(
+                                row_group_size, within_sample_offset, &sizes.front(), &read_buffer.front(), column_array);
+                        break;
+                    }
                     case FieldDefinition::INT32: {
                         write_to_numeric_array<int32_t, arrow::Int32Builder>(
                                 row_group_size, within_sample_offset, &sizes.front(), &read_buffer.front(), column_array);
@@ -722,6 +727,9 @@ shared_ptr<arrow::Schema> to_arrow(const StreamSchema &stream_schema) {
                 break;
             case FieldDefinition::FLOAT:
                 type = arrow::float32();
+                break;
+            case FieldDefinition::INT16:
+                type = arrow::int16();
                 break;
             case FieldDefinition::INT32:
                 type = arrow::int32();

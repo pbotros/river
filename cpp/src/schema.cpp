@@ -66,7 +66,7 @@ StreamSchema StreamSchema::FromJson(std::string json_str) {
       } else if (type_str == "FLOAT") {
         type = FieldDefinition::FLOAT;
       } else if (type_str == "INT16") {
-        type = FieldDefinition::INT32;
+        type = FieldDefinition::INT16;
       } else if (type_str == "INT32") {
         type = FieldDefinition::INT32;
       } else if (type_str == "INT64") {

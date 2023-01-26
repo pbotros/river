@@ -194,7 +194,11 @@ TEST_F(StreamIngesterTest, TestFloat) {
     write_and_assert<float, arrow::FloatArray>(FieldDefinition::FLOAT);
 }
 
-TEST_F(StreamIngesterTest, TestInt) {
+TEST_F(StreamIngesterTest, TestInt16) {
+    write_and_assert<int16_t, arrow::Int16Array>(FieldDefinition::INT16);
+}
+
+TEST_F(StreamIngesterTest, TestInt32) {
     write_and_assert<int, arrow::Int32Array>(FieldDefinition::INT32);
 }
 
