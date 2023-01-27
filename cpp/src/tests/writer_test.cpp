@@ -17,6 +17,7 @@ protected:
         struct timeval timeout = {1, 500000};
         redis = redisConnectWithTimeout("127.0.0.1", 6379, timeout);
         set_metadata_on_init = false;
+        compute_local_minus_global_server_clock = false;
     }
 
     template<class T>
@@ -30,10 +31,15 @@ protected:
         };
 
         StreamSchema schema(field_definitions);
+
         if (set_metadata_on_init) {
-            writer->Initialize(stream_name, schema, metadata);
+            writer->Initialize(stream_name, schema, metadata, compute_local_minus_global_server_clock);
         } else {
-            writer->Initialize(stream_name, schema);
+            writer->Initialize(
+                    stream_name,
+                    schema,
+                    unordered_map<string, string>(),
+                    compute_local_minus_global_server_clock);
             writer->SetMetadata(metadata);
         }
         this->schema = new StreamSchema(schema);
@@ -54,6 +60,7 @@ protected:
     StreamSchema *schema;
     redisContext *redis;
     bool set_metadata_on_init;
+    bool compute_local_minus_global_server_clock;
 };
 
 static void
@@ -210,6 +217,15 @@ TEST_F(StreamWriterTest, TestGetSetMetadata) {
 TEST_F(StreamWriterTest, TestSetMetadataOnInit) {
     set_metadata_on_init = true;
     unordered_map<string, string> test_metadata({{"key", "val"}});
+    writer = NewWriter<double>(test_metadata, FieldDefinition::DOUBLE);
+    ASSERT_EQ(writer->Metadata(), test_metadata);
+}
+
+TEST_F(StreamWriterTest, TestComputeLocalMinusGlobalServerClock) {
+    compute_local_minus_global_server_clock = true;
+    set_metadata_on_init = true;
+    unordered_map<string, string> test_metadata({{"key", "val"}});
+    // Not reflected here in the writer, so just run the code path
     writer = NewWriter<double>(test_metadata, FieldDefinition::DOUBLE);
     ASSERT_EQ(writer->Metadata(), test_metadata);
 }
