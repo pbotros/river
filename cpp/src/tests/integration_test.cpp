@@ -13,14 +13,14 @@ static const int STD_JITTER_MS = 10;
 
 class IntegrationTest;
 
-void write_data(shared_ptr<StreamWriter> writer, double write_data[], int num_write_data, int64_t *num_written) {
+void write_data(shared_ptr<StreamWriter> writer, std::vector<double> write_data, int num_write_data, int64_t *num_written, int num_iterations_to_write) {
     std::random_device rd;
     std::mt19937 mt(rd());
     std::normal_distribution<float> dist(MEAN_JITTER_MS, STD_JITTER_MS);
 
     *num_written = 0;
-    for (unsigned int i = 0; i < 150; i++) {
-        writer->Write(write_data, num_write_data);
+    for (unsigned int i = 0; i < num_iterations_to_write; i++) {
+        writer->Write(write_data.data(), num_write_data);
         *num_written += num_write_data;
         // Add a random sleep for some jitter for some "fuzz testing"
         std::this_thread::sleep_for(std::chrono::milliseconds(max(0, (int) dist(mt))));
@@ -30,7 +30,7 @@ void write_data(shared_ptr<StreamWriter> writer, double write_data[], int num_wr
     writer->Stop();
 }
 
-void read_data(shared_ptr<StreamReader> reader, double expected_data[], int size_expected_data, int64_t *num_read) {
+void read_data(shared_ptr<StreamReader> reader, std::vector<double> expected_data, int size_expected_data, int64_t *num_read) {
     *num_read = 0;
     unsigned int num_read_data = 4000;
     vector<double> read_data(num_read_data);
@@ -73,6 +73,15 @@ protected:
         writer = make_shared<StreamWriter>(connection, 3000);
 
         stream_name = uuid::generate_uuid_v4();
+        num_elements = 1024;
+        num_iterations_to_write = 150;
+        compute_local_versus_global_clock = false;
+    }
+
+    void TearDown() override {
+        writer->Stop();
+        reader->Stop();
+        reader_tail->Stop();
     }
 
     void run() {
@@ -81,21 +90,20 @@ protected:
         };
 
         StreamSchema schema(field_definitions);
-        writer->Initialize(stream_name, schema);
+        writer->Initialize(stream_name, schema, unordered_map<string, string>(), compute_local_versus_global_clock);
         reader->Initialize(stream_name);
         reader_tail->Initialize(stream_name);
 
-        const int NUM_ELEMENTS = 1024;
-        double data[NUM_ELEMENTS];
-        for (unsigned int i = 0; i < NUM_ELEMENTS; i++) {
-            data[i] = (double) i;
+        std::vector<double> data;
+        for (unsigned int i = 0; i < num_elements; i++) {
+            data.push_back((double) i);
         }
 
         int64_t num_written = 0;
         int64_t num_read = 0;
 
-        std::thread writer_thread(write_data, writer, data, NUM_ELEMENTS, &num_written);
-        std::thread reader_thread(read_data, reader, data, NUM_ELEMENTS, &num_read);
+        std::thread writer_thread(write_data, writer, data, num_elements, &num_written, num_iterations_to_write);
+        std::thread reader_thread(read_data, reader, data, num_elements, &num_read);
         std::thread tail_thread(tail_data, reader_tail);
 
         writer_thread.join();
@@ -112,8 +120,28 @@ protected:
     shared_ptr<StreamWriter> writer;
     string stream_name;
     string tmp_directory;
+    int num_elements;
+    int num_iterations_to_write;
+    bool compute_local_versus_global_clock;
 };
 
 TEST_F(IntegrationTest, TestFull) {
     run();
 }
+
+TEST_F(IntegrationTest, TestSmall) {
+    num_elements = 1;
+    num_iterations_to_write = 1;
+    run();
+}
+
+TEST_F(IntegrationTest, TestComputeLocalVersusServerGlobal) {
+    num_elements = 1;
+    num_iterations_to_write = 1;
+    compute_local_versus_global_clock = true;
+    run();
+    // Unfortunately the actual local_minus_server_clock_us can be zero so there's not much to check here other than
+    // asserting it can be called and doesn't blow up.
+    reader->local_minus_server_clock_us();
+}
+

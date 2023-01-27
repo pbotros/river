@@ -58,11 +58,19 @@ public:
      * Initialize this stream for writing. The given stream name must be unique within the Redis used. This
      * initialization puts necessary information (e.g. schemas and timestamps) into redis. Optionally, it can accept
      * an unordered_map of user metadata to put in to Redis atomically.
+     *
+     * Accepts a boolean parameter if the field "local_minus_global_clock_us" is going to be computed when initializing
+     * this stream, computed by multiple round trips between this writer and the Redis server. If true, the stream
+     * metadata & reader will populate the local_minus_global_clock_us field, but note that it takes up to a ~second
+     * (depending on connection latency) to compute this. If false, this will be skipped, and
+     * the initialization time will be in local time, and "local_minus_global_clock_us" will not be set. Setting this
+     * false allows for faster writer initialization.
      */
     void Initialize(const std::string &stream_name,
                     const StreamSchema &schema,
                     const std::unordered_map<std::string, std::string> &user_metadata =
-                    std::unordered_map<std::string, std::string>());
+                    std::unordered_map<std::string, std::string>(),
+                    bool compute_local_minus_global_clock = false);
 
     /**
      * Writes data to the stream. The given data buffer of type DataT will be recast to a raw (e.g. char *) array and

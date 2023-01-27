@@ -22,14 +22,20 @@ namespace river {
 
 class RedisConnection {
 public:
-    std::string redis_hostname_;
-    int redis_port_;
-    std::string redis_password_;
+    const std::string redis_hostname_;
+    const int redis_port_;
+    const std::string redis_password_;
+    const int timeout_seconds_;
 
-    RedisConnection(std::string redis_hostname, int redis_port, std::string redis_password = "")
+    RedisConnection(
+            std::string redis_hostname,
+            int redis_port,
+            std::string redis_password = "",
+            int timeout_seconds = 30)
             : redis_hostname_(std::move(redis_hostname)),
               redis_port_(redis_port),
-              redis_password_(std::move(redis_password)) {}
+              redis_password_(std::move(redis_password)),
+              timeout_seconds_(timeout_seconds) {}
 };
 
 namespace internal {
@@ -115,7 +121,7 @@ public:
 
     // Atomically set internal and user metadata at the same time to prevent race conditions.
     int SetMetadataAndUserMetadata(const std::string &stream_name,
-                                   std::initializer_list<std::pair<std::string, std::string>> key_value_pairs,
+                                   const std::vector<std::pair<std::string, std::string>>& key_value_pairs,
                                    const std::unordered_map<std::string, std::string> &user_metadata);
 
     void SetUserMetadata(const std::string &stream_name, const std::unordered_map<std::string, std::string> &metadata);
@@ -129,12 +135,19 @@ public:
     }
 
     inline UniqueRedisReplyPtr GetReply() {
-        redisReply *reply;
+        redisReply *reply = nullptr;
         int response = redisGetReply(_context, (void **) &reply);
         if (response != REDIS_OK) {
             std::stringstream ss;
-            ss << "Error from redis when fetching reply: " << reply->str;
-            freeReplyObject(reply);
+            if (reply != nullptr) {
+                ss << "Error from redis when fetching reply: type=" << reply->type;
+                if (reply->len > 0) {
+                    ss << ". Error message: " << std::string(reply->str, reply->len);
+                }
+                freeReplyObject(reply);
+            } else {
+                ss << "Error from redis when fetching reply: <null>";
+            }
             throw RedisException(ss.str());
         }
         return UniqueRedisReplyPtr(reply);

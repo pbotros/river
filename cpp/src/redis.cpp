@@ -17,9 +17,9 @@ namespace river {
 namespace internal {
 
 unique_ptr<Redis> Redis::Create(const RedisConnection &connection) {
-    struct timeval timeout = {30, 0};
-    redisContext *new_context = redisConnectWithTimeout(connection.redis_hostname_.c_str(), connection.redis_port_,
-                                                        timeout);
+    struct timeval timeout = {connection.timeout_seconds_, 0};
+    redisContext *new_context = redisConnectWithTimeout(
+            connection.redis_hostname_.c_str(), connection.redis_port_, timeout);
     if (new_context == nullptr || new_context->err) {
         string msg = fmt::format("Connection error to host:port={}:{}, err={}",
                                  connection.redis_hostname_, connection.redis_port_,
@@ -66,7 +66,6 @@ Redis::UniqueRedisReplyPtr Redis::Xread(
             key_part1,
             key_part2);
     if (reply == nullptr) {
-        freeReplyObject(reply);
         throw RedisException(
                 fmt::format("[XREAD] Null response received when fetching! err={}, errstr={}",
                             _context->err,
@@ -88,7 +87,6 @@ Redis::UniqueRedisReplyPtr Redis::Xrange(
             key_part2,
             num_to_fetch);
     if (reply == nullptr) {
-        freeReplyObject(reply);
         throw RedisException(
                 fmt::format("Null response received when fetching! err={}, errstr={}",
                             _context->err,
@@ -175,7 +173,7 @@ unique_ptr<unordered_map<string, string>> Redis::GetUserMetadata(const string &s
 }
 
 int Redis::SetMetadataAndUserMetadata(const string &stream_name,
-                                      initializer_list <std::pair<string, string>> key_value_pairs,
+                                      const vector <std::pair<string, string>>& key_value_pairs,
                                       const unordered_map <string, string> &user_metadata) {
     json parent;
     for (auto &it : user_metadata) {
@@ -327,7 +325,9 @@ void Redis::Unlink(const string &stream_key) {
                 "Error deleting stream key {}. Reply: {}",
                 stream_key,
                 reply == nullptr ? "NULL" : to_string(reply->type));
-        freeReplyObject(reply);
+        if (reply != nullptr) {
+            freeReplyObject(reply);
+        }
         throw RedisException(msg);
     }
     freeReplyObject(reply);
@@ -338,7 +338,9 @@ void Redis::DeleteMetadata(const string &stream_name) {
     if (reply == nullptr || reply->type != REDIS_REPLY_INTEGER) {
         string msg = fmt::format("Error deleting metadata for stream {}. Reply: {}", stream_name,
                                  reply == nullptr ? "NULL" : to_string(reply->type));
-        freeReplyObject(reply);
+        if (reply != nullptr) {
+            freeReplyObject(reply);
+        }
         throw RedisException(msg);
     }
 }

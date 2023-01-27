@@ -48,7 +48,11 @@ void StreamReader::Initialize(const std::string &stream_name, int timeout_ms) {
         throw StreamReaderException("first_stream_key an empty std::string!");
     }
     const StreamSchema &tmp = StreamSchema::FromJson(metadata["schema"]);
-    this->local_minus_server_clock_us_ = strtoll(metadata["local_minus_server_clock_us"].c_str(), nullptr, 10);
+    if (metadata.find("local_minus_server_clock_us") != metadata.end()) {
+        this->local_minus_server_clock_us_ = strtoll(metadata["local_minus_server_clock_us"].c_str(), nullptr, 10);
+    } else {
+        this->local_minus_server_clock_us_ = 0;
+    }
     this->initialized_at_us_ = strtoull(metadata["initialized_at_us"].c_str(), nullptr, 10);
 
     this->schema_ = make_shared<StreamSchema>(tmp);

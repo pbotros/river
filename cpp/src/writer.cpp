@@ -33,7 +33,8 @@ StreamWriter::StreamWriter(const RedisConnection &connection, const int64_t keys
 
 void StreamWriter::Initialize(const string &stream_name,
                               const StreamSchema &schema,
-                              const unordered_map<string, string> &user_metadata) {
+                              const unordered_map<string, string> &user_metadata,
+                              bool compute_local_minus_global_clock) {
     if (this->is_stopped_) {
         throw StreamWriterException("Writer is already stopped; cannot Initialize a stopped stream.");
     }
@@ -59,20 +60,25 @@ void StreamWriter::Initialize(const string &stream_name,
 
     string serialized_schema = schema.ToJson();
 
-    // Calculate the delta between clocks of the client and Redis server, and store offset
-    auto local_minus_server_clock = ComputeLocalMinusServerClocks();
-    initialized_at_us_ = chrono::duration_cast<std::chrono::microseconds>(
-            chrono::system_clock::now().time_since_epoch()).count() - local_minus_server_clock;
-
     string first_stream_key = fmt::format("{}-0", stream_name);
-    string local_minus_server_clock_f = fmt::format_int(local_minus_server_clock).str();
     string initialized_at_us_f = fmt::format_int(initialized_at_us_).str();
+    vector<pair<string, string>> fields = {
+            {"first_stream_key", first_stream_key},
+            {"schema", serialized_schema},
+            {"initialized_at_us", initialized_at_us_f}};
 
-    initializer_list<pair<string, string>> fields = {
-        {"first_stream_key", first_stream_key},
-        {"schema", serialized_schema},
-        {"local_minus_server_clock_us", local_minus_server_clock_f},
-        {"initialized_at_us", initialized_at_us_f}};
+    // If enabled, calculate the delta between clocks of the client and Redis server, and store offset
+    if (compute_local_minus_global_clock) {
+        auto local_minus_server_clock = ComputeLocalMinusServerClocks();
+        initialized_at_us_ = chrono::duration_cast<std::chrono::microseconds>(
+                chrono::high_resolution_clock::now().time_since_epoch()).count() - local_minus_server_clock;
+        string local_minus_server_clock_f = fmt::format_int(local_minus_server_clock).str();
+        fields.emplace_back("local_minus_server_clock_us", local_minus_server_clock_f);
+    } else {
+        initialized_at_us_ = chrono::duration_cast<std::chrono::microseconds>(
+                chrono::high_resolution_clock::now().time_since_epoch()).count();
+    }
+
     auto num_fields_added = static_cast<size_t>(
             redis_->SetMetadataAndUserMetadata(stream_name, fields, user_metadata));
     // Ensure to add 1 for user_metadata
