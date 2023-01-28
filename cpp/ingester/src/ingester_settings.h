@@ -12,6 +12,7 @@
 #include <algorithm>
 #include <river.h>
 #include <nlohmann/json.hpp>
+#include <glog/logging.h>
 
 using json = nlohmann::json;
 

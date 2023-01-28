@@ -39,9 +39,9 @@ StreamIngester::StreamIngester(const RedisConnection &connection,
         : _connection(connection),
           _output_directory(output_directory),
           _terminated(terminated),
+          stream_settings_by_name_glob_(std::move(stream_settings_by_name_glob)),
           _stalled_timeout_ms(stalled_timeout_ms),
-          _stale_period_ms(stale_period_ms),
-          stream_settings_by_name_glob_(std::move(stream_settings_by_name_glob)) {
+          _stale_period_ms(stale_period_ms) {
     // Create the output directory if necessary
     if (boost::filesystem::exists(output_directory)) {
         if (!boost::filesystem::is_directory(output_directory)) {
@@ -218,7 +218,7 @@ StreamIngestionResult SingleStreamIngester::Ingest() {
     append_metadata(StreamIngestionResult::IN_PROGRESS);
 
     int sample_size = schema->sample_size();
-    int64_t samples_per_row_group = std::max(0LL, settings_.bytes_per_row_group / sample_size);
+    int64_t samples_per_row_group = std::max(int64_t{0}, (int64_t) (settings_.bytes_per_row_group / sample_size));
 
     vector<int64_t> data_indices(samples_per_row_group);
     vector<char> read_buffer(sample_size * samples_per_row_group);
