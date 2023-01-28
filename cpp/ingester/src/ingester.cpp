@@ -33,19 +33,15 @@ namespace river {
 StreamIngester::StreamIngester(const RedisConnection &connection,
                                const string &output_directory,
                                bool *terminated,
-                               const string& stream_filter,
-                               int64_t samples_per_row_group,
-                               int minimum_age_seconds_before_deletion,
+                               std::vector<std::pair<std::regex, StreamIngestionSettings>> stream_settings_by_name_glob,
                                int stalled_timeout_ms,
                                int stale_period_ms)
         : _connection(connection),
           _output_directory(output_directory),
           _terminated(terminated),
-          _samples_per_row_group(samples_per_row_group),
-          _minimum_age_seconds_before_deletion(minimum_age_seconds_before_deletion),
           _stalled_timeout_ms(stalled_timeout_ms),
           _stale_period_ms(stale_period_ms),
-          _stream_filter(stream_filter) {
+          stream_settings_by_name_glob_(std::move(stream_settings_by_name_glob)) {
     // Create the output directory if necessary
     if (boost::filesystem::exists(output_directory)) {
         if (!boost::filesystem::is_directory(output_directory)) {
@@ -64,7 +60,7 @@ StreamIngester::StreamIngester(const RedisConnection &connection,
 }
 
 void StreamIngester::Ingest() {
-    auto stream_names = _redis->ListStreamNames(_stream_filter);
+    auto stream_names = _redis->ListStreamNames();
 
     if (stream_names.empty()) {
         LOG(INFO) << "No streams found to persist." << endl;
@@ -72,6 +68,19 @@ void StreamIngester::Ingest() {
     }
 
     for (const auto &stream_name : stream_names) {
+        bool should_include = false;
+        for (const auto &settings_pair : stream_settings_by_name_glob_) {
+            if (std::regex_match(stream_name, settings_pair.first)) {
+                should_include = true;
+                break;
+            }
+        }
+
+        if (!should_include) {
+            LOG(INFO) << "Stream " << stream_name << " did not match any settings. Skipping." << endl;
+            continue;
+        }
+
         bool did_enqueue = false;
         {
             lock_guard<mutex> lock(_streams_in_progress_mtx);
@@ -119,15 +128,21 @@ StreamIngestionResult StreamIngester::ingest_single(string stream_name) {
     LOG(INFO) << "Starting ingestion of stream " << stream_name << " [output directory " << _output_directory << "]."
          << endl;
 
+    StreamIngestionSettings settings;
+    for (const auto& pair : stream_settings_by_name_glob_) {
+        if (std::regex_match(stream_name, pair.first)) {
+            settings = pair.second;
+            break;
+        }
+    }
     try {
         auto ingester = internal::SingleStreamIngester(_connection,
                                                        stream_name,
                                                        _output_directory,
                                                        _terminated,
-                                                       _samples_per_row_group,
-                                                       _minimum_age_seconds_before_deletion,
                                                        _stalled_timeout_ms,
-                                                       _stale_period_ms);
+                                                       _stale_period_ms,
+                                                       settings);
         auto ret = ingester.Ingest();
         {
             lock_guard<mutex> lock(_streams_in_progress_mtx);
@@ -144,7 +159,7 @@ StreamIngestionResult StreamIngester::ingest_single(string stream_name) {
 }
 
 namespace internal {
-static shared_ptr<arrow::Schema> to_arrow(const StreamSchema &stream_schema);
+static shared_ptr<arrow::Schema> to_arrow(const std::vector<river::FieldDefinition> &field_definitions);
 template<class ArrayT>
 static shared_ptr<ArrayT> get_last(const shared_ptr<arrow::Table> &table, const string &column_name, int *chunk_idx);
 
@@ -152,17 +167,15 @@ SingleStreamIngester::SingleStreamIngester(const RedisConnection &connection,
                                            const string &stream_name,
                                            const string &output_directory,
                                            bool *terminated,
-                                           int64_t samples_per_row_group,
-                                           int minimum_age_seconds_before_deletion,
                                            int stalled_timeout_ms,
-                                           int stale_period_ms)
+                                           int stale_period_ms,
+                                           StreamIngestionSettings settings)
         : _connection(connection),
-          _samples_per_row_group(samples_per_row_group),
-          _minimum_age_seconds_before_deletion(minimum_age_seconds_before_deletion),
           _stalled_timeout_ms(stalled_timeout_ms),
           _stale_period_ms(stale_period_ms),
           stream_name_(stream_name),
           should_ingest(true),
+          settings_(std::move(settings)),
           _terminated(terminated) {
     this->reader = std::make_unique<StreamReader>(connection);
     this->reader->Initialize(stream_name);
@@ -205,11 +218,12 @@ StreamIngestionResult SingleStreamIngester::Ingest() {
     append_metadata(StreamIngestionResult::IN_PROGRESS);
 
     int sample_size = schema->sample_size();
+    int64_t samples_per_row_group = std::max(0LL, settings_.bytes_per_row_group / sample_size);
 
-    vector<int64_t> data_indices(_samples_per_row_group);
-    vector<char> read_buffer(sample_size * _samples_per_row_group);
-    vector<int> sizes(_samples_per_row_group);
-    vector<string> keys(_samples_per_row_group);
+    vector<int64_t> data_indices(samples_per_row_group);
+    vector<char> read_buffer(sample_size * samples_per_row_group);
+    vector<int> sizes(samples_per_row_group);
+    vector<string> keys(samples_per_row_group);
 
     // Determine the next index for the file by looking at the current directory.
     int file_data_index;
@@ -228,12 +242,12 @@ StreamIngestionResult SingleStreamIngester::Ingest() {
         LOG_EVERY_N(INFO, 10) << "New loop for stream " << stream_name_;
         int64_t row_group_size = 0;
         string eof_key;
-        while (should_ingest && !(*_terminated) && row_group_size < _samples_per_row_group) {
+        while (should_ingest && !(*_terminated) && row_group_size < samples_per_row_group) {
             std::stringstream ss;
             ss << "Fetching new samples. Size " << row_group_size
                << " for stream " << stream_name_;
             LOG_EVERY_N(INFO, 500) << ss.str();
-            int64_t remaining_samples_in_row_group = _samples_per_row_group - row_group_size;
+            int64_t remaining_samples_in_row_group = samples_per_row_group - row_group_size;
             auto samples_to_read = remaining_samples_in_row_group > SAMPLES_PER_READ ? SAMPLES_PER_READ
                                                                                      : remaining_samples_in_row_group;
 
@@ -311,9 +325,10 @@ StreamIngestionResult SingleStreamIngester::Ingest() {
             arrays.push_back(timestamps_array);
             LOG(INFO) << "Successfully created timestamps.";
 
-            // 4. All the data fields given in the schema.
+            // 4. All the data fields given in the schema, but filtered according to settings.
             int within_sample_offset = 0;
-            for (const auto& field : schema->field_definitions) {
+            auto field_definitions_filtered = settings_.Filter(schema->field_definitions);
+            for (const auto &field: field_definitions_filtered) {
                 std::shared_ptr<arrow::Array> column_array;
                 switch (field.type) {
                     case FieldDefinition::DOUBLE: {
@@ -374,7 +389,7 @@ StreamIngestionResult SingleStreamIngester::Ingest() {
                 LOG(INFO) << "Successfully created column array for field " << field.name;
             }
 
-            auto arrow_schema = to_arrow(*this->schema);
+            auto arrow_schema = to_arrow(field_definitions_filtered);
             shared_ptr<arrow::Table> table = arrow::Table::Make(arrow_schema, arrays);
 
             boost::filesystem::path temp = parent_directory / boost::filesystem::unique_path();
@@ -443,8 +458,8 @@ void SingleStreamIngester::delete_up_to(const string& last_key_persisted) {
 
     auto elapsed_seconds = std::chrono::duration_cast<std::chrono::seconds>(
             std::chrono::system_clock::now() - KeyTimestamp(last_key_persisted.c_str()));
-    if (elapsed_seconds.count() > _minimum_age_seconds_before_deletion) {
-        long long to_sleep = _minimum_age_seconds_before_deletion - elapsed_seconds.count() + 1;
+    if (elapsed_seconds.count() > settings_.minimum_age_seconds_before_deletion) {
+        long long to_sleep = settings_.minimum_age_seconds_before_deletion - elapsed_seconds.count() + 1;
         if (to_sleep > 0) {
             LOG(INFO) << fmt::format(
                     "Sleeping for {} seconds until we can delete up to this key.", to_sleep);
@@ -557,7 +572,6 @@ void SingleStreamIngester::combine_all_files() {
 
     std::vector<std::shared_ptr<arrow::Array>> arrays;
 
-    auto arrow_schema = to_arrow(*this->schema);
 #ifdef PARQUET_ASSIGN_OR_THROW
     PARQUET_ASSIGN_OR_THROW(
             shared_ptr<arrow::io::OutputStream> sink, arrow::io::FileOutputStream::Open(temp_filepath));
@@ -570,14 +584,6 @@ void SingleStreamIngester::combine_all_files() {
     parquet::WriterProperties::Builder builder;
     builder.compression(parquet::Compression::SNAPPY);
     shared_ptr<parquet::WriterProperties> props = builder.build();
-
-    // Open a writer
-    PARQUET_THROW_NOT_OK(parquet::arrow::FileWriter::Open(
-            *arrow_schema.get(),
-            arrow::default_memory_pool(),
-            sink,
-            props,
-            &writer));
 
     LOG(INFO) << "Beginning combining of files to temp file " << temp_filepath << endl;
 
@@ -603,6 +609,19 @@ void SingleStreamIngester::combine_all_files() {
                 parquet::arrow::OpenFile(infile, arrow::default_memory_pool(), &file_reader));
         std::shared_ptr<arrow::Table> table;
         PARQUET_THROW_NOT_OK(file_reader->ReadTable(&table));
+
+        if (!writer) {
+            std::shared_ptr<::arrow::Schema> arrow_schema;
+            PARQUET_THROW_NOT_OK(file_reader->GetSchema(&arrow_schema));
+            // Open a writer
+            PARQUET_THROW_NOT_OK(parquet::arrow::FileWriter::Open(
+                    *arrow_schema,
+                    arrow::default_memory_pool(),
+                    sink,
+                    props,
+                    &writer));
+        }
+
 
         // And then write this table to the existing file
         int64_t num_rows = table->num_rows();
@@ -713,13 +732,13 @@ inline shared_ptr<ArrayT> get_last(const shared_ptr<arrow::Table> &table, const 
     return array;
 }
 
-shared_ptr<arrow::Schema> to_arrow(const StreamSchema &stream_schema) {
+shared_ptr<arrow::Schema> to_arrow(const std::vector<river::FieldDefinition> &field_definitions) {
     vector<std::shared_ptr<arrow::Field>> fields;
     fields.push_back(arrow::field("sample_index", arrow::int64(), false));
     fields.push_back(arrow::field("key", arrow::utf8(), false));
     fields.push_back(arrow::field("timestamp_ms", arrow::int64(), false));
 
-    for (auto &field : stream_schema.field_definitions) {
+    for (auto &field : field_definitions) {
         shared_ptr<arrow::DataType> type;
         switch (field.type) {
             case FieldDefinition::DOUBLE:

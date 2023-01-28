@@ -1,0 +1,25 @@
+{
+  "stream_settings": [
+    {
+      "stream_name_regex": "some-prefix-.*",
+      "columns_blacklist": [
+        "channel_.*"
+      ]
+    },
+    {
+      "stream_name_regex": "some-prefix-2-.*",
+      "columns_whitelist": [
+        "whitelisted_channels_.*"
+      ],
+      "bytes_per_row_group": 1048576,
+      "minimum_age_seconds_before_deletion": 30
+    },
+    {
+      "stream_name_regex": ".*"
+    }
+  ],
+  "global_settings": {
+    "bytes_per_row_group": 134217728,
+    "minimum_age_seconds_before_deletion": 60
+  }
+}

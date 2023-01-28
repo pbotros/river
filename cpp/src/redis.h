@@ -153,7 +153,7 @@ public:
         return UniqueRedisReplyPtr(reply);
     }
 
-    std::vector<std::string> ListStreamNames(const std::string &stream_filter);
+    std::vector<std::string> ListStreamNames();
 
     void Unlink(const std::string &stream_key);
 
