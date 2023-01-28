@@ -37,7 +37,7 @@ typedef struct FieldDefinition {
     } Type;
     Type type;
 
-    FieldDefinition& operator=(const FieldDefinition& t) = default;
+    FieldDefinition &operator=(const FieldDefinition &t) = default;
 
     FieldDefinition(std::string name_, Type type_, int size_) : name(std::move(name_)), size(size_), type(type_) {}
 } FieldDefinition;

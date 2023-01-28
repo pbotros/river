@@ -6,6 +6,7 @@
 #define PARENT_INGESTER_H
 
 #include <set>
+#include <regex>
 #include <parquet/api/writer.h>
 #include <arrow/io/file.h>
 #include <cstdlib>
@@ -25,7 +26,7 @@
 #include <fmt/format.h>
 #include <utility>
 #include <chrono>
-#include <regex>
+#include "ingester_settings.h"
 
 #include "ingester_threadpool.h"
 #include "river.h"
@@ -37,15 +38,14 @@ typedef enum StreamIngestionResult {
     IN_PROGRESS = 1
 } StreamIngestionResult;
 
+
 class StreamIngester {
 public:
     StreamIngester(
             const RedisConnection &connection,
             const string &output_directory,
             bool *terminated,
-            const string &stream_filter = "",
-            int64_t samples_per_row_group = 128 * 1024, // ~128k elements, arbitrary
-            int minimum_age_seconds_before_deletion = 60,
+            std::vector<std::pair<std::regex, StreamIngestionSettings>> stream_settings_by_name_glob,
             int stalled_timeout_ms = 1000,
             int stale_period_ms = 300000);
 
@@ -64,11 +64,9 @@ private:
     const RedisConnection _connection;
     const string _output_directory;
     bool* _terminated;
-    const int64_t _samples_per_row_group;
-    const int _minimum_age_seconds_before_deletion;
+    std::vector<std::pair<std::regex, StreamIngestionSettings>> stream_settings_by_name_glob_;
     const int _stalled_timeout_ms;
     const int _stale_period_ms;
-    const string _stream_filter;
     std::set<string> _streams_in_progress;
     mutex _streams_in_progress_mtx;
 };
@@ -80,18 +78,17 @@ public:
                          const string &stream_name,
                          const string &output_directory,
                          bool *terminated,
-                         int64_t samples_per_row_group,
-                         int minimum_age_seconds_before_deletion,
                          int stalled_timeout_ms,
-                         int stale_period_ms);
+                         int stale_period_ms,
+                         StreamIngestionSettings settings);
 
     StreamIngestionResult Ingest();
 private:
     const RedisConnection _connection;
-    const int64_t _samples_per_row_group;
-    const int _minimum_age_seconds_before_deletion;
     const int _stalled_timeout_ms;
     const int _stale_period_ms;
+
+    const StreamIngestionSettings settings_;
 
     const string &stream_name_;
     boost::filesystem::path parent_directory;

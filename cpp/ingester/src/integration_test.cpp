@@ -89,14 +89,15 @@ protected:
 
         // Set our stalling timeout as 1 STD above the mean, i.e. ~16% of requests should timeout. In reality, this
         // "stalling" timeout should be much higher, in order to capture streams that haven't been properly terminated.
+        StreamIngestionSettings settings;
+        settings.bytes_per_row_group = 2000 * sizeof(double);
+        settings.minimum_age_seconds_before_deletion = 3;
         ingester_factory = [&] {
             return make_unique<StreamIngester>(
                     connection,
                     tmp_directory,
                     &terminated,
-                    stream_name,
-                    2000,
-                    3,
+                    std::vector<std::pair<std::regex, StreamIngestionSettings>>{{std::regex(stream_name), settings}},
                     (int) MEAN_JITTER_MS + STD_JITTER_MS,
                     1000);
         };

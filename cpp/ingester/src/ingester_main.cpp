@@ -5,6 +5,7 @@
 #include <fstream>
 #include <boost/program_options.hpp>
 #include <glog/logging.h>
+#include <filesystem>
 
 using namespace std;
 namespace po = boost::program_options;
@@ -24,27 +25,22 @@ int main(int argc, char **argv) {
     string redis_password;
     string redis_password_file;
     string output_directory;
-    string stream_name;
-    int samples_per_row_group;
-    int minimum_age_seconds_before_deletion;
+    string settings_filename;
 
-  po::options_description desc("Allowed options");
+    po::options_description desc("Allowed options");
     desc.add_options()
             ("help", "produce help message")
             ("redis_hostname,h", po::value<string>(&redis_hostname)->required(), "Redis hostname [required]")
             ("redis_port,p", po::value<int>(&redis_port)->default_value(6379), "Redis port [optional]")
             ("redis_password,w", po::value<string>(&redis_password), "Redis password [optional]")
             ("redis_password_file,f", po::value<string>(&redis_password_file), "Redis password file [optional]")
+            ("settings_filename,s", po::value<string>(&settings_filename)->default_value(""),
+             "Filename for JSON settings file [optional]")
             ("output_directory,o", po::value<string>(&output_directory)->required(),
              "Output directory for all files [required]")
-            ("stream_name", po::value<string>(&stream_name),
-             "Single stream to process directly [optional]")
-            ("samples_per_row_group", po::value<int>(&samples_per_row_group)->default_value(128 * 1024),
-             "Number of samples to read at a time before persisting to disk [optional]")
-            ("minimum_seconds_age_before_deletion,m", po::value<int>(&minimum_age_seconds_before_deletion)->default_value(60),
-             "Minimum age of a sample, in seconds, before it can be considered for deletion [optional]");
+             ;
 
-  po::variables_map vm;
+    po::variables_map vm;
     po::store(po::parse_command_line(argc, argv, desc), vm);
 
     if (vm.count("help")) {
@@ -69,15 +65,24 @@ int main(int argc, char **argv) {
     signal(SIGINT, signal_handler);
     signal(SIGTERM, signal_handler);
 
+    std::vector<std::pair<std::regex, StreamIngestionSettings>> settings_by_stream;
+    if (settings_filename.empty()) {
+        settings_by_stream = DefaultStreamSettings();
+    } else {
+        if (!std::filesystem::exists(settings_filename)) {
+            cerr << "Invalid settings filename provided." << endl;
+            return 1;
+        }
+        settings_by_stream = ParseStreamSettingsJson(settings_filename);
+    }
+
     river::RedisConnection rc(redis_hostname, redis_port, redis_password);
     {
         river::StreamIngester ingester(
-            rc,
-            output_directory,
-            &terminated,
-            stream_name,
-            samples_per_row_group,
-            minimum_age_seconds_before_deletion);
+                rc,
+                output_directory,
+                &terminated,
+                settings_by_stream);
         LOG(INFO) << "Beginning ingestion forever." << endl;
         while (!terminated) {
             ingester.Ingest();

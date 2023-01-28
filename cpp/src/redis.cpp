@@ -279,7 +279,7 @@ Redis::Xadd(const string &stream_name, initializer_list<pair<string, string>> ke
     return river::internal::Redis::UniqueRedisReplyPtr(reply);
 }
 
-vector<string> Redis::ListStreamNames(const string &stream_filter) {
+vector<string> Redis::ListStreamNames() {
     vector<string> ret;
 
     string cursor = "0";
@@ -287,7 +287,7 @@ vector<string> Redis::ListStreamNames(const string &stream_filter) {
         UniqueRedisReplyPtr reply = UniqueRedisReplyPtr(
                 (redisReply *) redisCommand(_context, "SCAN %s MATCH %s-metadata",
                                             cursor.c_str(),
-                                            stream_filter.empty() ? "*" : stream_filter.c_str()));
+                                            "*"));
         if (reply.get() == nullptr) {
             throw RedisException("SCAN returned null.");
         }

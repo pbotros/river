@@ -6,6 +6,7 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
+#include "ingester_settings.h"
 #include "river.h"
 #include "ingester_test_utils.h"
 #include "ingester.h"
@@ -32,6 +33,7 @@ protected:
         redis = internal::Redis::Create(connection);
         test_tombstone = false;
         terminated = false;
+        assert_field1_present = true;
     }
 
     void TearDown() override {
@@ -40,15 +42,19 @@ protected:
         }
     }
 
-    shared_ptr<StreamIngester> new_ingester(int samples_per_row_group) {
-        return make_shared<StreamIngester>(connection,
-                                           tmp_directory,
-                                           &terminated,
-                                           stream_name,
-                                           samples_per_row_group,
-                                           1,
-                                           1000,
-                                           10000);
+    shared_ptr<StreamIngester> new_ingester(int samples_per_row_group, const StreamSchema& schema) {
+        StreamIngestionSettings settings;
+        settings.bytes_per_row_group = samples_per_row_group * schema.sample_size();
+        settings.minimum_age_seconds_before_deletion = 1;
+        settings.columns_whitelist = settings_columns_whitelist;
+        settings.columns_blacklist = settings_columns_blacklist;
+        return make_shared<StreamIngester>(
+                connection,
+                tmp_directory,
+                &terminated,
+                std::vector<std::pair<std::regex, StreamIngestionSettings>>{{std::regex(stream_name), settings}},
+                1000,
+                10000);
     }
 
     boost::property_tree::ptree read_metadata_json() {
@@ -62,8 +68,11 @@ protected:
     string stream_name;
     string tmp_directory;
     string stream_directory;
+    std::optional<std::vector<std::regex>> settings_columns_whitelist;
+    std::optional<std::vector<std::regex>> settings_columns_blacklist;
     bool test_tombstone;
     bool terminated;
+    bool assert_field1_present;
     unique_ptr<internal::Redis> redis;
 
     template <class T, class U>
@@ -105,7 +114,7 @@ protected:
         writer->Stop();
 
         // Use a reduced row group size and lookback time to test
-        auto ingester = new_ingester(NUM_ELEMENTS / 4);
+        auto ingester = new_ingester(NUM_ELEMENTS / 4, schema);
         ingester->Ingest();
         ingester->Stop();
         auto result = boost::get<StreamIngestionResult>(*ingester->GetResult(stream_name));
@@ -154,12 +163,16 @@ protected:
         }
 
         auto column = table->GetColumnByName("field1");
-        ASSERT_TRUE(column);
-
-        ASSERT_EQ(column->length(), NUM_ELEMENTS);
-        for (const auto& chunk : column->chunks()) {
-            PARQUET_THROW_NOT_OK(chunk->Accept(visitor));
+        if (assert_field1_present) {
+            ASSERT_TRUE(column);
+            ASSERT_EQ(column->length(), NUM_ELEMENTS);
+            for (const auto& chunk : column->chunks()) {
+                PARQUET_THROW_NOT_OK(chunk->Accept(visitor));
+            }
+        } else {
+            ASSERT_FALSE(column);
         }
+
 
         auto metadata = redis->GetMetadata(stream_name);
         ASSERT_FALSE(metadata);
@@ -242,7 +255,7 @@ TEST_F(StreamIngesterTest, TestVariableBinary) {
     }
     writer->Stop();
 
-    auto ingester = new_ingester(10);
+    auto ingester = new_ingester(10, schema);
     ingester->Ingest();
     ingester->Stop();
 
@@ -287,7 +300,7 @@ TEST_F(StreamIngesterTest, TestMultipleFields) {
     writer->Write(&test_data, 1);
     writer->Stop();
 
-    auto ingester = new_ingester(10);
+    auto ingester = new_ingester(10, schema);
     ingester->Ingest();
     ingester->Stop();
 
@@ -320,7 +333,7 @@ TEST_F(StreamIngesterTest, TestPartial) {
     }
     writer->SetMetadata({{"foo1", "bar1"}});
 
-    auto ingester = new_ingester(20);
+    auto ingester = new_ingester(20, schema);
     // This should time out after it ingests the 10 samples, and successfully persist the 10.
     ingester->Ingest();
     ingester->Stop();
@@ -341,7 +354,7 @@ TEST_F(StreamIngesterTest, TestPartial) {
     writer->SetMetadata({{"foo2", "bar2"}});
     writer->Stop();
 
-    ingester = new_ingester(20);
+    ingester = new_ingester(20, schema);
     ingester->Ingest();
     ingester->Stop();
 
@@ -366,3 +379,20 @@ TEST_F(StreamIngesterTest, TestPartial) {
     ASSERT_STREQ(root.get<string>("foo2").c_str(), "bar2");
 }
 
+TEST_F(StreamIngesterTest, TestIngestionSettings_IgnoreField) {
+    assert_field1_present = false;
+    settings_columns_blacklist = std::vector<std::regex>({ std::regex("field.*") });
+    write_and_assert<double, arrow::DoubleArray>(FieldDefinition::DOUBLE);
+}
+
+TEST_F(StreamIngesterTest, TestIngestionSettings_WhitelistField_None) {
+    assert_field1_present = false;
+    settings_columns_whitelist = std::vector<std::regex>({ std::regex("something_else.*") });
+    write_and_assert<double, arrow::DoubleArray>(FieldDefinition::DOUBLE);
+}
+
+TEST_F(StreamIngesterTest, TestIngestionSettings_WhitelistField_Matches) {
+    assert_field1_present = true;
+    settings_columns_whitelist = std::vector<std::regex>({ std::regex("field.*") });
+    write_and_assert<double, arrow::DoubleArray>(FieldDefinition::DOUBLE);
+}

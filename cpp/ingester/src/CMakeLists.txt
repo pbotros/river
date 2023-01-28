@@ -29,6 +29,15 @@ else()
   SET(PARQUET_LIB parquet)
 endif()
 
+if (NOT TARGET nlohmann_json::nlohmann_json)
+    FetchContent_Declare(
+            json
+            GIT_REPOSITORY    https://github.com/nlohmann/json.git
+            GIT_TAG           v3.10.4
+    )
+    FetchContent_MakeAvailable(json)
+endif()
+
 set(INCLUDE_DIRS
         ${ARROW_INCLUDE_DIR}
         ${PARQUET_INCLUDE_DIR}
@@ -45,6 +54,7 @@ set(LIBRARIES_TO_LINK
         "Boost::thread"
         "glog::glog"
         "hiredis"
+        "nlohmann_json::nlohmann_json"
         arrow_shared
         ${PARQUET_LIB}
 )
@@ -56,7 +66,7 @@ endif()
 
 
 
-set(INGESTER_HEADERS ingester.h ingester_threadpool.h)
+set(INGESTER_HEADERS ingester.h ingester_threadpool.h ingester_settings.h)
 set(INGESTER_SOURCES ingester.cpp)
 
 add_executable(ingester ingester_main.cpp ${INGESTER_HEADERS} ${INGESTER_SOURCES})
@@ -78,7 +88,7 @@ target_compile_options(ingester PUBLIC "$<$<CONFIG:RELEASE>:${MY_CXX_RELEASE_OPT
 
 if (RIVER_BUILD_TESTS)
   set(INGESTER_TEST_HEADERS ingester_test_utils.h)
-  set(INGESTER_TEST_SOURCES ingester_test_main.cpp ingester_test.cpp ingester_threadpool_test.cpp integration_test.cpp)
+  set(INGESTER_TEST_SOURCES ingester_test_main.cpp ingester_test.cpp ingester_threadpool_test.cpp integration_test.cpp ingester_settings_test.cpp)
   add_executable(ingester_test ${INGESTER_HEADERS} ${INGESTER_SOURCES} ${INGESTER_TEST_SOURCES} ${INGESTER_TEST_HEADERS})
   add_dependencies(ingester_test river)
   target_link_libraries(ingester_test PRIVATE ${LIBRARIES_TO_LINK} gtest gtest_main)
