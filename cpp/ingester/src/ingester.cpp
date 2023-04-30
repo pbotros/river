@@ -24,10 +24,6 @@
 
 #include "ingester.h"
 
-// Max number of samples per stream to query Redis. Keep this low in order to prevent interference of the ingester with
-// other writers/readers of Redis (Redis is single-threaded and so a single big read can block for awhile).
-static const int64_t SAMPLES_PER_READ = 32;
-
 namespace river {
 
 StreamIngester::StreamIngester(const RedisConnection &connection,
@@ -219,6 +215,7 @@ StreamIngestionResult SingleStreamIngester::Ingest() {
 
     int sample_size = schema->sample_size();
     int64_t samples_per_row_group = std::max(int64_t{0}, (int64_t) (settings_.bytes_per_row_group / sample_size));
+    int64_t samples_per_read = settings_.samples_per_read;
 
     vector<int64_t> data_indices(samples_per_row_group);
     vector<char> read_buffer(sample_size * samples_per_row_group);
@@ -248,8 +245,9 @@ StreamIngestionResult SingleStreamIngester::Ingest() {
                << " for stream " << stream_name_;
             LOG_EVERY_N(INFO, 500) << ss.str();
             int64_t remaining_samples_in_row_group = samples_per_row_group - row_group_size;
-            auto samples_to_read = remaining_samples_in_row_group > SAMPLES_PER_READ ? SAMPLES_PER_READ
-                                                                                     : remaining_samples_in_row_group;
+            auto samples_to_read = remaining_samples_in_row_group > samples_per_read
+                                   ? samples_per_read
+                                   : remaining_samples_in_row_group;
 
             int *sizes_ptr = &sizes[row_group_size];
             string *keys_ptr = &keys[row_group_size];

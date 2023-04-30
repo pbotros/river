@@ -18,6 +18,7 @@ using json = nlohmann::json;
 
 static const int64_t DEFAULT_BYTES_PER_ROW_GROUP = 134217728LL; // 128MB
 static const int DEFAULT_MINIMUM_AGE_SECONDS_BEFORE_DELETION = 60; // 60s lookback
+static const int64_t DEFAULT_SAMPLES_PER_READ = 32;
 
 class StreamIngestionSettings {
 public:
@@ -51,6 +52,11 @@ public:
     int64_t bytes_per_row_group;
     int minimum_age_seconds_before_deletion;
 
+    // Max number of samples per stream to query Redis. Err on keeping this low in order to prevent interference of
+    // the ingester with other writers/readers of Redis, as Redis is single-threaded and so a single big read can block
+    // other writes/reads. However, too low of a # of samples/read can result in a lot of unnecessary network overhead
+    // in ingester reads.
+    int64_t samples_per_read;
 
 private:
     static std::vector<river::FieldDefinition> FilterList(
@@ -77,11 +83,13 @@ private:
 static std::vector<std::pair<std::regex, StreamIngestionSettings>> ParseStreamSettingsJson(const json& settings_json) {
     int64_t bytes_per_row_group_global = DEFAULT_BYTES_PER_ROW_GROUP;
     int minimum_age_seconds_before_deletion_global = DEFAULT_MINIMUM_AGE_SECONDS_BEFORE_DELETION;
+    int64_t samples_per_read_global = DEFAULT_SAMPLES_PER_READ;
     if (settings_json.contains("global_settings")) {
         minimum_age_seconds_before_deletion_global = settings_json.value(
                 "minimum_age_seconds_before_deletion",
                 minimum_age_seconds_before_deletion_global);
         bytes_per_row_group_global = settings_json.value("bytes_per_row_group", bytes_per_row_group_global);
+        samples_per_read_global = settings_json.value("samples_per_read", samples_per_read_global);
     }
 
     std::vector<std::pair<std::regex, StreamIngestionSettings>> ret;
@@ -124,6 +132,8 @@ static std::vector<std::pair<std::regex, StreamIngestionSettings>> ParseStreamSe
                 "bytes_per_row_group", bytes_per_row_group_global);
         settings.minimum_age_seconds_before_deletion = setting_json.value(
                 "minimum_age_seconds_before_deletion", minimum_age_seconds_before_deletion_global);
+        settings.samples_per_read = setting_json.value("samples_per_read", samples_per_read_global);
+
         ret.emplace_back(stream_name_regex, settings);
     }
 
