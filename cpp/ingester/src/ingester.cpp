@@ -809,7 +809,7 @@ string SingleStreamIngester::combined_data_filepath() {
 }
 
 string SingleStreamIngester::data_filepath(int index) {
-    return (parent_directory / boost::filesystem::path(fmt::format("data_{:0>4}.parquet", index)))
+    return (parent_directory / boost::filesystem::path(fmt::format("data_{:0>10}.parquet", index)))
             .make_preferred().string();
 }
 
