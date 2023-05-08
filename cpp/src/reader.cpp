@@ -90,7 +90,7 @@ int64_t StreamReader::ReadBytes(
         end_us = int64_t{INT64_MAX};
     } else {
         int64_t start_us = chrono::duration_cast<std::chrono::microseconds>(
-                chrono::high_resolution_clock::now().time_since_epoch()).count();
+                chrono::steady_clock::now().time_since_epoch()).count();
         end_us = start_us + 1000 * timeout_ms;
     }
 
@@ -99,7 +99,7 @@ int64_t StreamReader::ReadBytes(
     const int redis_resolution_ms = 200;
     while (samples_fetched < num_samples) {
         int64_t remaining_us = end_us - chrono::duration_cast<std::chrono::microseconds>(
-                chrono::high_resolution_clock::now().time_since_epoch()).count();
+                chrono::steady_clock::now().time_since_epoch()).count();
         if (remaining_us < 0) {
             break;
         }
@@ -148,7 +148,7 @@ int64_t StreamReader::ReadBytes(
         }
 
         remaining_us = end_us - chrono::duration_cast<std::chrono::microseconds>(
-                chrono::high_resolution_clock::now().time_since_epoch()).count();
+                chrono::steady_clock::now().time_since_epoch()).count();
         if (num_elements_fetched == 0) {
             if (remaining_us > redis_resolution_ms * 1000) {
                 should_xread = true;
@@ -258,7 +258,7 @@ int64_t StreamReader::TailBytes(char *buffer, int timeout_ms, char *key, int64_t
         end_us = INT64_MAX;
     } else {
         int64_t start_us = chrono::duration_cast<std::chrono::microseconds>(
-                chrono::high_resolution_clock::now().time_since_epoch()).count();
+                chrono::steady_clock::now().time_since_epoch()).count();
         end_us = start_us + 1000 * timeout_ms;
     }
 
@@ -269,7 +269,7 @@ int64_t StreamReader::TailBytes(char *buffer, int timeout_ms, char *key, int64_t
     bool should_xread = false;
     while (true) {
         int64_t remaining_us = end_us - chrono::duration_cast<std::chrono::microseconds>(
-                chrono::high_resolution_clock::now().time_since_epoch()).count();
+                chrono::steady_clock::now().time_since_epoch()).count();
         if (remaining_us < 0) {
             break;
         }
@@ -321,7 +321,7 @@ int64_t StreamReader::TailBytes(char *buffer, int timeout_ms, char *key, int64_t
         }
 
         remaining_us = end_us - chrono::duration_cast<std::chrono::microseconds>(
-                chrono::high_resolution_clock::now().time_since_epoch()).count();
+                chrono::steady_clock::now().time_since_epoch()).count();
         if (!did_read) {
             if (remaining_us > redis_resolution_ms * 1000) {
                 should_xread = true;
@@ -491,7 +491,7 @@ int64_t StreamReader::Seek(const std::string &key) {
 unique_ptr<unordered_map<std::string, std::string>> StreamReader::RetryablyFetchMetadata(const std::string &stream_name,
                                                                                     int timeout_ms) {
     int64_t start_ms = chrono::duration_cast<std::chrono::milliseconds>(
-            chrono::high_resolution_clock::now().time_since_epoch()).count();
+            chrono::steady_clock::now().time_since_epoch()).count();
     int64_t end_ms = timeout_ms > 0 ? start_ms + timeout_ms : (start_ms - 1);
     do {
         auto maybe_metadata = redis_->GetMetadata(stream_name);
@@ -501,7 +501,7 @@ unique_ptr<unordered_map<std::string, std::string>> StreamReader::RetryablyFetch
         }
         return maybe_metadata;
     } while (chrono::duration_cast<std::chrono::milliseconds>(
-            chrono::high_resolution_clock::now().time_since_epoch()).count() < end_ms);
+            chrono::steady_clock::now().time_since_epoch()).count() < end_ms);
     return unique_ptr<unordered_map<std::string, std::string>>();
 }
 

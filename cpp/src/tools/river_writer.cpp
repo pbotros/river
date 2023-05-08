@@ -52,7 +52,7 @@ int main(int argc, char **argv) {
   int num_buffered_rows = 0;
 
   cout << "Beginning writing for stream " << stream_name << endl;
-  auto start_time = chrono::high_resolution_clock::now();
+  auto start_time = chrono::steady_clock::now();
   size_t bytes_per_row = schema.sample_size();
   while (std::cin.read(reinterpret_cast<char *>(&buffer.front() + num_buffered_rows * bytes_per_row), bytes_per_row)) {
     num_buffered_rows++;
@@ -65,7 +65,7 @@ int main(int argc, char **argv) {
     writer.WriteBytes(&buffer.front(), num_buffered_rows);
   }
   writer.Stop();
-  auto end_time = chrono::high_resolution_clock::now();
+  auto end_time = chrono::steady_clock::now();
 
   auto us = chrono::duration_cast<chrono::microseconds>(end_time - start_time).count();
   auto num_elements = writer.total_samples_written();

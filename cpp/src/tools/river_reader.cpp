@@ -48,7 +48,7 @@ int main(int argc, char **argv) {
   vector<char> buffer(batch_size * schema.sample_size());
 
   cout << "Beginning reading for stream " << stream_name << endl;
-  auto start_time = chrono::high_resolution_clock::now();
+  auto start_time = chrono::steady_clock::now();
   size_t bytes_per_row = schema.sample_size();
   while (reader && std::cout) {
     int64_t num_read = reader.ReadBytes(&buffer.front(), batch_size);
@@ -57,7 +57,7 @@ int main(int argc, char **argv) {
     }
   }
   reader.Stop();
-  auto end_time = chrono::high_resolution_clock::now();
+  auto end_time = chrono::steady_clock::now();
 
   auto us = chrono::duration_cast<chrono::microseconds>(end_time - start_time).count();
   auto num_elements = reader.total_samples_read();

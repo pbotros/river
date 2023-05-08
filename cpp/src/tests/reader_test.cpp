@@ -401,10 +401,10 @@ float test_timeout(shared_ptr<StreamReader> reader_, const int timeout) {
     int read_data[3];
 
     long long before = chrono::duration_cast<std::chrono::nanoseconds>(
-            chrono::high_resolution_clock::now().time_since_epoch()).count();
+            chrono::steady_clock::now().time_since_epoch()).count();
     reader_->Read(read_data, 3, nullptr, nullptr, timeout);
     long long after = chrono::duration_cast<std::chrono::nanoseconds>(
-            chrono::high_resolution_clock::now().time_since_epoch()).count();
+            chrono::steady_clock::now().time_since_epoch()).count();
     return (after - before) / 1e6;
 }
 

@@ -64,7 +64,7 @@ int main(int argc, char **argv) {
     data[i] = i;
   }
 
-  auto start_time = chrono::high_resolution_clock::now();
+  auto start_time = chrono::steady_clock::now();
   int64_t num_written = 0;
   while (num_written < num_samples) {
     int64_t remaining = num_samples - num_written;
@@ -74,7 +74,7 @@ int main(int argc, char **argv) {
   }
   writer.Stop();
 
-  auto end_time = chrono::high_resolution_clock::now();
+  auto end_time = chrono::steady_clock::now();
   long long int us = chrono::duration_cast<chrono::microseconds>(end_time - start_time).count();
   double throughput = num_samples / (us / 1e6);
   cout << fmt::format(
@@ -84,7 +84,7 @@ int main(int argc, char **argv) {
 
   reader.Initialize(stream_name);
 
-  start_time = chrono::high_resolution_clock::now();
+  start_time = chrono::steady_clock::now();
   int64_t num_read = 0;
   vector<char> read_data(batch_size * sample_size);
   while (true) {
@@ -94,7 +94,7 @@ int main(int argc, char **argv) {
     }
     num_read += num_read_loop;
   }
-  end_time = chrono::high_resolution_clock::now();
+  end_time = chrono::steady_clock::now();
   us = chrono::duration_cast<chrono::microseconds>(end_time - start_time).count();
   throughput = num_samples / (us / 1e6);
   cout << fmt::format(

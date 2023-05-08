@@ -71,12 +71,12 @@ void StreamWriter::Initialize(const string &stream_name,
     if (compute_local_minus_global_clock) {
         auto local_minus_server_clock = ComputeLocalMinusServerClocks();
         initialized_at_us_ = chrono::duration_cast<std::chrono::microseconds>(
-                chrono::high_resolution_clock::now().time_since_epoch()).count() - local_minus_server_clock;
+                chrono::system_clock::now().time_since_epoch()).count() - local_minus_server_clock;
         string local_minus_server_clock_f = fmt::format_int(local_minus_server_clock).str();
         fields.emplace_back("local_minus_server_clock_us", local_minus_server_clock_f);
     } else {
         initialized_at_us_ = chrono::duration_cast<std::chrono::microseconds>(
-                chrono::high_resolution_clock::now().time_since_epoch()).count();
+                chrono::system_clock::now().time_since_epoch()).count();
     }
 
     auto num_fields_added = static_cast<size_t>(
