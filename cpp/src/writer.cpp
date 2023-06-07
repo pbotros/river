@@ -61,11 +61,10 @@ void StreamWriter::Initialize(const string &stream_name,
     string serialized_schema = schema.ToJson();
 
     string first_stream_key = fmt::format("{}-0", stream_name);
-    string initialized_at_us_f = fmt::format_int(initialized_at_us_).str();
     vector<pair<string, string>> fields = {
-            {"first_stream_key", first_stream_key},
-            {"schema", serialized_schema},
-            {"initialized_at_us", initialized_at_us_f}};
+        {"first_stream_key", first_stream_key},
+        {"schema", serialized_schema},
+    };
 
     // If enabled, calculate the delta between clocks of the client and Redis server, and store offset
     if (compute_local_minus_global_clock) {
@@ -78,6 +77,9 @@ void StreamWriter::Initialize(const string &stream_name,
         initialized_at_us_ = chrono::duration_cast<std::chrono::microseconds>(
                 chrono::system_clock::now().time_since_epoch()).count();
     }
+
+    string initialized_at_us_f = fmt::format_int(initialized_at_us_).str();
+    fields.emplace_back("initialized_at_us", initialized_at_us_f);
 
     auto num_fields_added = static_cast<size_t>(
             redis_->SetMetadataAndUserMetadata(stream_name, fields, user_metadata));
