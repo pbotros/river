@@ -13,7 +13,6 @@
 #include <vector>
 #include <unordered_map>
 #include <hiredis.h>
-#include <hiredis/sds.h>
 #include <sockcompat.h>
 #include <cassert>
 
