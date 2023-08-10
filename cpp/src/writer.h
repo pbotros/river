@@ -11,7 +11,6 @@
 #include "redis.h"
 
 namespace river {
-
 class StreamWriterException : public std::exception {
  public:
     explicit StreamWriterException(const std::string& message) {
@@ -140,6 +139,7 @@ private:
     std::string stream_name_;
     int sample_size_;
     bool has_variable_width_field_;
+    bool has_module_installed_;
 
     int64_t total_samples_written_;
     bool is_stopped_;

@@ -156,6 +156,41 @@ unique_ptr<unordered_map<string, string>> Redis::GetMetadata(const string &strea
     return make_unique<unordered_map<string, string>>(ret);
 }
 
+std::vector<std::string> Redis::GetInstalledModules() {
+    auto *reply = (redisReply *) redisCommand(_context, "MODULE LIST");
+    if (reply == nullptr) {
+        throw RedisException(
+            fmt::format("Null response received when fetching! err={}, errstr={}",
+                        _context->err,
+                        _context->errstr));
+    }
+    UniqueRedisReplyPtr reply_ptr(reply);
+
+    if (reply->type != REDIS_REPLY_ARRAY) {
+        throw RedisException("Array response expected for MODULE LIST.");
+    }
+
+    if (reply->elements == 0) {
+        return {};
+    }
+
+    std::vector<std::string> ret;
+    for (int i = 0; i < reply->elements; i++) {
+        auto module_info = reply->element[i];
+        if (module_info->type != REDIS_REPLY_ARRAY) {
+            throw RedisException("Expected nested arrays for MODULE LIST");
+        }
+        for (int field_idx = 0; field_idx < module_info->elements; field_idx += 2) {
+            if (std::strcmp(module_info->element[field_idx]->str, "name") == 0) {
+                ret.push_back(module_info->element[field_idx + 1]->str);
+                break;
+            }
+        }
+    }
+
+    return ret;
+}
+
 unique_ptr<unordered_map<string, string>> Redis::GetUserMetadata(const string &stream_name) {
     auto maybe_metadata = this->GetMetadata(stream_name);
     if (!maybe_metadata) {

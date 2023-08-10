@@ -14,6 +14,12 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Mo
 option(RIVER_BUILD_TESTS "Set to ON to build tests" ON)
 option(RIVER_BUILD_INGESTER "Set to ON to build the ingester" OFF)
 option(RIVER_INSTALL "Set to ON to install River (set to OFF if embedding in another project)" ON)
+if (MSVC)
+  option(RIVER_BUILD_REDIS_MODULE "Set to ON to build and install a Redis module used for performance improvements" OFF)
+else()
+  option(RIVER_BUILD_REDIS_MODULE "Set to ON to build and install a Redis module used for performance improvements" ON)
+endif()
+set(RIVER_BUILD_REDIS_MODULE_SERVER_VERSION 7.0.9 CACHE INTERNAL "If building the Redis module, what Redis server version to build against")
 
 add_subdirectory(src)
 
