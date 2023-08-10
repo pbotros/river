@@ -28,6 +28,10 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(fmt hiredis json cxxopts)
 
+# So that we don't include the entire hiredis headers; we just need to icnlude a single file
+configure_file(${hiredis_SOURCE_DIR}/sockcompat.h ${CMAKE_CURRENT_BINARY_DIR}/hiredis_extra/sockcompat.h)
+configure_file(${hiredis_SOURCE_DIR}/sockcompat.c ${CMAKE_CURRENT_BINARY_DIR}/hiredis_extra/sockcompat.c)
+
 # ===== External Dependency: glog
 find_package(glog REQUIRED)
 
@@ -47,13 +51,14 @@ set(LIBRARIES_TO_LINK
         ${ADDITIONAL_LIBRARIES})
 set(LIBRARIES_TO_LINK_PKGCONFIG_OPTIONS "-lglog -lhiredis")
 
-set(RIVER_HEADERS writer.h river.h reader.h redis.h schema.h)
-set(RIVER_SOURCES writer.cpp reader.cpp redis.cpp schema.cpp)
+set(RIVER_HEADERS writer.h river.h reader.h redis.h schema.h redis_writer_commands.h)
+set(RIVER_SOURCES writer.cpp reader.cpp redis.cpp schema.cpp ${CMAKE_CURRENT_BINARY_DIR}/hiredis_extra/sockcompat.c)
 
 add_library(river SHARED ${RIVER_HEADERS} ${RIVER_SOURCES})
 target_compile_features(river PRIVATE cxx_std_17)
 target_link_libraries(river PRIVATE ${LIBRARIES_TO_LINK})
 target_link_libraries(river PUBLIC hiredis)
+target_include_directories(river PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/hiredis_extra)
 
 # Make headers public
 set_target_properties(river PROPERTIES PUBLIC_HEADER "${RIVER_HEADERS}")
@@ -176,4 +181,8 @@ if (RIVER_BUILD_TESTS)
   add_test(NAME river_test COMMAND river_test)
   target_compile_options(river_test PUBLIC "$<$<CONFIG:DEBUG>:${MY_CXX_DEBUG_OPTIONS}>")
   target_compile_options(river_test PUBLIC "$<$<CONFIG:RELEASE>:${MY_CXX_RELEASE_OPTIONS}>")
+endif()
+
+if (RIVER_BUILD_REDIS_MODULE)
+    add_subdirectory(redismodule)
 endif()

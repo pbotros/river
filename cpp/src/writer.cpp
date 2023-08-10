@@ -6,6 +6,7 @@
 #include <chrono>
 #include <glog/logging.h>
 #include "writer.h"
+#include "redis_writer_commands.h"
 
 using namespace std;
 
@@ -114,6 +115,14 @@ void StreamWriter::Initialize(const string &stream_name,
     this->schema_ = make_shared<StreamSchema>(schema);
     this->sample_size_ = this->schema_->sample_size();
     this->has_variable_width_field_ = this->schema_->has_variable_width_field();
+
+    auto installed_modules = redis_->GetInstalledModules();
+    if (std::find(installed_modules.begin(), installed_modules.end(), "river") != installed_modules.end()) {
+        LOG(INFO) << "Found river module installed. Utilizing it for performance.";
+        this->has_module_installed_ = true;
+    } else {
+        this->has_module_installed_ = false;
+    }
 }
 
 void StreamWriter::WriteBytes(const char *data, int64_t num_samples, const int *sizes) {
@@ -160,64 +169,144 @@ void StreamWriter::WriteBytes(const char *data, int64_t num_samples, const int *
             last_stream_key_idx_ = stream_key_idx;
         }
 
-        // We preallocate / reuse the command buffer as much as possible, as much of the bottleneck is in the
-        // formatting of the command.
-        const int append_argc = 7;
-        const char **append_argv = new const char *[append_argc];
-        auto *append_arglens = new size_t [append_argc];
+        if (has_module_installed_) {
+            // We preallocate / reuse the command buffer as much as possible, as much of the bottleneck is in the
+            // formatting of the command and copying of data. Instead, we do a "zero-copy" (ish) methodology where we
+            // manually manage formatting and sending of the command, such that we don't ever copy the <data> until we need
+            // to send it via network. A strong assumption in this methodology is that all XADD commands sent via Redis are
+            // fairly uniform, and just need the last argument (the "data") switched out.
+            // In addition, to reduce network bandwidth, we have a set of functions in a Redis server module (under the
+            // library name "river") that is tailored towards our batch use of XADD. In particular, it minimizes the
+            // redundant characters sent over the network.
+            int append_argc = this->has_variable_width_field_ ? 5 : 6;
+            std::vector<const char *> append_argv(append_argc);
+            std::vector<size_t> append_arglens(append_argc);
 
-        append_argv[0] = "XADD";
-        append_arglens[0] = strlen(append_argv[0]);
+            const string &stream_key_formatted = fmt::format("{}-{}", stream_name_, stream_key_idx);
+            append_argv[1] = stream_key_formatted.c_str();
+            append_arglens[1] = strlen(append_argv[1]);
 
-        const string &stream_key_formatted = fmt::format("{}-{}", stream_name_, stream_key_idx);
-        append_argv[1] = stream_key_formatted.c_str();
-        append_arglens[1] = strlen(append_argv[1]);
+            auto formatted_global_index = fmt::format_int(total_samples_written_);
+            append_argv[2] = formatted_global_index.c_str();
+            append_arglens[2] = strlen(append_argv[2]);
 
-        append_argv[2] = "*";
-        append_arglens[2] = 1;
+            if (this->has_variable_width_field_) {
+                append_argv[0] = "RIVER.batch_xadd_variable";
+                append_arglens[0] = strlen(append_argv[0]);
 
-        append_argv[3] = "val";
-        append_arglens[3] = strlen(append_argv[3]);
+                append_argv[3] = (const char *) (&sizes[samples_written]);
+                append_arglens[3] = sizeof(int) * samples_to_write_in_batch;
 
-        // Set per sample below
-        append_argv[4] = nullptr;
-        append_arglens[4] = sample_size_;
-
-        // Set per sample below
-        append_argv[5] = "i";
-        append_arglens[5] = strlen(append_argv[5]);
-
-        // Set per sample below
-        append_argv[6] = nullptr;
-        append_arglens[6] = 0;
-
-        for (int64_t i = 0; i < samples_to_write_in_batch; i++) {
-            int64_t global_index = total_samples_written_ + i;
-            auto formatted_global_index = fmt::format_int(global_index);
-            append_argv[6] = formatted_global_index.c_str();
-            append_arglens[6] = formatted_global_index.size();
-
-            append_argv[4] = &data[data_index];
-            if (!this->has_variable_width_field_) {
-                data_index += sample_size_;
+                // Overwritten later down, doesn't matter now.
+                append_argv[4] = "\0";
+                append_arglens[4] = 1;
             } else {
-                int this_sample_size = sizes[samples_written + i];
-                append_arglens[4] = this_sample_size;
-                data_index += this_sample_size;
+                append_argv[0] = "RIVER.batch_xadd";
+                append_arglens[0] = strlen(append_argv[0]);
+
+                auto formatted_num_samples = fmt::format_int(samples_to_write_in_batch);
+                append_argv[3] = formatted_num_samples.c_str();
+                append_arglens[3] = strlen(append_argv[3]);
+
+                auto formatted_sample_size_bytes = fmt::format_int(sample_size_);
+                append_argv[4] = formatted_sample_size_bytes.c_str();
+                append_arglens[4] = strlen(append_argv[4]);
+
+                // Overwritten later down, doesn't matter now.
+                append_argv[5] = "\0";
+                append_arglens[5] = 1;
             }
 
-            redis_->SendCommandArgv(append_argc, append_argv, append_arglens);
-        }
+            std::string formatted_command_str =
+                redis_->FormatCommandArgv(append_argc, append_argv.data(), append_arglens.data());
+            RedisWriterCommand xadd_redis_command_(formatted_command_str);
 
-        delete[] append_argv;
-        delete[] append_arglens;
+            size_t data_size_batch = 0;
+            if (this->has_variable_width_field_) {
+                for (int i = 0; i < samples_to_write_in_batch; i++) {
+                    data_size_batch += sizes[samples_written + i];
+                }
+            } else {
+                data_size_batch = sample_size_ * samples_to_write_in_batch;
+            }
+            auto commands_to_send = xadd_redis_command_.ReplaceLastBulkStringAndAssemble(
+                &data[data_index], data_size_batch);
 
-        for (int64_t i = 0; i < samples_to_write_in_batch; i++) {
-            auto reply = redis_->GetReply();
-            if (reply->type != REDIS_REPLY_STRING || reply->len == 0) {
+            auto bytes_written = redis_->SendCommandPreformatted(commands_to_send);
+            if (bytes_written < 0) {
                 throw StreamWriterException(
+                    fmt::format("Failed to write apprporiate number of bytes! wrote bytes={}", bytes_written));
+            }
+            data_index += (sample_size_ * samples_to_write_in_batch);
+
+            auto reply = redis_->GetReply();
+            if (reply->type != REDIS_REPLY_STATUS || reply->len == 0) {
+                if (reply->type == REDIS_REPLY_ERROR && reply->len > 0) {
+                    throw StreamWriterException(
+                        fmt::format("batch_xadd response was ERROR: {} ", reply->str));
+                } else {
+                    throw StreamWriterException(
                         fmt::format("Reply was not of the right type (was {}) and/or had invalid length ({})",
                                     reply->type, reply->len));
+                }
+            }
+        } else {
+            // We preallocate / reuse the command buffer as much as possible, as much of the bottleneck is in the
+            // formatting of the command.
+            const int append_argc = 7;
+            std::vector<const char *> append_argv(append_argc);
+            std::vector<size_t> append_arglens(append_argc);
+
+            append_argv[0] = "XADD";
+            append_arglens[0] = strlen(append_argv[0]);
+
+            const string &stream_key_formatted = fmt::format("{}-{}", stream_name_, stream_key_idx);
+            append_argv[1] = stream_key_formatted.c_str();
+            append_arglens[1] = strlen(append_argv[1]);
+
+            append_argv[2] = "*";
+            append_arglens[2] = 1;
+
+            append_argv[3] = "val";
+            append_arglens[3] = strlen(append_argv[3]);
+
+            // Set per sample below
+            append_argv[4] = nullptr;
+            append_arglens[4] = sample_size_;
+
+            // Set per sample below
+            append_argv[5] = "i";
+            append_arglens[5] = strlen(append_argv[5]);
+
+            // Set per sample below
+            append_argv[6] = nullptr;
+            append_arglens[6] = 0;
+
+            for (int64_t i = 0; i < samples_to_write_in_batch; i++) {
+                int64_t global_index = total_samples_written_ + i;
+                auto formatted_global_index = fmt::format_int(global_index);
+                append_argv[6] = formatted_global_index.c_str();
+                append_arglens[6] = formatted_global_index.size();
+
+                append_argv[4] = &data[data_index];
+                if (!this->has_variable_width_field_) {
+                    data_index += sample_size_;
+                } else {
+                    int this_sample_size = sizes[samples_written + i];
+                    append_arglens[4] = this_sample_size;
+                    data_index += this_sample_size;
+                }
+
+                redis_->SendCommandArgv(append_argc, append_argv.data(), append_arglens.data());
+            }
+
+            for (int64_t i = 0; i < samples_to_write_in_batch; i++) {
+                auto reply = redis_->GetReply();
+                if (reply->type != REDIS_REPLY_STRING || reply->len == 0) {
+                    throw StreamWriterException(
+                        fmt::format("Reply was not of the right type (was {}) and/or had invalid length ({})",
+                                    reply->type, reply->len));
+                }
             }
         }
 

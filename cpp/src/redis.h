@@ -13,6 +13,9 @@
 #include <vector>
 #include <unordered_map>
 #include <hiredis.h>
+#include <hiredis/sds.h>
+#include <sockcompat.h>
+#include <cassert>
 
 #if defined(_WIN32) || defined(_WIN64)
 #include <windows.h>
@@ -119,6 +122,8 @@ public:
 
     std::unique_ptr<std::unordered_map<std::string, std::string>> GetUserMetadata(const std::string &stream_name);
 
+    std::vector<std::string> GetInstalledModules();
+
     // Atomically set internal and user metadata at the same time to prevent race conditions.
     int SetMetadataAndUserMetadata(const std::string &stream_name,
                                    const std::vector<std::pair<std::string, std::string>>& key_value_pairs,
@@ -132,6 +137,46 @@ public:
 
     inline void SendCommandArgv(int argc, const char **argv, const size_t *argvlen) {
         redisAppendCommandArgv(_context, argc, argv, argvlen);
+    }
+
+    inline std::string FormatCommandArgv(int argc, const char **argv, const size_t *argvlen) {
+        sds cmd;
+        size_t cmd_strlen = redisFormatSdsCommandArgv(&cmd, argc, argv, argvlen);
+        return {cmd, cmd_strlen};
+    }
+
+    void __redisSetError(redisContext *c, int type, const char *str) {
+        // Lifted directly from Redis.
+        size_t len;
+
+        c->err = type;
+        if (str != NULL) {
+            len = strlen(str);
+            len = len < (sizeof(c->errstr)-1) ? len : (sizeof(c->errstr)-1);
+            memcpy(c->errstr,str,len);
+            c->errstr[len] = '\0';
+        } else {
+            /* Only REDIS_ERR_IO may lack a description! */
+            assert(type == REDIS_ERR_IO);
+            strerror_r(errno, c->errstr, sizeof(c->errstr));
+        }
+    }
+
+    inline int SendCommandPreformatted(std::vector<std::pair<const char *, size_t>> preformatted_commands) {
+        int nwritten_total = 0;
+        for (int i = 0; i < preformatted_commands.size(); i++) {
+            int nwritten = send(_context->fd, preformatted_commands[i].first, preformatted_commands[i].second, 0);
+            if (nwritten < 0) {
+                if ((errno == EWOULDBLOCK && !(_context->flags & REDIS_BLOCK)) || (errno == EINTR)) {
+                    /* Try again later */
+                } else {
+                    __redisSetError(_context, REDIS_ERR_IO, NULL);
+                    return -1;
+                }
+            }
+            nwritten_total += nwritten;
+        }
+        return nwritten_total;
     }
 
     inline UniqueRedisReplyPtr GetReply() {
