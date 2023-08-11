@@ -157,6 +157,9 @@ public:
         } else {
             /* Only REDIS_ERR_IO may lack a description! */
             assert(type == REDIS_ERR_IO);
+#ifdef _WIN32
+#define strerror_r(errno,buf,len) strerror_s(buf,len,errno)
+#endif /* _WIN32 */
             strerror_r(errno, c->errstr, sizeof(c->errstr));
         }
     }
