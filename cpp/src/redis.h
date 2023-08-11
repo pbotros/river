@@ -13,12 +13,7 @@
 #include <vector>
 #include <unordered_map>
 #include <hiredis.h>
-#include <sockcompat.h>
 #include <cassert>
-
-#if defined(_WIN32) || defined(_WIN64)
-#include <windows.h>
-#endif
 
 namespace river {
 
@@ -144,42 +139,7 @@ public:
         return {cmd, cmd_strlen};
     }
 
-    void __redisSetError(redisContext *c, int type, const char *str) {
-        // Lifted directly from Redis.
-        size_t len;
-
-        c->err = type;
-        if (str != NULL) {
-            len = strlen(str);
-            len = len < (sizeof(c->errstr)-1) ? len : (sizeof(c->errstr)-1);
-            memcpy(c->errstr,str,len);
-            c->errstr[len] = '\0';
-        } else {
-            /* Only REDIS_ERR_IO may lack a description! */
-            assert(type == REDIS_ERR_IO);
-#ifdef _WIN32
-#define strerror_r(errno,buf,len) strerror_s(buf,len,errno)
-#endif /* _WIN32 */
-            strerror_r(errno, c->errstr, sizeof(c->errstr));
-        }
-    }
-
-    inline int SendCommandPreformatted(std::vector<std::pair<const char *, size_t>> preformatted_commands) {
-        int nwritten_total = 0;
-        for (int i = 0; i < preformatted_commands.size(); i++) {
-            int nwritten = send(_context->fd, preformatted_commands[i].first, preformatted_commands[i].second, 0);
-            if (nwritten < 0) {
-                if ((errno == EWOULDBLOCK && !(_context->flags & REDIS_BLOCK)) || (errno == EINTR)) {
-                    /* Try again later */
-                } else {
-                    __redisSetError(_context, REDIS_ERR_IO, NULL);
-                    return -1;
-                }
-            }
-            nwritten_total += nwritten;
-        }
-        return nwritten_total;
-    }
+    int SendCommandPreformatted(std::vector<std::pair<const char *, size_t>> preformatted_commands);
 
     inline UniqueRedisReplyPtr GetReply() {
         redisReply *reply = nullptr;

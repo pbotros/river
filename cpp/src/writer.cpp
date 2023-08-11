@@ -4,9 +4,9 @@
 #include <cstring>
 #include <fmt/format.h>
 #include <chrono>
-#include <glog/logging.h>
 #include "writer.h"
 #include "redis_writer_commands.h"
+#include <glog/logging.h>
 
 using namespace std;
 
