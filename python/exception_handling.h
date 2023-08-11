@@ -5,11 +5,16 @@
 
 using namespace std;
 
-extern "C" PyObject *stream_exists_exception;
-extern "C" PyObject *stream_does_not_exist_exception;
-extern "C" PyObject *stream_reader_exception;
-extern "C" PyObject *stream_writer_exception;
-extern "C" PyObject *redis_exception;
+#ifdef __cplusplus
+  #define EXPORT_RIVER_EXCEPTION extern
+#else
+  #define EXPORT_RIVER_EXCEPTION extern "C"
+#endif
+EXPORT_RIVER_EXCEPTION PyObject *stream_exists_exception;
+EXPORT_RIVER_EXCEPTION PyObject *stream_does_not_exist_exception;
+EXPORT_RIVER_EXCEPTION PyObject *stream_reader_exception;
+EXPORT_RIVER_EXCEPTION PyObject *stream_writer_exception;
+EXPORT_RIVER_EXCEPTION PyObject *redis_exception;
 
 void raise_py_error() {
   try {
