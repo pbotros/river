@@ -22,19 +22,21 @@ namespace river {
 namespace internal {
 
 unique_ptr<Redis> Redis::Create(const RedisConnection &connection) {
-    struct timeval timeout = {connection.timeout_seconds_, 0};
+    struct timeval timeout = {connection.timeout_seconds(), 0};
+    std::string redis_hostname = connection.redis_hostname();
     redisContext *new_context = redisConnectWithTimeout(
-            connection.redis_hostname_.c_str(), connection.redis_port_, timeout);
+        redis_hostname.c_str(), connection.redis_port(), timeout);
     if (new_context == nullptr || new_context->err) {
         string msg = fmt::format("Connection error to host:port={}:{}, err={}",
-                                 connection.redis_hostname_, connection.redis_port_,
+                                 redis_hostname, connection.redis_port(),
                                  new_context != nullptr ? new_context->errstr : "NULL");
         redisFree(new_context);
         throw RedisException(msg);
     }
 
-    if (connection.redis_password_.length() > 0) {
-        auto *reply = (redisReply *) redisCommand(new_context, "AUTH %s", connection.redis_password_.c_str());
+    auto redis_password = connection.redis_password();
+    if (connection.redis_password().length() > 0) {
+        auto *reply = (redisReply *) redisCommand(new_context, "AUTH %s", redis_password.c_str());
         if (reply == nullptr || reply->type == REDIS_REPLY_ERROR || new_context->err != 0) {
           string msg = fmt::format("Authorization failed to Redis. "
                                    "reply_type={}, "

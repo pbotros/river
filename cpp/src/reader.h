@@ -15,6 +15,7 @@
 #include <memory>
 #include "schema.h"
 #include "redis.h"
+#include "compression/compressor_types.h"
 
 namespace river {
 namespace internal {
@@ -261,6 +262,12 @@ private:
     int64_t local_minus_server_clock_us_{};
     bool has_variable_width_field_{};
 
+    std::unique_ptr<Decompressor> decompressor_;
+    StreamCompression compression_;
+
+    std::vector<char> lookahead_data_cache_;
+    int64_t lookahead_data_cache_index_;
+
     std::vector<internal::StreamReaderListener *> listeners_;
 
     int sample_size_;
@@ -302,7 +309,7 @@ private:
         return nullptr;
     }
 
-    inline int64_t GetSampleIndexOrThrow(const redisReply *values) {
+    inline int64_t GetSampleIndexUnchecked(const redisReply *values) {
         const char *this_sample_index = FindField(values, "i");
         if (this_sample_index == nullptr) {
             std::stringstream ss;
@@ -312,7 +319,11 @@ private:
             throw StreamReaderException(message);
         }
 
-        int64_t ret = strtoll(this_sample_index, nullptr, 10);
+        return strtoll(this_sample_index, nullptr, 10);
+    }
+
+    inline int64_t GetSampleIndexOrThrow(const redisReply *values) {
+        int64_t ret = GetSampleIndexUnchecked(values);
         if (ret < current_sample_idx_) {
             std::stringstream ss;
             ss << "Sample index " << ret << " was less than current sample idx of "

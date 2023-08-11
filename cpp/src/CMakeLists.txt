@@ -2,6 +2,13 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_VERBOSE_MAKEFILE TRUE)
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
+if (${MSVC})
+    set(ADDITIONAL_LIBRARIES)
+else()
+    set(ADDITIONAL_LIBRARIES "dl")
+    add_definitions(-D_GNU_SOURCE)
+endif()
+
 # ===== External Dependencies
 include(FetchContent)
 
@@ -21,25 +28,42 @@ FetchContent_Declare(
   GIT_TAG           v3.10.4
 )
 FetchContent_Declare(
-  cxxopts
-  GIT_REPOSITORY    https://github.com/jarro2783/cxxopts.git
-  GIT_TAG           v3.0.0
+        cxxopts
+        GIT_REPOSITORY    https://github.com/jarro2783/cxxopts.git
+        GIT_TAG           v3.0.0
 )
 
+set(FMT_INSTALL OFF)
 FetchContent_MakeAvailable(fmt hiredis json cxxopts)
+
+if (RIVER_BUILD_ZFP)
+    find_package(OpenMP QUIET OPTIONAL_COMPONENTS C)
+    if(NOT OpenMP_C_FLAGS AND APPLE)
+        # https://stackoverflow.com/questions/46414660/macos-cmake-and-openmp
+        # OpenMP and Mac / Clang don't mesh well. In particular, there's no "C" components
+        # installed in the Mac OpenMP conda package, so we override it to particular values
+        # here.
+        if(CMAKE_C_COMPILER_ID MATCHES "Clang\$")
+            set(OpenMP_C_FLAGS "-Xpreprocessor -fopenmp")
+            set(OpenMP_C_LIB_NAMES "omp")
+            set(OpenMP_omp_LIBRARY omp)
+        endif()
+
+        if(CMAKE_CXX_COMPILER_ID MATCHES "Clang\$")
+            set(OpenMP_CXX_FLAGS "-Xpreprocessor -fopenmp")
+            set(OpenMP_CXX_LIB_NAMES "omp")
+            set(OpenMP_omp_LIBRARY omp)
+        endif()
+    endif()
+    find_package(zfp REQUIRED)
+    list(APPEND ADDITIONAL_LIBRARIES "zfp::zfp")
+endif()
 
 # ===== External Dependency: glog
 find_package(glog REQUIRED)
 
-if (${MSVC})
-    set(ADDITIONAL_LIBRARIES)
-else()
-    set(ADDITIONAL_LIBRARIES "dl")
-    add_definitions(-D_GNU_SOURCE)
-endif()
-
 set(LIBRARIES_TO_LINK
-        "fmt"
+        "fmt::fmt-header-only"
         "hiredis"
         "glog::glog"
         "nlohmann_json::nlohmann_json"
@@ -47,16 +71,27 @@ set(LIBRARIES_TO_LINK
         ${ADDITIONAL_LIBRARIES})
 set(LIBRARIES_TO_LINK_PKGCONFIG_OPTIONS "-lglog -lhiredis")
 
-set(RIVER_HEADERS writer.h river.h reader.h redis.h schema.h redis_writer_commands.h)
-set(RIVER_SOURCES writer.cpp reader.cpp redis.cpp schema.cpp)
+set(RIVER_HEADERS_PUBLIC
+        writer.h
+        river.h
+        reader.h
+        redis.h
+        schema.h
+        compression/compressor_types.h
+)
+set(RIVER_HEADERS_ALL
+        ${RIVER_HEADERS_PUBLIC}
+        redis_writer_commands.h
+        compression/compressor.h)
+set(RIVER_SOURCES writer.cpp reader.cpp redis.cpp schema.cpp compression/compressor.cpp redis_writer_commands.cpp)
 
-add_library(river SHARED ${RIVER_HEADERS} ${RIVER_SOURCES})
+add_library(river SHARED ${RIVER_HEADERS_ALL} ${RIVER_SOURCES})
 target_compile_features(river PRIVATE cxx_std_17)
 target_link_libraries(river PRIVATE ${LIBRARIES_TO_LINK})
 target_link_libraries(river PUBLIC hiredis)
 
 # Make headers public
-set_target_properties(river PROPERTIES PUBLIC_HEADER "${RIVER_HEADERS}")
+set_target_properties(river PROPERTIES PUBLIC_HEADER "${RIVER_HEADERS_PUBLIC}")
 target_include_directories(river
   PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
   # Need to explicitly reference include/hiredis since when explicitly including
@@ -64,8 +99,6 @@ target_include_directories(river
   # hiredis is installed, it installs them in include/hiredis.
   PUBLIC $<INSTALL_INTERFACE:include> $<INSTALL_INTERFACE:include/hiredis>
 )
-
-
 
 add_executable(river_benchmark tools/river_benchmark.cpp)
 add_dependencies(river_benchmark river)
@@ -171,7 +204,14 @@ endif()
 ###############
 # ======== TESTS
 if (RIVER_BUILD_TESTS)
-  add_executable(river_test tests/river_test.cpp tests/reader_test.cpp tests/writer_test.cpp tests/redis_test.cpp tests/integration_test.cpp)
+  add_executable(river_test
+          tests/river_test.cpp
+          tests/reader_test.cpp
+          tests/writer_test.cpp
+          tests/redis_test.cpp
+          tests/integration_test.cpp
+          tests/compressor_test.cpp
+  )
   add_dependencies(river_test river)
   target_compile_features(river_test PRIVATE cxx_std_17)
   target_link_libraries(river_test PRIVATE river ${LIBRARIES_TO_LINK} gtest gtest_main)

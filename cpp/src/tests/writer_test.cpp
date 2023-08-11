@@ -24,7 +24,8 @@ protected:
     shared_ptr<StreamWriter> NewWriter(const unordered_map<string, string>& metadata, FieldDefinition::Type type) {
         stream_name = uuid::generate_uuid_v4();
 
-        auto writer = make_shared<StreamWriter>(RedisConnection("127.0.0.1", 6379));
+        auto writer = make_shared<StreamWriter>(
+            RedisConnection("127.0.0.1", 6379), int64_t{1LL << 24}, batch_size);
 
         vector<FieldDefinition> field_definitions = vector<FieldDefinition>{
                 FieldDefinition("field1", type, sizeof(T))
@@ -57,6 +58,7 @@ protected:
 
     shared_ptr<StreamWriter> writer;
     string stream_name;
+    int batch_size = 16;
     StreamSchema *schema;
     redisContext *redis;
     bool set_metadata_on_init;
