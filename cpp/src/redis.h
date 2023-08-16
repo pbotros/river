@@ -19,10 +19,6 @@ namespace river {
 
 class RedisConnection {
 public:
-    const std::string redis_hostname_;
-    const int redis_port_;
-    const std::string redis_password_;
-    const int timeout_seconds_;
 
     RedisConnection(
             std::string redis_hostname,
@@ -33,6 +29,25 @@ public:
               redis_port_(redis_port),
               redis_password_(std::move(redis_password)),
               timeout_seconds_(timeout_seconds) {}
+
+    std::string redis_hostname() const {
+        return redis_hostname_;
+    }
+    int redis_port() const {
+        return redis_port_;
+    }
+    std::string redis_password() const {
+        return redis_password_;
+    }
+    int timeout_seconds() const {
+        return timeout_seconds_;
+    }
+
+private:
+    std::string redis_hostname_;
+    int redis_port_;
+    std::string redis_password_;
+    int timeout_seconds_;
 };
 
 namespace internal {

@@ -4,7 +4,10 @@
 #include <algorithm>
 #include <fmt/format.h>
 #include <glog/logging.h>
+#include "compression/compressor.h"
+#include <nlohmann/json.hpp>
 
+using json = nlohmann::json;
 
 namespace river {
 
@@ -57,6 +60,17 @@ void StreamReader::Initialize(const std::string &stream_name, int timeout_ms) {
 
     this->schema_ = make_shared<StreamSchema>(tmp);
     this->has_variable_width_field_ = schema_->has_variable_width_field();
+
+    auto compression_params_json_it = metadata.find("compression_params_json");
+    if (compression_params_json_it != metadata.end()) {
+        json compressor_params = json::parse(compression_params_json_it->second);
+        std::string name = compressor_params["name"];
+        std::unordered_map<std::string, std::string> params = compressor_params["params"];
+        this->compression_ = StreamCompression::Create(name, params);
+    } else {
+        this->compression_ = StreamCompression(StreamCompression::Type::UNCOMPRESSED);
+    }
+    this->decompressor_ = CreateDecompressor(this->compression_);
     this->sample_size_ = schema_->sample_size();
     this->stream_name_ = stream_name;
     this->is_initialized_ = true;
@@ -168,6 +182,7 @@ int64_t StreamReader::ReadBytes(
             redisReply *element = data_reply->element[i]->element[1];
             int len;
             const char *value = FindField(element, "val", &len);
+
             if (value != nullptr) {
                 if (sizes != nullptr) {
                     (*sizes)[samples_fetched] = len;
@@ -175,13 +190,29 @@ int64_t StreamReader::ReadBytes(
                 if (keys != nullptr) {
                     (*keys)[samples_fetched] = data_reply->element[i]->element[0]->str;
                 }
-                if (!this->has_variable_width_field_) {
-                    memcpy(&buffer[buffer_index], value, sample_size_);
+
+                if (this->decompressor_) {
+                    lookahead_data_cache_ = decompressor_->decompress(value, len);
+                    lookahead_data_cache_index_ = 0;
+
+                    memcpy(&buffer[buffer_index], lookahead_data_cache_.data() + lookahead_data_cache_index_, sample_size_);
+                    lookahead_data_cache_index_ += sample_size_;
+
                     buffer_index += sample_size_;
-                } else {
+                } else if (this->has_variable_width_field_) {
                     memcpy(&buffer[buffer_index], value, len);
                     buffer_index += len;
+                } else {
+                    memcpy(&buffer[buffer_index], value, sample_size_);
+                    buffer_index += sample_size_;
                 }
+                samples_fetched++;
+                num_samples_read_++;
+            } else if (this->decompressor_ && lookahead_data_cache_index_ < lookahead_data_cache_.size()) {
+                memcpy(&buffer[buffer_index], lookahead_data_cache_.data() + lookahead_data_cache_index_, sample_size_);
+                lookahead_data_cache_index_ += sample_size_;
+                buffer_index += sample_size_;
+
                 samples_fetched++;
                 num_samples_read_++;
             }
@@ -347,7 +378,6 @@ int64_t StreamReader::TailBytes(char *buffer, int timeout_ms, char *key, int64_t
             IncrementCursorFrom(this_key);
             int len;
             const char *val_str = FindField(values, "val", &len);
-
             if (key != nullptr) {
                 strcpy(key, this_key);
             }
@@ -358,11 +388,55 @@ int64_t StreamReader::TailBytes(char *buffer, int timeout_ms, char *key, int64_t
                 *sample_index = current_sample_idx_;
             }
 
-            if (!this->has_variable_width_field_) {
-                memcpy(buffer, val_str, sample_size_);
-            } else {
+            // If our stream is compressed, then any given element could either be the element that contains the
+            // compressed binary data, corresponding to a set of elements, OR be an element that doesn't have the data
+            // itself and instead has a "reference" to the key where the data exists.
+            if (decompressor_) {
+                const char *compressed_blob_str;
+                int compressed_blob_len;
+                int64_t decompressed_sample_offset;
+                if (val_str != nullptr) {
+                    // We got to the data sample that contains the encrypted value, so load it directly
+                    compressed_blob_str = val_str;
+                    compressed_blob_len = len;
+                    decompressed_sample_offset = 0;
+                } else {
+                    // We got a data sample that follows a compressed blob. There should be a "reference" key that
+                    // then references the source of truth
+                    const char *reference_str = FindField(values, "reference", &len);
+                    if (reference_str == nullptr) {
+                        throw StreamReaderException(
+                            "Could not find a \"reference\" key when expected for a compressed stream!");
+                    }
+                    uint64_t reference_key_left, reference_key_right;
+                    internal::DecodeCursor(reference_str, &reference_key_left, &reference_key_right);
+                    auto reference_reply =
+                        redis_->Xrange(1, current_stream_key_, reference_key_left, reference_key_right);
+                    if (reference_reply->type != REDIS_REPLY_ARRAY) {
+                        throw StreamReaderException(fmt::format("Unexpected response received when fetching! Got reply type {}",
+                                                                reply->type));
+                    }
+                    if (reference_reply->elements != 1) {
+                        throw StreamReaderException(fmt::format("Unexpected exactly 1 element in reference key fetch"));
+                    }
+                    auto *reference_values = reference_reply->element[0]->element[1];
+                    compressed_blob_str = FindField(reference_values, "val", &compressed_blob_len);
+                    if (compressed_blob_str == nullptr) {
+                        throw StreamReaderException(fmt::format("Did not find the val field in key {}", reference_str));
+                    }
+                    auto reference_index = GetSampleIndexUnchecked(reference_values);
+                    decompressed_sample_offset = current_sample_idx_ - reference_index;
+                }
+
+                auto decompressed = decompressor_->decompress(compressed_blob_str, compressed_blob_len);
+                auto data_start = decompressed.data() + decompressed_sample_offset * sample_size_;
+                memcpy(buffer, data_start, sample_size_);
+            }  else if (this->has_variable_width_field_) {
                 memcpy(buffer, val_str, len);
+            } else {
+                memcpy(buffer, val_str, sample_size_);
             }
+
             int64_t num_skipped = current_sample_idx_ - old_sample_index;
             num_samples_read_ += num_skipped;
             return num_skipped;

@@ -7,19 +7,23 @@
 #include "writer.h"
 #include "redis_writer_commands.h"
 #include <glog/logging.h>
+#include "compression/compressor.h"
+#include <nlohmann/json.hpp>
 
+using json = nlohmann::json;
 using namespace std;
 
 namespace river {
 
-StreamWriter::StreamWriter(const RedisConnection &connection, const int64_t keys_per_redis_stream, const int batch_size)
-        : redis_batch_size_(batch_size), keys_per_redis_stream_(keys_per_redis_stream) {
-    this->redis_ = internal::Redis::Create(connection);
+StreamWriter::StreamWriter(const StreamWriterParams& params)
+        : redis_batch_size_(params.batch_size), keys_per_redis_stream_(params.keys_per_redis_stream) {
+    this->redis_ = internal::Redis::Create(params.connection);
 
     this->is_stopped_ = false;
     this->is_initialized_ = false;
     this->total_samples_written_ = 0LL;
     this->last_stream_key_idx_ = 0;
+    this->compression_ = params.compression;
 
     this->schema_ = nullptr;
     this->sample_size_ = -1;
@@ -82,6 +86,14 @@ void StreamWriter::Initialize(const string &stream_name,
     string initialized_at_us_f = fmt::format_int(initialized_at_us_).str();
     fields.emplace_back("initialized_at_us", initialized_at_us_f);
 
+    this->compressor_ = CreateCompressor(compression_);
+    if (compressor_) {
+        json compressor_params;
+        compressor_params["name"] = compression_.name();
+        compressor_params["params"] = compression_.params();
+        fields.emplace_back("compression_params_json", compressor_params.dump());
+    }
+
     auto num_fields_added = static_cast<size_t>(
             redis_->SetMetadataAndUserMetadata(stream_name, fields, user_metadata));
     // Ensure to add 1 for user_metadata
@@ -116,12 +128,21 @@ void StreamWriter::Initialize(const string &stream_name,
     this->sample_size_ = this->schema_->sample_size();
     this->has_variable_width_field_ = this->schema_->has_variable_width_field();
 
+    // TODO: handle this by encoding sizes in compressed
+    if (this->has_variable_width_field_ && this->compression_.type() != StreamCompression::Type::UNCOMPRESSED) {
+        throw StreamWriterException("Having variable width fields with compression is not supported right now");
+    }
+
     auto installed_modules = redis_->GetInstalledModules();
     if (std::find(installed_modules.begin(), installed_modules.end(), "river") != installed_modules.end()) {
         LOG(INFO) << "Found river module installed. Utilizing it for performance.";
         this->has_module_installed_ = true;
     } else {
         this->has_module_installed_ = false;
+    }
+
+    if (!this->has_module_installed_ && this->compression_.type() != StreamCompression::Type::UNCOMPRESSED) {
+        throw StreamWriterException("Module must be installed to support compression.");
     }
 }
 
@@ -141,6 +162,7 @@ void StreamWriter::WriteBytes(const char *data, int64_t num_samples, const int *
     if (this->has_variable_width_field_ && sizes == nullptr) {
         throw StreamWriterException("Stream has variable width fields; the size of each sample must be given!");
     }
+    bool has_compression = (bool) compressor_;
 
     int64_t data_index = 0;
     int64_t samples_written = 0;
@@ -178,7 +200,7 @@ void StreamWriter::WriteBytes(const char *data, int64_t num_samples, const int *
             // In addition, to reduce network bandwidth, we have a set of functions in a Redis server module (under the
             // library name "river") that is tailored towards our batch use of XADD. In particular, it minimizes the
             // redundant characters sent over the network.
-            int append_argc = this->has_variable_width_field_ ? 5 : 6;
+            int append_argc = (this->has_variable_width_field_ || has_compression) ? 5 : 6;
             std::vector<const char *> append_argv(append_argc);
             std::vector<size_t> append_arglens(append_argc);
 
@@ -190,7 +212,29 @@ void StreamWriter::WriteBytes(const char *data, int64_t num_samples, const int *
             append_argv[2] = formatted_global_index.c_str();
             append_arglens[2] = strlen(append_argv[2]);
 
-            if (this->has_variable_width_field_) {
+            const char *data_to_write;
+            int64_t data_to_write_num_bytes;
+
+            // Placeholder vectors in case memory needs to be retained until sending
+            std::vector<char> data_holder;
+            std::vector<int> sizes_holder;
+
+            auto formatted_num_samples = fmt::format_int(samples_to_write_in_batch).str();
+            if (has_compression) {
+                data_holder = compressor_->compress(&data[data_index], samples_to_write_in_batch * sample_size_);
+                data_to_write = data_holder.data();
+                data_to_write_num_bytes = (int64_t) data_holder.size();
+
+                append_argv[0] = "RIVER.batch_xadd_compressed";
+                append_arglens[0] = strlen(append_argv[0]);
+
+                append_argv[3] = formatted_num_samples.c_str();
+                append_arglens[3] = formatted_num_samples.size();
+
+                // Overwritten later down, doesn't matter now.
+                append_argv[4] = "\0";
+                append_arglens[4] = 1;
+            } else if (this->has_variable_width_field_) {
                 append_argv[0] = "RIVER.batch_xadd_variable";
                 append_arglens[0] = strlen(append_argv[0]);
 
@@ -200,11 +244,16 @@ void StreamWriter::WriteBytes(const char *data, int64_t num_samples, const int *
                 // Overwritten later down, doesn't matter now.
                 append_argv[4] = "\0";
                 append_arglens[4] = 1;
+
+                data_to_write = &data[data_index];
+                data_to_write_num_bytes = 0;
+                for (int i = 0; i < samples_to_write_in_batch; i++) {
+                    data_to_write_num_bytes += sizes[samples_written + i];
+                }
             } else {
                 append_argv[0] = "RIVER.batch_xadd";
                 append_arglens[0] = strlen(append_argv[0]);
 
-                auto formatted_num_samples = fmt::format_int(samples_to_write_in_batch);
                 append_argv[3] = formatted_num_samples.c_str();
                 append_arglens[3] = strlen(append_argv[3]);
 
@@ -215,29 +264,26 @@ void StreamWriter::WriteBytes(const char *data, int64_t num_samples, const int *
                 // Overwritten later down, doesn't matter now.
                 append_argv[5] = "\0";
                 append_arglens[5] = 1;
+
+                data_to_write = &data[data_index];
+                data_to_write_num_bytes = sample_size_ * samples_to_write_in_batch;
             }
 
             std::string formatted_command_str =
                 redis_->FormatCommandArgv(append_argc, append_argv.data(), append_arglens.data());
             RedisWriterCommand xadd_redis_command_(formatted_command_str);
 
-            size_t data_size_batch = 0;
-            if (this->has_variable_width_field_) {
-                for (int i = 0; i < samples_to_write_in_batch; i++) {
-                    data_size_batch += sizes[samples_written + i];
-                }
-            } else {
-                data_size_batch = sample_size_ * samples_to_write_in_batch;
-            }
+            // TODO: support sizes too to prevent copying sizes
             auto commands_to_send = xadd_redis_command_.ReplaceLastBulkStringAndAssemble(
-                &data[data_index], data_size_batch);
+                data_to_write, data_to_write_num_bytes);
 
             auto bytes_written = redis_->SendCommandPreformatted(commands_to_send);
             if (bytes_written < 0) {
                 throw StreamWriterException(
                     fmt::format("Failed to write apprporiate number of bytes! wrote bytes={}", bytes_written));
             }
-            data_index += (sample_size_ * samples_to_write_in_batch);
+
+            data_index += data_to_write_num_bytes;
 
             auto reply = redis_->GetReply();
             if (reply->type != REDIS_REPLY_STATUS || reply->len == 0) {

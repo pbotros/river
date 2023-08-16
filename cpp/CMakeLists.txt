@@ -21,6 +21,8 @@ else()
 endif()
 set(RIVER_BUILD_REDIS_MODULE_SERVER_VERSION 7.0.9 CACHE INTERNAL "If building the Redis module, what Redis server version to build against")
 
+option(RIVER_BUILD_ZFP "Whether ZFP support should be enabled for River" ON)
+
 add_subdirectory(src)
 
 if (RIVER_BUILD_INGESTER)

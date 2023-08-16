@@ -7,8 +7,10 @@
 #include <cstring>
 #include <unordered_map>
 #include <memory>
+#include <utility>
 #include "schema.h"
 #include "redis.h"
+#include "compression/compressor_types.h"
 
 namespace river {
 class StreamWriterException : public std::exception {
@@ -31,6 +33,60 @@ class StreamExistsException : public StreamWriterException {
     using StreamWriterException::StreamWriterException;
 };
 
+class StreamWriterParamsBuilder;
+class StreamWriterParams {
+public:
+    RedisConnection connection;
+    int64_t keys_per_redis_stream;
+    int batch_size;
+    StreamCompression compression;
+private:
+    StreamWriterParams(RedisConnection _connection,
+                       int64_t _keys_per_redis_stream,
+                       int _batch_size,
+                       StreamCompression _compression) :
+        connection(std::move(_connection)),
+        keys_per_redis_stream(_keys_per_redis_stream),
+        batch_size(_batch_size),
+        compression(_compression) {}
+    friend StreamWriterParamsBuilder;
+};
+
+class StreamWriterParamsBuilder {
+public:
+    StreamWriterParamsBuilder &batch_size(int batch_size) {
+        batch_size_ = batch_size;
+        return *this;
+    }
+    StreamWriterParamsBuilder &keys_per_redis_stream(int64_t keys_per_redis_stream) {
+        keys_per_redis_stream_ = keys_per_redis_stream;
+        return *this;
+    }
+    StreamWriterParamsBuilder &connection(const RedisConnection &connection) {
+        connection_ = std::make_unique<RedisConnection>(connection);
+        return *this;
+    }
+    StreamWriterParamsBuilder &compression(StreamCompression compression) {
+        compression_ = compression;
+        return *this;
+    }
+
+    StreamWriterParams build() {
+        if (!connection_) {
+            throw std::invalid_argument("Need to provide a connection!");
+        }
+        return {*connection_, keys_per_redis_stream_, batch_size_, compression_};
+    }
+
+private:
+    std::unique_ptr<RedisConnection> connection_;
+    int64_t keys_per_redis_stream_ = int64_t{1LL << 24};
+    int batch_size_ = 1536;
+    StreamCompression compression_{StreamCompression::Type::UNCOMPRESSED};
+};
+
+
+
 /**
  * The main entry point for River for writing a new stream. Streams are defined by a schema and a stream name, both of
  * which are given in the `initialize()` call. All samples written to this stream must belong to the same schema. Once
@@ -39,6 +95,8 @@ class StreamExistsException : public StreamWriterException {
  */
 class StreamWriter {
 public:
+    explicit StreamWriter(const StreamWriterParams& params);
+
     /**
      * Construct an instance of StreamWriter. One StreamWriter belongs to at most one stream.
      *
@@ -51,7 +109,13 @@ public:
      */
     explicit StreamWriter(const RedisConnection &connection,
                           int64_t keys_per_redis_stream = int64_t{1LL << 24},
-                          int batch_size = 1536);
+                          int batch_size = 1536) :
+        StreamWriter(
+            StreamWriterParamsBuilder()
+                .connection(connection)
+                .keys_per_redis_stream(keys_per_redis_stream)
+                .batch_size(batch_size)
+                .build()) {}
 
     /**
      * Initialize this stream for writing. The given stream name must be unique within the Redis used. This
@@ -140,6 +204,9 @@ private:
     int sample_size_;
     bool has_variable_width_field_;
     bool has_module_installed_;
+
+    StreamCompression compression_;
+    std::unique_ptr<Compressor> compressor_;
 
     int64_t total_samples_written_;
     bool is_stopped_;

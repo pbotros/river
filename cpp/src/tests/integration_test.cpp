@@ -1,6 +1,7 @@
 #include "gtest/gtest.h"
 #include "../river.h"
 #include "../tools/uuid.h"
+#include "compression/compressor_types.h"
 #include <thread>
 #include <random>
 
@@ -68,14 +69,6 @@ void tail_data(shared_ptr<StreamReader> reader) {
 class IntegrationTest : public ::testing::Test {
 protected:
     void SetUp() override {
-        reader = make_shared<StreamReader>(connection);
-        reader_tail = make_shared<StreamReader>(connection);
-        writer = make_shared<StreamWriter>(connection, 3000);
-
-        stream_name = uuid::generate_uuid_v4();
-        num_elements = 1024;
-        num_iterations_to_write = 150;
-        compute_local_versus_global_clock = false;
     }
 
     void TearDown() override {
@@ -85,6 +78,19 @@ protected:
     }
 
     void run() {
+        reader = make_shared<StreamReader>(connection);
+        reader_tail = make_shared<StreamReader>(connection);
+        writer = make_shared<StreamWriter>(StreamWriterParamsBuilder()
+                                               .connection(connection)
+                                               .keys_per_redis_stream(3000)
+                                               .compression(StreamCompression(compression_type, compression_params))
+                                               .build());
+
+        stream_name = uuid::generate_uuid_v4();
+        num_elements = 1024;
+        num_iterations_to_write = 150;
+        compute_local_versus_global_clock = false;
+
         vector<FieldDefinition> field_definitions = vector<FieldDefinition>{
                 FieldDefinition("field1", FieldDefinition::DOUBLE, sizeof(double))
         };
@@ -123,6 +129,8 @@ protected:
     int num_elements;
     int num_iterations_to_write;
     bool compute_local_versus_global_clock;
+    StreamCompression::Type compression_type = StreamCompression::Type::UNCOMPRESSED;
+    std::unordered_map<std::string, std::string> compression_params;
 };
 
 TEST_F(IntegrationTest, TestFull) {
@@ -145,3 +153,23 @@ TEST_F(IntegrationTest, TestComputeLocalVersusServerGlobal) {
     reader->local_minus_server_clock_us();
 }
 
+TEST_F(IntegrationTest, TestCompressionLossless) {
+    compression_type = StreamCompression::Type::ZFP_LOSSLESS;
+    compression_params = {
+        {"data_type", "double"},
+        {"num_cols", "1"},
+    };
+    run();
+}
+
+TEST_F(IntegrationTest, TestCompressionNearLossless) {
+    // While this is technically "lossy", the documentation of ZFP reports that a tolerance of 0.0 is near-lossless;
+    // for our cases, we assume that it's lossless in these tests.
+    compression_type = StreamCompression::Type::ZFP_LOSSY;
+    compression_params = {
+        {"data_type", "double"},
+        {"num_cols", "1"},
+        {"tolerance", "0.0"},
+    };
+    run();
+}
