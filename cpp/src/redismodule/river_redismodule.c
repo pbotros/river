@@ -116,7 +116,7 @@ int BatchXaddCompressedCommand(RedisModuleCtx *ctx, RedisModuleString **argv, in
         xadd_params[2] = reference_str;
         xadd_params[3] = reference_id_str;
 
-        stream_add_resp = RedisModule_StreamAdd(key, REDISMODULE_STREAM_ADD_AUTOID, &reference_id, xadd_params, 2);
+        stream_add_resp = RedisModule_StreamAdd(key, REDISMODULE_STREAM_ADD_AUTOID, NULL, xadd_params, 2);
         if (stream_add_resp != REDISMODULE_OK) {
             return RedisModule_ReplyWithError(ctx, "ERR Xadd failed.");
         }

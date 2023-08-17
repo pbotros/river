@@ -16,7 +16,6 @@ endif()
 
 # ===== External Dependency: glog
 find_package(glog REQUIRED)
-
 find_package(Arrow REQUIRED)
 
 # This should work on Arrow 10.0+. Not Required though?

@@ -9,6 +9,7 @@
 #include <string>
 #include <cstdlib>
 #include <vector>
+#include <memory>
 #include "compressor_types.h"
 
 namespace river {
@@ -30,12 +31,23 @@ public:
      * absolute tolerance as specified
      */
     ZfpCompressor(int num_cols, double tolerance = -1);
-    ~ZfpCompressor() noexcept;
+    ~ZfpCompressor() noexcept override;
     std::vector<char> compress(const char *data, size_t length) override;
 private:
     ZfpCompressorImpl *impl_;
     int num_cols_;
     double tolerance_;
+};
+
+class DummyCompressor : public Compressor, public Decompressor {
+public:
+    ~DummyCompressor() override = default;
+    std::vector<char> compress(const char *data, size_t length) override {
+        return {data, data + length};
+    }
+    std::vector<char> decompress(const char *data, size_t length) override {
+        return {data, data + length};
+    }
 };
 
 std::unique_ptr<Decompressor> CreateDecompressor(const StreamCompression &compression);

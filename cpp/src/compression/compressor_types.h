@@ -26,6 +26,7 @@ public:
         UNCOMPRESSED = 0,
         ZFP_LOSSLESS = 1,
         ZFP_LOSSY = 2,
+        DUMMY = 3,
     };
 
     explicit StreamCompression() : type_(Type::UNCOMPRESSED) {}
@@ -45,6 +46,7 @@ public:
             case Type::UNCOMPRESSED: return "UNCOMPRESSED";
             case Type::ZFP_LOSSLESS: return "ZFP_LOSSLESS";
             case Type::ZFP_LOSSY: return "ZFP_LOSSY";
+            case Type::DUMMY: return "DUMMY";
         }
         throw std::invalid_argument("Unhandled type");
     }
@@ -62,6 +64,8 @@ public:
             return StreamCompression(Type::ZFP_LOSSLESS, params);
         } else if (name == "ZFP_LOSSY") {
             return StreamCompression(Type::ZFP_LOSSY, params);
+        } else if (name == "DUMMY") {
+            return StreamCompression(Type::DUMMY, params);
         } else {
             throw std::invalid_argument("Unhandled type");
         }

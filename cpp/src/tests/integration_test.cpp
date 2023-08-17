@@ -14,7 +14,8 @@ static const int STD_JITTER_MS = 10;
 
 class IntegrationTest;
 
-void write_data(shared_ptr<StreamWriter> writer, std::vector<double> write_data, int num_write_data, int64_t *num_written, int num_iterations_to_write) {
+void write_data(shared_ptr<StreamWriter> writer, std::vector<double> write_data, int64_t *num_written, int num_iterations_to_write) {
+    int num_write_data = write_data.size();
     std::random_device rd;
     std::mt19937 mt(rd());
     std::normal_distribution<float> dist(MEAN_JITTER_MS, STD_JITTER_MS);
@@ -31,7 +32,9 @@ void write_data(shared_ptr<StreamWriter> writer, std::vector<double> write_data,
     writer->Stop();
 }
 
-void read_data(shared_ptr<StreamReader> reader, std::vector<double> expected_data, int size_expected_data, int64_t *num_read) {
+void read_data(shared_ptr<StreamReader> reader, std::vector<double> expected_data, int64_t *num_read) {
+    int size_expected_data = expected_data.size();
+
     *num_read = 0;
     unsigned int num_read_data = 4000;
     vector<double> read_data(num_read_data);
@@ -65,6 +68,34 @@ void tail_data(shared_ptr<StreamReader> reader) {
     }
 }
 
+void read_and_tail_data(shared_ptr<StreamReader> reader, std::vector<double> expected_data) {
+    int size_expected_data = expected_data.size();
+
+    double element;
+    int64_t total_num_skipped = 0;
+    int64_t total_num_read = 0;
+    while (reader) {
+        int64_t num_skipped = reader->Tail(&element);
+        if (num_skipped < 0) {
+            return;
+        }
+        total_num_skipped += num_skipped;
+        ASSERT_EQ(total_num_skipped + total_num_read, reader->total_samples_read());
+        ASSERT_EQ(expected_data[(reader->total_samples_read() - 1) % size_expected_data],
+                  element);
+
+        int64_t num_read_this_time = reader->Read(&element, 1);
+        if (num_read_this_time < 0) {
+            break;
+        }
+        ASSERT_EQ(num_read_this_time, 1);
+        total_num_read++;
+        ASSERT_EQ(total_num_skipped + total_num_read, reader->total_samples_read());
+        ASSERT_EQ(expected_data[(reader->total_samples_read() - 1) % size_expected_data],
+                  element);
+    }
+}
+
 
 class IntegrationTest : public ::testing::Test {
 protected:
@@ -75,11 +106,13 @@ protected:
         writer->Stop();
         reader->Stop();
         reader_tail->Stop();
+        reader_read_and_tail->Stop();
     }
 
     void run() {
         reader = make_shared<StreamReader>(connection);
         reader_tail = make_shared<StreamReader>(connection);
+        reader_read_and_tail = make_shared<StreamReader>(connection);
         writer = make_shared<StreamWriter>(StreamWriterParamsBuilder()
                                                .connection(connection)
                                                .keys_per_redis_stream(3000)
@@ -99,6 +132,7 @@ protected:
         writer->Initialize(stream_name, schema, unordered_map<string, string>(), compute_local_versus_global_clock);
         reader->Initialize(stream_name);
         reader_tail->Initialize(stream_name);
+        reader_read_and_tail->Initialize(stream_name);
 
         std::vector<double> data;
         for (unsigned int i = 0; i < num_elements; i++) {
@@ -108,13 +142,15 @@ protected:
         int64_t num_written = 0;
         int64_t num_read = 0;
 
-        std::thread writer_thread(write_data, writer, data, num_elements, &num_written, num_iterations_to_write);
-        std::thread reader_thread(read_data, reader, data, num_elements, &num_read);
+        std::thread writer_thread(write_data, writer, data, &num_written, num_iterations_to_write);
+        std::thread reader_thread(read_data, reader, data, &num_read);
         std::thread tail_thread(tail_data, reader_tail);
+        std::thread reader_tailer_thread(read_and_tail_data, reader_read_and_tail, data);
 
         writer_thread.join();
         reader_thread.join();
         tail_thread.join();
+        reader_tailer_thread.join();
 
         ASSERT_EQ(num_read, num_written);
         ASSERT_EQ(num_read, reader->total_samples_read());
@@ -123,6 +159,7 @@ protected:
 
     shared_ptr<StreamReader> reader;
     shared_ptr<StreamReader> reader_tail;
+    shared_ptr<StreamReader> reader_read_and_tail;
     shared_ptr<StreamWriter> writer;
     string stream_name;
     string tmp_directory;
@@ -170,6 +207,13 @@ TEST_F(IntegrationTest, TestCompressionNearLossless) {
         {"data_type", "double"},
         {"num_cols", "1"},
         {"tolerance", "0.0"},
+    };
+    run();
+}
+
+TEST_F(IntegrationTest, TestCompressionDummy) {
+    compression_type = StreamCompression::Type::DUMMY;
+    compression_params = {
     };
     run();
 }

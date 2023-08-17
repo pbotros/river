@@ -5,6 +5,9 @@
 #include "compressor.h"
 #include <zfp.hpp>
 #include <sstream>
+#include <iostream>
+#include <glog/logging.h>
+#include <cassert>
 
 
 namespace river {
@@ -14,6 +17,7 @@ public:
     int num_rows_;
     int num_cols_;
     std::vector<char> buffer_;
+    std::unique_ptr<std::vector<int32_t>> data_promoted;
     zfp_stream *zfp_;
     zfp_field  *field_;
 
@@ -60,7 +64,7 @@ ZfpCompressor<DataTypeT>::~ZfpCompressor() noexcept {
 
 template <class DataTypeT>
 std::vector<char> ZfpCompressor<DataTypeT>::compress(const char *data, size_t length) {
-    // assert(length % (sizeof(DataTypeT) * num_cols_) == 0);
+    assert(length % (sizeof(DataTypeT) * num_cols_) == 0);
     auto num_rows = (int) (length / sizeof(DataTypeT) / num_cols_);
 
     if (impl_ == nullptr || impl_->num_rows_ != num_rows) {
@@ -87,7 +91,7 @@ std::vector<char> ZfpCompressor<DataTypeT>::compress(const char *data, size_t le
         impl_->buffer_.resize(bufsize);
 
         // initialize metadata for a compressed stream
-        if (tolerance_ <= 0.0) {
+        if (tolerance_ < 0.0) {
             zfp_stream_set_reversible(impl_->zfp_);
         } else {
             zfp_stream_set_accuracy(impl_->zfp_, tolerance_);
@@ -96,18 +100,21 @@ std::vector<char> ZfpCompressor<DataTypeT>::compress(const char *data, size_t le
         // associate bit stream with allocated buffer
         bitstream *stream = stream_open(impl_->buffer_.data(), impl_->buffer_.size());
         zfp_stream_set_bit_stream(impl_->zfp_, stream);
+
+        if constexpr (std::is_same_v<DataTypeT, int16_t>) {
+            impl_->data_promoted = std::make_unique<std::vector<int32_t>>(num_rows * num_cols_);
+        }
     }
 
     // Needs promotion explicitly since ZFP only supports int32's. We copy the logic from the zfp_promote* functions
     // here.
     if constexpr (std::is_same_v<DataTypeT, int16_t>) {
-        std::vector<int32_t> data_promoted(length / sizeof(int16_t));
         auto data_int16 = (int16_t *) data;
-        for (size_t i = 0; i < data_promoted.size(); i++) {
+        for (size_t i = 0; i < impl_->data_promoted->size(); i++) {
             // Promote it properly
-            data_promoted[i] = ((int32_t) data_int16[i]) << 15;
+            impl_->data_promoted->at(i) = ((int32_t) data_int16[i]) << 15;
         }
-        zfp_field_set_pointer(impl_->field_, (void *) data_promoted.data());
+        zfp_field_set_pointer(impl_->field_, (void *) impl_->data_promoted->data());
     } else {
         zfp_field_set_pointer(impl_->field_, (void *) data);
     }
@@ -118,7 +125,6 @@ std::vector<char> ZfpCompressor<DataTypeT>::compress(const char *data, size_t le
     // compress array
     size_t zfpheadersize = zfp_write_header(impl_->zfp_, impl_->field_, ZFP_HEADER_FULL);
     size_t zfpsize = zfp_compress(impl_->zfp_, impl_->field_);                // return value is byte size of compressed stream
-    zfp_stream_flush(impl_->zfp_);
 
     const char *ret_start = impl_->buffer_.data();
     return {ret_start, ret_start + zfpheadersize + zfpsize};
@@ -132,8 +138,9 @@ std::vector<char> ZfpDecompressor<DataTypeT>::decompress(const char *data, size_
     zfp_stream_rewind(zfp);                                   // rewind stream to beginning
 
     zfp_field* field = zfp_field_alloc();
-    zfp_read_header(zfp, field, ZFP_HEADER_FULL);
+    size_t zfpheadersize = zfp_read_header(zfp, field, ZFP_HEADER_FULL);
 
+    assert(zfpheadersize > 0);
     assert(field->type == zfp_type_for_class<DataTypeT>());
     assert(field->data == nullptr);
     assert(field->nx > 0);
@@ -200,7 +207,10 @@ std::unique_ptr<Decompressor> CreateDecompressor(const StreamCompression &compre
             }
         };
             break;
+        case StreamCompression::Type::DUMMY: return std::make_unique<DummyCompressor>();
+            break;
     }
+    throw std::invalid_argument("Unhandled decompressor type!");
 }
 
 std::unique_ptr<Compressor> CreateCompressor(const StreamCompression &compression) {
@@ -231,7 +241,9 @@ std::unique_ptr<Compressor> CreateCompressor(const StreamCompression &compressio
                 throw std::invalid_argument("Unhandled compression data type");
             }
         };
-        break;
+            break;
+        case StreamCompression::Type::DUMMY:return std::make_unique<DummyCompressor>();
+            break;
     }
     throw std::invalid_argument("Unhandled compression type!");
 }
