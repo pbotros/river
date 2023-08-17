@@ -48,10 +48,11 @@ constexpr zfp_type zfp_type_for_class() {
 }
 
 template <class DataTypeT>
-ZfpCompressor<DataTypeT>::ZfpCompressor(int num_cols, double tolerance)
+ZfpCompressor<DataTypeT>::ZfpCompressor(int num_cols, double tolerance, bool use_openmp)
     : impl_(nullptr) {
     this->num_cols_ = num_cols;
     this->tolerance_ = tolerance;
+    this->use_openmp_ = use_openmp;
 }
 
 template <class DataTypeT>
@@ -95,6 +96,11 @@ std::vector<char> ZfpCompressor<DataTypeT>::compress(const char *data, size_t le
             zfp_stream_set_reversible(impl_->zfp_);
         } else {
             zfp_stream_set_accuracy(impl_->zfp_, tolerance_);
+        }
+        if (use_openmp_) {
+            zfp_stream_set_execution(impl_->zfp_, zfp_exec_omp);
+        } else {
+            zfp_stream_set_execution(impl_->zfp_, zfp_exec_serial);
         }
 
         // associate bit stream with allocated buffer
@@ -229,14 +235,22 @@ std::unique_ptr<Compressor> CreateCompressor(const StreamCompression &compressio
                 tolerance = -1;
             }
 
+            auto use_openmp_it = params.find("use_openmp");
+            bool use_openmp;
+            if (use_openmp_it == params.end()) {
+                use_openmp = false;
+            } else {
+                use_openmp = (use_openmp_it->second == "true");
+            }
+
             if (data_type == "int16") {
-                return std::make_unique<ZfpCompressor<int16_t>>(num_cols, tolerance);
+                return std::make_unique<ZfpCompressor<int16_t>>(num_cols, tolerance, use_openmp);
             } else if (data_type == "int32") {
-                return std::make_unique<ZfpCompressor<int32_t>>(num_cols, tolerance);
+                return std::make_unique<ZfpCompressor<int32_t>>(num_cols, tolerance, use_openmp);
             } else if (data_type == "float") {
-                return std::make_unique<ZfpCompressor<float>>(num_cols, tolerance);
+                return std::make_unique<ZfpCompressor<float>>(num_cols, tolerance, use_openmp);
             } else if (data_type == "double") {
-                return std::make_unique<ZfpCompressor<double>>(num_cols, tolerance);
+                return std::make_unique<ZfpCompressor<double>>(num_cols, tolerance, use_openmp);
             } else {
                 throw std::invalid_argument("Unhandled compression data type");
             }

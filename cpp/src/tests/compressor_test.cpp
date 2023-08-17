@@ -119,25 +119,32 @@ public:
 };
 
 TEST_F(CompressorTest, TestZfpLossless_Int16) {
-    river::ZfpCompressor<int16_t> compressor(4096, -1);
+    river::ZfpCompressor<int16_t> compressor(4096, -1, false);
     river::ZfpDecompressor<int16_t> decompressor;
     AssertRoundTripCorrectness<int16_t>(&compressor, &decompressor);
 }
 
 TEST_F(CompressorTest, TestZfpLossless_Float) {
-    river::ZfpCompressor<float> compressor(4096, -1);
+    river::ZfpCompressor<float> compressor(4096, -1, false);
     river::ZfpDecompressor<float> decompressor;
     AssertRoundTripCorrectness<float>(&compressor, &decompressor);
 }
 
 TEST_F(CompressorTest, TestZfpLossless_Double) {
-    river::ZfpCompressor<double> compressor(4096, -1);
+    river::ZfpCompressor<double> compressor(4096, -1, false);
     river::ZfpDecompressor<double> decompressor;
     AssertRoundTripCorrectness<double>(&compressor, &decompressor);
 }
 
+TEST_F(CompressorTest, TestZfpLossless_DoubleOpenMp) {
+    river::ZfpCompressor<double> compressor(4096, -1, true);
+    river::ZfpDecompressor<double> decompressor;
+    AssertRoundTripCorrectness<double>(&compressor, &decompressor);
+}
+
+
 TEST_F(CompressorTest, TestZfpLossy_Float) {
-    river::ZfpCompressor<float> compressor(4096, 20);
+    river::ZfpCompressor<float> compressor(4096, 20, false);
     river::ZfpDecompressor<float> decompressor;
     auto [buffer, round_tripped, compressed_size_bytes] = RoundTripConvert<float>(&compressor, &decompressor);
 
@@ -155,5 +162,5 @@ TEST_F(CompressorTest, TestZfpLossy_Float) {
         running_corr += ((buffer_val - buffer_mean) * (round_tripped_val - round_tripped_mean));
     }
     double corr = running_corr / sqrt(demeaned_norm2(buffer)) / sqrt(demeaned_norm2(round_tripped));
-    ASSERT_GE(corr, 0.9);
+    ASSERT_GE(corr, 0.95);
 }

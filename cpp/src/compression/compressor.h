@@ -30,13 +30,14 @@ public:
      * @param tolerance if <= 0, then reversible mode, aka lossless mode, will be used. Else, this is the allowed
      * absolute tolerance as specified
      */
-    ZfpCompressor(int num_cols, double tolerance = -1);
+    ZfpCompressor(int num_cols, double tolerance, bool use_openmp);
     ~ZfpCompressor() noexcept override;
     std::vector<char> compress(const char *data, size_t length) override;
 private:
     ZfpCompressorImpl *impl_;
     int num_cols_;
     double tolerance_;
+    bool use_openmp_;
 };
 
 class DummyCompressor : public Compressor, public Decompressor {
