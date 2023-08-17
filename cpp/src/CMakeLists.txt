@@ -199,6 +199,10 @@ if (RIVER_INSTALL)
   install(EXPORT ${targets_export_name} DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/river NAMESPACE river::)
 
   install(FILES "${pkgconfig}" DESTINATION "${CMAKE_INSTALL_LIBDIR}/pkgconfig")
+
+  if (RIVER_INSTALL_BENCHMARK)
+    install(TARGETS river_benchmark DESTINATION bin)
+  endif()
 endif()
 
 ###############

@@ -14,6 +14,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Mo
 option(RIVER_BUILD_TESTS "Set to ON to build tests" ON)
 option(RIVER_BUILD_INGESTER "Set to ON to build the ingester" OFF)
 option(RIVER_INSTALL "Set to ON to install River (set to OFF if embedding in another project)" ON)
+option(RIVER_INSTALL_BENCHMARK "Set to ON to install the river_benchmark binary, if RIVER_INSTALL is ON" OFF)
 if (MSVC)
   option(RIVER_BUILD_REDIS_MODULE "Set to ON to build and install a Redis module used for performance improvements" OFF)
 else()
