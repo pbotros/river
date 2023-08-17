@@ -267,6 +267,7 @@ private:
 
     std::vector<char> lookahead_data_cache_;
     int64_t lookahead_data_cache_index_;
+    void ReloadLookaheadCache(const char *val_str, int val_str_len, const redisReply *values);
 
     std::vector<internal::StreamReaderListener *> listeners_;
 

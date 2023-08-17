@@ -217,7 +217,6 @@ void StreamWriter::WriteBytes(const char *data, int64_t num_samples, const int *
 
             // Placeholder vectors in case memory needs to be retained until sending
             std::vector<char> data_holder;
-            std::vector<int> sizes_holder;
 
             auto formatted_num_samples = fmt::format_int(samples_to_write_in_batch).str();
             if (has_compression) {
@@ -238,6 +237,8 @@ void StreamWriter::WriteBytes(const char *data, int64_t num_samples, const int *
                 append_argv[0] = "RIVER.batch_xadd_variable";
                 append_arglens[0] = strlen(append_argv[0]);
 
+                // TODO: we end up making a copy of sizes here instead of avoiding a copy like the data; we can
+                // improve this by making sizes zero-copy as well
                 append_argv[3] = (const char *) (&sizes[samples_written]);
                 append_arglens[3] = sizeof(int) * samples_to_write_in_batch;
 
@@ -273,7 +274,6 @@ void StreamWriter::WriteBytes(const char *data, int64_t num_samples, const int *
                 redis_->FormatCommandArgv(append_argc, append_argv.data(), append_arglens.data());
             RedisWriterCommand xadd_redis_command_(formatted_command_str);
 
-            // TODO: support sizes too to prevent copying sizes
             auto commands_to_send = xadd_redis_command_.ReplaceLastBulkStringAndAssemble(
                 data_to_write, data_to_write_num_bytes);
 
