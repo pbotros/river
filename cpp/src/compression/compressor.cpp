@@ -64,7 +64,7 @@ ZfpCompressor<DataTypeT>::~ZfpCompressor() noexcept {
 }
 
 template <class DataTypeT>
-std::vector<char> ZfpCompressor<DataTypeT>::compress(const char *data, size_t length) {
+CompressedObject ZfpCompressor<DataTypeT>::compress(const char *data, size_t length) {
     assert(length % (sizeof(DataTypeT) * num_cols_) == 0);
     auto num_rows = (int) (length / sizeof(DataTypeT) / num_cols_);
 
@@ -133,7 +133,7 @@ std::vector<char> ZfpCompressor<DataTypeT>::compress(const char *data, size_t le
     size_t zfpsize = zfp_compress(impl_->zfp_, impl_->field_);                // return value is byte size of compressed stream
 
     const char *ret_start = impl_->buffer_.data();
-    return {ret_start, ret_start + zfpheadersize + zfpsize};
+    return {ret_start, zfpheadersize + zfpsize};
 }
 
 template <class DataTypeT>

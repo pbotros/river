@@ -4,6 +4,7 @@
 #include <fstream>
 #include <algorithm>
 #include <numeric>
+#include <cmath>
 
 class CompressorTest : public ::testing::Test {
 public:

@@ -216,13 +216,11 @@ void StreamWriter::WriteBytes(const char *data, int64_t num_samples, const int *
             int64_t data_to_write_num_bytes;
 
             // Placeholder vectors in case memory needs to be retained until sending
-            std::vector<char> data_holder;
-
             auto formatted_num_samples = fmt::format_int(samples_to_write_in_batch).str();
             if (has_compression) {
-                data_holder = compressor_->compress(&data[data_index], samples_to_write_in_batch * sample_size_);
-                data_to_write = data_holder.data();
-                data_to_write_num_bytes = (int64_t) data_holder.size();
+                auto pair = compressor_->compress(&data[data_index], samples_to_write_in_batch * sample_size_);
+                data_to_write = pair.data;
+                data_to_write_num_bytes = (int64_t) pair.data_length;
 
                 append_argv[0] = "RIVER.batch_xadd_compressed";
                 append_arglens[0] = strlen(append_argv[0]);

@@ -32,7 +32,9 @@ public:
      */
     ZfpCompressor(int num_cols, double tolerance, bool use_openmp);
     ~ZfpCompressor() noexcept override;
-    std::vector<char> compress(const char *data, size_t length) override;
+//    std::shared_ptr<char> compress(const char *data, size_t length);
+    CompressedObject compress(const char *data, size_t length) override;
+//    std::unique_ptr<char> compress(const char *data, size_t length) override;
 private:
     ZfpCompressorImpl *impl_;
     int num_cols_;
@@ -43,8 +45,8 @@ private:
 class DummyCompressor : public Compressor, public Decompressor {
 public:
     ~DummyCompressor() override = default;
-    std::vector<char> compress(const char *data, size_t length) override {
-        return {data, data + length};
+    CompressedObject compress(const char *data, size_t length) override {
+        return {data, length};
     }
     std::vector<char> decompress(const char *data, size_t length) override {
         return {data, data + length};

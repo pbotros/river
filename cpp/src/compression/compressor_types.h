@@ -77,6 +77,21 @@ private:
 };
 
 /**
+ * Encapsulates an object that has been compressed. Note the contained destructor here does *not* do anything
+ * intentionally, since it's unclear if it owns any memory. If there is new memory allocated for a compressed object,
+ * one should create a derived class with a proper destructor.
+ */
+class CompressedObject {
+public:
+    const char *data;
+    const size_t data_length;
+
+    CompressedObject(const char *data_, size_t data_length_) : data(data_), data_length(data_length_) {}
+
+    virtual ~CompressedObject() = default;
+};
+
+/**
  * Interface for a class that compresses data.
  */
 class Compressor {
@@ -84,7 +99,8 @@ public:
     /**
      * Compresses input data, returning a new std::vector of compressed bytes.
      */
-    virtual std::vector<char> compress(const char *data, size_t length) = 0;
+//    virtual std::vector<char> compress(const char *data, size_t length) = 0;
+    virtual CompressedObject compress(const char *data, size_t length) = 0;
     virtual ~Compressor() = default;
 };
 
