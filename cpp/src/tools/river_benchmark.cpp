@@ -5,8 +5,10 @@
 #include <cxxopts.hpp>
 #include "uuid.h"
 #include "../river.h"
+#include <nlohmann/json.hpp>
 
 using namespace river;
+using json = nlohmann::json;
 using namespace std;
 
 int main(int argc, char **argv) {
@@ -28,17 +30,33 @@ int main(int argc, char **argv) {
        cxxopts::value<int>()->default_value("8"))
       ("batch_size",
        "Number of rows to write at a time for benchmarking [default 10240]",
-       cxxopts::value<int>()->default_value("10240"));
+       cxxopts::value<int>()->default_value("10240"))
+      ("compression_type",
+       "Name of compression type",
+       cxxopts::value<std::string>()->default_value("UNCOMPRESSED"))
+      ("compression_params",
+       "Json-serialized string for parameters",
+       cxxopts::value<std::string>()->default_value("{}"))
+      ("input_file",
+       "Path to an input file to load data; must be of size num_samples * sample_size",
+       cxxopts::value<std::string>()->default_value(""))
+       ;
 
   auto result = options.parse(argc, argv);
 
-  string redis_hostname = result["redis_hostname"].as<string>();
-  int redis_port = result["redis_port"].as<int>();
-  string redis_password = result["redis_password"].as<string>();
-  string redis_password_file = result["redis_password_file"].as<string>();
-  int batch_size = result["batch_size"].as<int>();
-  int sample_size = result["sample_size"].as<int>();
-  int64_t num_samples = result["num_samples"].as<int64_t>();
+    string redis_hostname = result["redis_hostname"].as<string>();
+    int redis_port = result["redis_port"].as<int>();
+    string redis_password = result["redis_password"].as<string>();
+    string redis_password_file = result["redis_password_file"].as<string>();
+    int batch_size = result["batch_size"].as<int>();
+    int sample_size = result["sample_size"].as<int>();
+    int64_t num_samples = result["num_samples"].as<int64_t>();
+
+    string compression_type = result["compression_type"].as<string>();
+    string compression_params_json = result["compression_params"].as<string>();
+    std::unordered_map<std::string, std::string> compression_params = json::parse(compression_params_json);
+
+    string input_file = result["input_file"].as<string>();
 
   if (!redis_password_file.empty() && redis_password.empty()) {
     std::ifstream infile;
@@ -48,7 +66,10 @@ int main(int argc, char **argv) {
 
   river::RedisConnection connection(redis_hostname, redis_port, redis_password);
   StreamReader reader(connection);
-  StreamWriter writer(connection);
+    StreamWriter writer(StreamWriterParamsBuilder()
+                            .connection(connection)
+                            .compression(StreamCompression::Create(compression_type, compression_params))
+                            .build());
 
   string stream_name = uuid::generate_uuid_v4();
 
@@ -59,17 +80,28 @@ int main(int argc, char **argv) {
                                               }));
   writer.Initialize(stream_name, schema);
 
-  vector<char> data(batch_size * sample_size);
-  for (char i = 0; i < (char) (batch_size * sample_size); i++) {
-    data[i] = i;
+    std::vector<char> data;
+  if (!input_file.empty()) {
+      std::ifstream in(input_file, std::ios::binary);
+      data = {std::istreambuf_iterator<char>(in), {}};
+      if ((int64_t) data.size() != num_samples * sample_size) {
+          throw std::invalid_argument("Passed in an input_file with wrong number of bytes?");
+      }
+  } else {
+      data.resize(num_samples * sample_size);
+      for (int64_t i = 0; i < num_samples * sample_size; i++) {
+          data[i] = (char) i;
+      }
   }
 
   auto start_time = chrono::steady_clock::now();
   int64_t num_written = 0;
+  int64_t data_index = 0;
   while (num_written < num_samples) {
     int64_t remaining = num_samples - num_written;
     auto num_to_write = remaining > batch_size ? batch_size : remaining;
-    writer.WriteBytes(&data.front(), num_to_write);
+    writer.WriteBytes(&data.front() + data_index, num_to_write);
+    data_index += num_to_write * sample_size;
     num_written += num_to_write;
   }
   writer.Stop();
