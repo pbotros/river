@@ -13,6 +13,7 @@
 #include <river.h>
 #include <nlohmann/json.hpp>
 #include <glog/logging.h>
+#include <fstream>
 
 using json = nlohmann::json;
 

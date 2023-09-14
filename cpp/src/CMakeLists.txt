@@ -93,9 +93,10 @@ add_library(river SHARED ${RIVER_HEADERS_ALL} ${RIVER_SOURCES})
 target_compile_features(river PRIVATE cxx_std_17)
 target_link_libraries(river PRIVATE ${LIBRARIES_TO_LINK})
 target_link_libraries(river PUBLIC hiredis)
+target_sources(river PUBLIC FILE_SET river_headers_public TYPE HEADERS FILES "${RIVER_HEADERS_PUBLIC}")
 
 # Make headers public
-set_target_properties(river PROPERTIES PUBLIC_HEADER "${RIVER_HEADERS_PUBLIC}")
+# set_target_properties(river PROPERTIES PUBLIC_HEADER "${RIVER_HEADERS_PUBLIC}")
 target_include_directories(river
   PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
   # Need to explicitly reference include/hiredis since when explicitly including
@@ -150,7 +151,8 @@ if (RIVER_INSTALL)
   install(TARGETS river
     EXPORT ${targets_export_name}
     LIBRARY DESTINATION lib
-    PUBLIC_HEADER DESTINATION include/river)
+    FILE_SET river_headers_public DESTINATION include/river)
+  # install(TARGETS river river_headers_public DESTINATION include/river)
   install(TARGETS hiredis DESTINATION lib)
 
   #########################################
