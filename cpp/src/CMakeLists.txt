@@ -36,6 +36,23 @@ FetchContent_Declare(
 set(FMT_INSTALL OFF)
 FetchContent_MakeAvailable(fmt hiredis json cxxopts)
 
+# ===== External Dependency: glog
+find_package(glog REQUIRED)
+
+set(RIVER_HEADERS_PUBLIC
+        writer.h
+        river.h
+        reader.h
+        redis.h
+        schema.h
+        compression/compressor_types.h
+)
+set(RIVER_HEADERS_ALL
+        ${RIVER_HEADERS_PUBLIC}
+        redis_writer_commands.h
+        compression/compressor.h)
+set(RIVER_SOURCES writer.cpp reader.cpp redis.cpp schema.cpp compression/compressor.cpp redis_writer_commands.cpp)
+
 if (RIVER_BUILD_ZFP)
     find_package(OpenMP QUIET OPTIONAL_COMPONENTS C)
     if(NOT OpenMP_C_FLAGS AND APPLE)
@@ -57,10 +74,10 @@ if (RIVER_BUILD_ZFP)
     endif()
     find_package(zfp REQUIRED)
     list(APPEND ADDITIONAL_LIBRARIES "zfp::zfp")
+    list(APPEND RIVER_SOURCES compression/zfp_compressor.cpp)
+else()
+    list(APPEND RIVER_SOURCES compression/zfp_compressor_noop.cpp)
 endif()
-
-# ===== External Dependency: glog
-find_package(glog REQUIRED)
 
 set(LIBRARIES_TO_LINK
         "fmt::fmt-header-only"
@@ -71,19 +88,6 @@ set(LIBRARIES_TO_LINK
         ${ADDITIONAL_LIBRARIES})
 set(LIBRARIES_TO_LINK_PKGCONFIG_OPTIONS "-lglog -lhiredis")
 
-set(RIVER_HEADERS_PUBLIC
-        writer.h
-        river.h
-        reader.h
-        redis.h
-        schema.h
-        compression/compressor_types.h
-)
-set(RIVER_HEADERS_ALL
-        ${RIVER_HEADERS_PUBLIC}
-        redis_writer_commands.h
-        compression/compressor.h)
-set(RIVER_SOURCES writer.cpp reader.cpp redis.cpp schema.cpp compression/compressor.cpp redis_writer_commands.cpp)
 
 add_library(river SHARED ${RIVER_HEADERS_ALL} ${RIVER_SOURCES})
 target_compile_features(river PRIVATE cxx_std_17)
