@@ -14,9 +14,9 @@ cdef extern from "<river/river.h>" namespace "river" nogil:
         RedisConnection(string redis_hostname, int redis_port);
         RedisConnection(string redis_hostname, int redis_port, string redis_password);
 
-        string redis_hostname_
-        int redis_port_
-        string redis_password_
+        const string redis_hostname();
+        const int redis_port();
+        const string redis_password();
 
     ctypedef enum FieldDefinition_Type "river::FieldDefinition::Type":
         FIELD_DEFINITION_DOUBLE "river::FieldDefinition::Type::DOUBLE"

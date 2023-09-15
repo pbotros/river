@@ -50,15 +50,15 @@ cdef class RedisConnection:
 
     @property
     def redis_hostname(self) -> str:
-        return deref(self._connection).redis_hostname_
+        return deref(self._connection).redis_hostname()
 
     @property
     def redis_port(self) -> int:
-        return deref(self._connection).redis_port_
+        return deref(self._connection).redis_port()
 
     @property
     def redis_password(self) -> str:
-        return deref(self._connection).redis_password_
+        return deref(self._connection).redis_password()
 
 cpdef enum FieldType:
     DOUBLE = criver.FIELD_DEFINITION_DOUBLE
