@@ -37,6 +37,15 @@ if (NOT TARGET nlohmann_json::nlohmann_json)
     FetchContent_MakeAvailable(json)
 endif()
 
+if (NOT TARGET httplib::httplib)
+    FetchContent_Declare(
+            cpp-httplib
+            GIT_REPOSITORY    https://github.com/yhirose/cpp-httplib.git
+            GIT_TAG           v0.14.0
+    )
+    FetchContent_MakeAvailable(cpp-httplib)
+endif()
+
 set(INCLUDE_DIRS
         ${ARROW_INCLUDE_DIR}
         ${PARQUET_INCLUDE_DIR}
@@ -56,7 +65,11 @@ set(LIBRARIES_TO_LINK
         "nlohmann_json::nlohmann_json"
         arrow_shared
         ${PARQUET_LIB}
+        "httplib::httplib"
 )
+
+set(INGESTER_HEADERS ingester.h ingester_threadpool.h ingester_settings.h ingester_http_server.h)
+set(INGESTER_SOURCES ingester.cpp ingester_http_server.cpp)
 
 if (NOT CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     # Windows uses the "Shared Imp Lib", Linux does not
@@ -64,9 +77,6 @@ if (NOT CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
 endif()
 
 
-
-set(INGESTER_HEADERS ingester.h ingester_threadpool.h ingester_settings.h)
-set(INGESTER_SOURCES ingester.cpp)
 
 add_executable(ingester ingester_main.cpp ${INGESTER_HEADERS} ${INGESTER_SOURCES})
 target_link_libraries(ingester PRIVATE ${LIBRARIES_TO_LINK})
