@@ -6,6 +6,7 @@
 #include <boost/program_options.hpp>
 #include <glog/logging.h>
 #include <filesystem>
+#include "ingester_http_server.h"
 
 using namespace std;
 namespace po = boost::program_options;
@@ -26,6 +27,7 @@ int main(int argc, char **argv) {
     string redis_password_file;
     string output_directory;
     string settings_filename;
+    int http_server_port;
 
     po::options_description desc("Allowed options");
     desc.add_options()
@@ -38,7 +40,9 @@ int main(int argc, char **argv) {
              "Filename for JSON settings file [optional]")
             ("output_directory,o", po::value<string>(&output_directory)->required(),
              "Output directory for all files [required]")
-             ;
+            ("http_server_port", po::value<int>(&http_server_port)->default_value(7487),
+             "HTTP server to start listening on. Defaults to port 7487. Set to 0 or negative to disable. [optional]")
+        ;
 
     po::variables_map vm;
     po::store(po::parse_command_line(argc, argv, desc), vm);
@@ -65,6 +69,13 @@ int main(int argc, char **argv) {
     signal(SIGINT, signal_handler);
     signal(SIGTERM, signal_handler);
 
+    std::unique_ptr<river::IngesterHttpServer> maybe_server;
+    if (http_server_port > 0) {
+        LOG(INFO) << "Starting HTTP server..." << endl;
+        maybe_server = std::make_unique<river::IngesterHttpServer>(output_directory, http_server_port);
+        maybe_server->Start();
+    }
+
     std::vector<std::pair<std::regex, StreamIngestionSettings>> settings_by_stream;
     if (settings_filename.empty()) {
         settings_by_stream = DefaultStreamSettings();
@@ -86,9 +97,13 @@ int main(int argc, char **argv) {
         LOG(INFO) << "Beginning ingestion forever." << endl;
         while (!terminated) {
             ingester.Ingest();
-            this_thread::sleep_for(chrono::seconds(10));
+            this_thread::sleep_for(chrono::seconds(1));
         }
     }
     LOG(INFO) << "Ingestion terminated." << endl;
+    if (maybe_server) {
+        maybe_server->Stop();
+        LOG(INFO) << "HTTP server terminated." << endl;
+    }
     return 0;
 }
