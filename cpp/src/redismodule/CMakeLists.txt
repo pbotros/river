@@ -59,5 +59,5 @@ elseif(APPLE)
     target_link_options(river_redismodule PRIVATE "-bundle" "-undefined" "dynamic_lookup" "-lc")
 endif()
 
-install(TARGETS river_redismodule LIBRARY DESTINATION lib PERMISSIONS WORLD_EXECUTE)
+install(TARGETS river_redismodule LIBRARY DESTINATION lib)
 
