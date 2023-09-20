@@ -37,6 +37,11 @@ if (NOT TARGET nlohmann_json::nlohmann_json)
     FetchContent_MakeAvailable(json)
 endif()
 
+
+set(CPPHTTPLIB_OPENSSL_SUPPORT OFF)
+set(HTTPLIB_USE_BROTLI_IF_AVAILABLE OFF)
+set(HTTPLIB_USE_ZLIB_IF_AVAILABLE OFF)
+set(HTTPLIB_USE_OPENSSL_IF_AVAILABLE OFF)
 if (NOT TARGET httplib::httplib)
     FetchContent_Declare(
             cpp-httplib

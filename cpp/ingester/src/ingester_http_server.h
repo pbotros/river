@@ -7,6 +7,7 @@
 
 #include <httplib.h>
 #include <memory>
+#include <optional>
 #include <nlohmann/json.hpp>
 
 using json = nlohmann::json;
