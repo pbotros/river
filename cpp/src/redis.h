@@ -14,6 +14,8 @@
 #include <unordered_map>
 #include <hiredis.h>
 #include <cassert>
+#include <mutex>
+#include <tracy/Tracy.hpp>
 
 namespace river {
 
@@ -51,7 +53,6 @@ private:
 };
 
 namespace internal {
-
 
 inline void DecodeCursor(const char *key, uint64_t *left, uint64_t *right) {
     // Increment the LSB part of the cursor for the next fetch
@@ -144,11 +145,14 @@ public:
 
     void DeleteMetadata(const std::string &stream_name);
 
+    std::string GetMetadataKey(const std::string &stream_name) const;
+
     inline void SendCommandArgv(int argc, const char **argv, const size_t *argvlen) {
         redisAppendCommandArgv(_context, argc, argv, argvlen);
     }
 
     inline std::string FormatCommandArgv(int argc, const char **argv, const size_t *argvlen) {
+        ZoneScoped;
         sds cmd;
         size_t cmd_strlen = redisFormatSdsCommandArgv(&cmd, argc, argv, argvlen);
         return {cmd, cmd_strlen};
@@ -189,6 +193,30 @@ private:
     }
 
     redisContext *_context;
+};
+
+class RedisPoolInstance {
+public:
+    RedisPoolInstance(Redis *redis, std::recursive_mutex& mutex) : lock_(mutex, std::defer_lock), redis_(redis) {
+        lock_.lock();
+    }
+
+    Redis *redis() const {
+        return redis_;
+    }
+private:
+    std::unique_lock<std::recursive_mutex> lock_;
+    Redis *redis_;
+};
+
+class RedisPool {
+public:
+    explicit RedisPool(int num_connections, const RedisConnection &connection);
+    RedisPoolInstance Checkout();
+private:
+    std::vector<std::unique_ptr<Redis>> redises_;
+    std::vector<std::recursive_mutex> connection_locks_;
+    std::mutex pool_lock_;
 };
 
 }

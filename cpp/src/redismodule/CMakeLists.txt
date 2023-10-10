@@ -39,7 +39,7 @@ target_include_directories(river_redismodule_rmutil
 )
 
 add_library(river_redismodule MODULE
-        river_redismodule.c
+        river_redismodule.cpp
         )
 add_dependencies(river_redismodule river_redismodule_rmutil)
 target_link_libraries(river_redismodule PRIVATE river_redismodule_rmutil)
@@ -52,12 +52,13 @@ target_include_directories(
 
 # From https://redis.com/community/redis-modules-hub/how-to-build/
 if(LINUX)
-    target_compile_options(river_redismodule PRIVATE "-fPIC" "-std=gnu99")
+    target_compile_options(river_redismodule PRIVATE "-fPIC")
     target_link_options(river_redismodule PRIVATE "-shared" "-Bsymbolic" "-lc")
 elseif(APPLE)
-    target_compile_options(river_redismodule PRIVATE "-dynamic" "-fno-common" "-std=gnu99")
+    target_compile_options(river_redismodule PRIVATE "-dynamic" "-fno-common")
     target_link_options(river_redismodule PRIVATE "-bundle" "-undefined" "dynamic_lookup" "-lc")
 endif()
+target_compile_features(river_redismodule PRIVATE cxx_std_17)
 
 install(TARGETS river_redismodule LIBRARY DESTINATION lib)
 

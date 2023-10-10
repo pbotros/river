@@ -32,9 +32,18 @@ FetchContent_Declare(
         GIT_REPOSITORY    https://github.com/jarro2783/cxxopts.git
         GIT_TAG           v3.0.0
 )
+FetchContent_Declare(
+        tracy
+        GIT_REPOSITORY    https://github.com/wolfpld/tracy.git
+        GIT_TAG           v0.9.1
+        GIT_SHALLOW TRUE
+)
 
 set(FMT_INSTALL OFF)
-FetchContent_MakeAvailable(fmt hiredis json cxxopts)
+set(TRACY_NO_EXIT ON)
+set(TRACY_ENABLE ON)
+set(TRACY_NO_BROADCAST ON)
+FetchContent_MakeAvailable(fmt hiredis json cxxopts tracy)
 
 # ===== External Dependency: glog
 find_package(glog REQUIRED)
@@ -51,7 +60,13 @@ set(RIVER_HEADERS_ALL
         ${RIVER_HEADERS_PUBLIC}
         redis_writer_commands.h
         compression/compressor.h)
-set(RIVER_SOURCES writer.cpp reader.cpp redis.cpp schema.cpp compression/compressor.cpp redis_writer_commands.cpp)
+set(RIVER_SOURCES
+        writer.cpp
+        reader.cpp
+        redis.cpp
+        schema.cpp
+        compression/compressor.cpp
+        redis_writer_commands.cpp)
 
 if (RIVER_BUILD_ZFP)
     find_package(OpenMP QUIET OPTIONAL_COMPONENTS C)
@@ -85,6 +100,7 @@ set(LIBRARIES_TO_LINK
         "glog::glog"
         "nlohmann_json::nlohmann_json"
         "cxxopts"
+        "TracyClient"
         ${ADDITIONAL_LIBRARIES})
 set(LIBRARIES_TO_LINK_PKGCONFIG_OPTIONS "-lglog -lhiredis")
 
@@ -93,7 +109,6 @@ add_library(river SHARED ${RIVER_HEADERS_ALL} ${RIVER_SOURCES})
 target_compile_features(river PRIVATE cxx_std_17)
 target_link_libraries(river PRIVATE ${LIBRARIES_TO_LINK})
 target_link_libraries(river PUBLIC hiredis)
-target_sources(river PUBLIC FILE_SET river_headers_public TYPE HEADERS FILES "${RIVER_HEADERS_PUBLIC}")
 
 # Make headers public
 # set_target_properties(river PROPERTIES PUBLIC_HEADER "${RIVER_HEADERS_PUBLIC}")
@@ -148,11 +163,40 @@ target_compile_options(river_benchmark PUBLIC "$<$<CONFIG:RELEASE>:${MY_CXX_RELE
 ### Installs ###
 if (RIVER_INSTALL)
   set(targets_export_name river-targets)
-  install(TARGETS river
-    EXPORT ${targets_export_name}
-    LIBRARY DESTINATION lib
-    FILE_SET river_headers_public DESTINATION include/river)
-  # install(TARGETS river river_headers_public DESTINATION include/river)
+
+  if (${CMAKE_VERSION} VERSION_LESS "3.23")
+      # From https://stackoverflow.com/questions/48212771/cmake-install-header-files-and-maintain-directory-hierarchy
+      # FILE_SET doesn't exist here
+      INSTALL(
+              TARGETS river
+              EXPORT ${targets_export_name}
+              LIBRARY DESTINATION lib)
+
+      macro(install_with_directory)
+          set(optionsArgs "")
+          set(oneValueArgs "DESTINATION")
+          set(multiValueArgs "FILES")
+          cmake_parse_arguments(CAS "${optionsArgs}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN} )
+
+          foreach(FILE ${CAS_FILES})
+              get_filename_component(DIR ${FILE} DIRECTORY)
+              INSTALL(
+                      FILES ${FILE} DESTINATION ${CAS_DESTINATION}/${DIR})
+          endforeach()
+      endmacro(install_with_directory)
+
+      install_with_directory(
+          DESTINATION include/river
+          FILES ${RIVER_HEADERS_PUBLIC})
+    else()
+      target_sources(river PUBLIC FILE_SET river_headers_public TYPE HEADERS FILES "${RIVER_HEADERS_PUBLIC}")
+      INSTALL(
+              TARGETS river
+              EXPORT ${targets_export_name}
+              LIBRARY DESTINATION lib
+              FILE_SET river_headers_public DESTINATION include/river)
+  endif()
+
   install(TARGETS hiredis DESTINATION lib)
 
   #########################################

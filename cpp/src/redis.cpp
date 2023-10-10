@@ -9,6 +9,7 @@
 #include <regex>
 #include <glog/logging.h>
 #include <fmt/format.h>
+#include <glog/logging.h>
 
 #include "net/sockcompat.h"
 #if defined(_WIN32) || defined(_WIN64)
@@ -131,9 +132,13 @@ Redis::UniqueRedisReplyPtr Redis::Xrevrange(
     return UniqueRedisReplyPtr(reply);
 }
 
+std::string Redis::GetMetadataKey(const string &stream_name) const {
+    return fmt::format("{}-metadata", stream_name);
+}
 
 unique_ptr<unordered_map<string, string>> Redis::GetMetadata(const string &stream_name) {
-    auto *reply = (redisReply *) redisCommand(_context, "HGETALL %s-metadata", stream_name.c_str());
+    auto metadata_key = GetMetadataKey(stream_name);
+    auto *reply = (redisReply *) redisCommand(_context, "HGETALL %s", metadata_key.c_str());
     if (reply == nullptr) {
         throw RedisException(
                 fmt::format("Null response received when fetching metadata! err={}, errstr={}",
@@ -242,7 +247,7 @@ int Redis::SetMetadata(const string &stream_name, const vector<std::pair<string,
     vector<string> parts;
 
     parts.push_back("HSET");
-    parts.push_back(fmt::format("{}-metadata", stream_name));
+    parts.push_back(GetMetadataKey(stream_name));
     for (const auto &pair : key_value_pairs) {
         parts.push_back(pair.first);
         parts.push_back(pair.second);
@@ -376,7 +381,8 @@ void Redis::Unlink(const string &stream_key) {
 }
 
 void Redis::DeleteMetadata(const string &stream_name) {
-    auto *reply = (redisReply *) redisCommand(_context, "DEL %s-metadata", stream_name.c_str());
+    auto metadata_key = GetMetadataKey(stream_name);
+    auto *reply = (redisReply *) redisCommand(_context, "DEL %s", metadata_key.c_str());
     if (reply == nullptr || reply->type != REDIS_REPLY_INTEGER) {
         string msg = fmt::format("Error deleting metadata for stream {}. Reply: {}", stream_name,
                                  reply == nullptr ? "NULL" : to_string(reply->type));
@@ -408,23 +414,53 @@ void __redisSetError(redisContext *c, int type, const char *str) {
 }
 
 int Redis::SendCommandPreformatted(std::vector<std::pair<const char *, size_t>> preformatted_commands) {
+    ZoneScoped;
     int nwritten_total = 0;
-    for (int i = 0; i < preformatted_commands.size(); i++) {
-        int nwritten = redis_sockcompat::send_redis_sockcompat(
-            _context->fd, preformatted_commands[i].first, preformatted_commands[i].second, 0);
-        if (nwritten < 0) {
-            if ((errno == EWOULDBLOCK && !(_context->flags & REDIS_BLOCK)) || (errno == EINTR)) {
-                /* Try again later */
-            } else {
-                __redisSetError(_context, REDIS_ERR_IO, NULL);
-                return -1;
+
+    for (const auto &[data, data_len] : preformatted_commands) {
+        int n_bytes_written = 0;
+        while (n_bytes_written < data_len) {
+            int nwritten = redis_sockcompat::send_redis_sockcompat(
+                _context->fd,
+                &data[n_bytes_written],
+                data_len - n_bytes_written, 0);
+            if (nwritten < 0) {
+                if ((errno == EWOULDBLOCK && !(_context->flags & REDIS_BLOCK)) || (errno == EINTR)) {
+                    /* Try again later */
+                    continue;
+                } else {
+                    __redisSetError(_context, REDIS_ERR_IO, NULL);
+                    return -1;
+                }
             }
+            n_bytes_written += nwritten;
         }
-        nwritten_total += nwritten;
+        nwritten_total += data_len;
     }
     return nwritten_total;
 }
 
+RedisPool::RedisPool(int num_connections, const RedisConnection &connection)
+    : connection_locks_(num_connections) {
+    for (int i = 0; i < num_connections; ++i) {
+        redises_.emplace_back(Redis::Create(connection));
+    }
+}
 
+RedisPoolInstance RedisPool::Checkout() {
+    std::scoped_lock<std::mutex> pool_guard(pool_lock_);
+
+    for (int i = 0; i < connection_locks_.size(); ++i) {
+        auto &lock = connection_locks_[i];
+        if (lock.try_lock()) {
+            lock.unlock();
+            return {
+                redises_[i].get(),
+                connection_locks_[i]};
+        }
+    }
+
+    throw RedisException("Could not acquire a connection and would otherwise hang; do you need a larger pool size?");
+}
 }
 }

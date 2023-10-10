@@ -29,6 +29,7 @@ namespace river {
 class RedisWriterCommand {
 public:
     RedisWriterCommand(const std::string &formatted_command);
+    RedisWriterCommand(const RedisWriterCommand &other);
 
     std::vector<std::pair<const char *, size_t>> ReplaceLastBulkStringAndAssemble(
         const char *data, size_t data_length);

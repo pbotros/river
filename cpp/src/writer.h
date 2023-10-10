@@ -40,15 +40,18 @@ public:
     int64_t keys_per_redis_stream;
     int batch_size;
     StreamCompression compression;
+    int pool_size;
 private:
     StreamWriterParams(RedisConnection _connection,
                        int64_t _keys_per_redis_stream,
                        int _batch_size,
-                       StreamCompression _compression) :
+                       StreamCompression _compression,
+                       int _pool_size) :
         connection(std::move(_connection)),
         keys_per_redis_stream(_keys_per_redis_stream),
         batch_size(_batch_size),
-        compression(_compression) {}
+        compression(_compression),
+        pool_size(_pool_size) {}
     friend StreamWriterParamsBuilder;
 };
 
@@ -70,12 +73,19 @@ public:
         compression_ = compression;
         return *this;
     }
+    StreamWriterParamsBuilder &pool_size(int pool_size) {
+        pool_size_ = pool_size;
+        return *this;
+    }
 
     StreamWriterParams build() {
         if (!connection_) {
             throw std::invalid_argument("Need to provide a connection!");
         }
-        return {*connection_, keys_per_redis_stream_, batch_size_, compression_};
+        if (pool_size_ < 1) {
+            throw std::invalid_argument("Need to provide a pool size >= 1");
+        }
+        return {*connection_, keys_per_redis_stream_, batch_size_, compression_, pool_size_};
     }
 
 private:
@@ -83,9 +93,10 @@ private:
     int64_t keys_per_redis_stream_ = int64_t{1LL << 24};
     int batch_size_ = 1536;
     StreamCompression compression_{StreamCompression::Type::UNCOMPRESSED};
+    int pool_size_ = 1;
 };
 
-
+class PreparedData;
 
 /**
  * The main entry point for River for writing a new stream. Streams are defined by a schema and a stream name, both of
@@ -156,6 +167,25 @@ public:
     void WriteBytes(const char *data, int64_t num_samples, const int *sizes = nullptr);
 
     /**
+     * TODO
+     *
+     * Important notes:
+     * - NOT threadsafe. Must be called in strictly the order in which samples should be uploaded.
+     * - Ensure that the `const char *data` object passed here remains valid until SendPrepared(). Preparing the data
+     * does not manage ownership of the data pointer, so the caller must take this care.
+     */
+    std::optional<PreparedData> PrepareBytes(
+        const char *data, int64_t num_samples, const int *sizes = nullptr);
+
+    /**
+     * TODO
+     *
+     * Threadsafe. Cannot re-use PreparedData objects; only call SendPrepared() exactly once per instance of
+     * PreparedData.
+     */
+    int64_t SendPrepared(PreparedData& prepared_data);
+
+    /**
      * A copy of the stream's schema that was provided on initialize().
      */
     const StreamSchema& schema();
@@ -194,7 +224,11 @@ public:
 private:
     int64_t ComputeLocalMinusServerClocks();
 
-    std::unique_ptr<internal::Redis> redis_;
+    template<bool IsPrepare>
+    std::optional<PreparedData> WriteOrPrepareBytes(const char *data, int64_t num_samples, const int *sizes = nullptr);
+
+    // std::unique_ptr<internal::Redis> redis_;
+    internal::RedisPool pool_;
 
     const int redis_batch_size_;
     const int64_t keys_per_redis_stream_;
@@ -213,6 +247,16 @@ private:
     bool is_initialized_;
     int64_t initialized_at_us_;
     int last_stream_key_idx_;
+};
+
+class PreparedDataImpl;
+class PreparedData {
+public:
+    void Destroy();
+    ~PreparedData();
+private:
+    friend StreamWriter;
+    std::vector<PreparedDataImpl *> impls_;
 };
 
 }

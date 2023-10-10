@@ -9,16 +9,42 @@
 #include <glog/logging.h>
 #include "compression/compressor.h"
 #include <nlohmann/json.hpp>
+#include <tracy/Tracy.hpp>
+#include <utility>
 
 using json = nlohmann::json;
 using namespace std;
 
 namespace river {
 
-StreamWriter::StreamWriter(const StreamWriterParams& params)
-        : redis_batch_size_(params.batch_size), keys_per_redis_stream_(params.keys_per_redis_stream) {
-    this->redis_ = internal::Redis::Create(params.connection);
+class PreparedDataImpl {
+public:
+    PreparedDataImpl(const RedisWriterCommand& writer_command,
+                     const vector<char> &data_holder,
+                     const char *data_to_write,
+                     int64_t data_to_write_num_bytes,
+                     int64_t num_samples)
+        : writer_command_(writer_command),
+          data_holder_(data_holder),
+          data_to_write_(data_to_write),
+          data_to_write_num_bytes_(data_to_write_num_bytes),
+          num_samples_(num_samples) {}
 
+      ~PreparedDataImpl() = default;
+private:
+    friend StreamWriter;
+    RedisWriterCommand writer_command_;
+    const std::vector<char> data_holder_;
+    const char *data_to_write_;
+    int64_t data_to_write_num_bytes_;
+    int64_t num_samples_;
+};
+
+StreamWriter::StreamWriter(const StreamWriterParams &params)
+    :
+    redis_batch_size_(params.batch_size),
+    keys_per_redis_stream_(params.keys_per_redis_stream),
+    pool_(params.pool_size, params.connection) {
     this->is_stopped_ = false;
     this->is_initialized_ = false;
     this->total_samples_written_ = 0LL;
@@ -52,6 +78,8 @@ void StreamWriter::Initialize(const string &stream_name,
         throw StreamWriterException("Stream name is invalid. Must be given and < 256 in length.");
     }
 
+    auto redis_instance = pool_.Checkout();
+    auto redis_ = redis_instance.redis();
     auto maybe_metadata = redis_->GetMetadata(stream_name);
     if (maybe_metadata) {
         stringstream ss;
@@ -68,6 +96,7 @@ void StreamWriter::Initialize(const string &stream_name,
     string first_stream_key = fmt::format("{}-0", stream_name);
     vector<pair<string, string>> fields = {
         {"first_stream_key", first_stream_key},
+        {"total_samples_written", "0"},
         {"schema", serialized_schema},
     };
 
@@ -75,12 +104,12 @@ void StreamWriter::Initialize(const string &stream_name,
     if (compute_local_minus_global_clock) {
         auto local_minus_server_clock = ComputeLocalMinusServerClocks();
         initialized_at_us_ = chrono::duration_cast<std::chrono::microseconds>(
-                chrono::system_clock::now().time_since_epoch()).count() - local_minus_server_clock;
+            chrono::system_clock::now().time_since_epoch()).count() - local_minus_server_clock;
         string local_minus_server_clock_f = fmt::format_int(local_minus_server_clock).str();
         fields.emplace_back("local_minus_server_clock_us", local_minus_server_clock_f);
     } else {
         initialized_at_us_ = chrono::duration_cast<std::chrono::microseconds>(
-                chrono::system_clock::now().time_since_epoch()).count();
+            chrono::system_clock::now().time_since_epoch()).count();
     }
 
     string initialized_at_us_f = fmt::format_int(initialized_at_us_).str();
@@ -95,12 +124,12 @@ void StreamWriter::Initialize(const string &stream_name,
     }
 
     auto num_fields_added = static_cast<size_t>(
-            redis_->SetMetadataAndUserMetadata(stream_name, fields, user_metadata));
+        redis_->SetMetadataAndUserMetadata(stream_name, fields, user_metadata));
     // Ensure to add 1 for user_metadata
     if (fields.size() + 1 != num_fields_added) {
         throw StreamWriterException(
-                fmt::format("Stream exists already! stream {}. Expected {} fields to be written but {} were written.",
-                            stream_name, fields.size(), num_fields_added));
+            fmt::format("Stream exists already! stream {}. Expected {} fields to be written but {} were written.",
+                        stream_name, fields.size(), num_fields_added));
     }
 
     auto metadata = redis_->GetMetadata(stream_name);
@@ -109,7 +138,7 @@ void StreamWriter::Initialize(const string &stream_name,
     }
 
     LOG(INFO) << "Stream metadata:" << endl;
-    for (const auto& pair : *metadata) {
+    for (const auto &pair : *metadata) {
         // Truncate for very long metadatas/schemas:
         std::stringstream ss;
         ss << "=> " << pair.first << ": " << pair.second;
@@ -147,8 +176,56 @@ void StreamWriter::Initialize(const string &stream_name,
 }
 
 void StreamWriter::WriteBytes(const char *data, int64_t num_samples, const int *sizes) {
+    ZoneScoped;
+    WriteOrPrepareBytes<false>(data, num_samples, sizes);
+}
+
+std::optional<PreparedData> StreamWriter::PrepareBytes(const char *data, int64_t num_samples, const int *sizes) {
+    ZoneScoped;
+    return WriteOrPrepareBytes<true>(data, num_samples, sizes);
+}
+
+int64_t StreamWriter::SendPrepared(PreparedData &prepared_data) {
+    ZoneScoped;
+    auto redis_instance = pool_.Checkout();
+    auto redis_ = redis_instance.redis();
+    int64_t num_samples_sent = 0;
+    for (auto impl : prepared_data.impls_) {
+        auto commands_to_send = impl->writer_command_.ReplaceLastBulkStringAndAssemble(
+            impl->data_to_write_,
+            impl->data_to_write_num_bytes_);
+
+        auto bytes_written = redis_->SendCommandPreformatted(commands_to_send);
+        if (bytes_written < 0) {
+            throw StreamWriterException(
+                fmt::format("Failed to write apprporiate number of bytes! wrote bytes={}", bytes_written));
+        }
+
+        {
+            ZoneScopedN("ReceivingResponse");
+            auto reply = redis_->GetReply();
+            if (reply->type != REDIS_REPLY_STATUS || reply->len == 0) {
+                if (reply->type == REDIS_REPLY_ERROR && reply->len > 0) {
+                    throw StreamWriterException(
+                        fmt::format("batch_xadd response was ERROR: {} ", reply->str));
+                } else {
+                    throw StreamWriterException(
+                        fmt::format("Reply was not of the right type (was {}) and/or had invalid length ({})",
+                                    reply->type, reply->len));
+                }
+            }
+        }
+
+        num_samples_sent += impl->num_samples_;
+    }
+    prepared_data.Destroy();
+    return num_samples_sent;
+}
+
+template<bool IsPrepare>
+std::optional<PreparedData> StreamWriter::WriteOrPrepareBytes(const char *data, int64_t num_samples, const int *sizes) {
     if (num_samples <= 0) {
-        return;
+        return PreparedData{};
     }
 
     if (!is_initialized_) {
@@ -164,8 +241,20 @@ void StreamWriter::WriteBytes(const char *data, int64_t num_samples, const int *
     }
     bool has_compression = (bool) compressor_;
 
+    std::unique_ptr<internal::RedisPoolInstance> redis_instance;
+    internal::Redis *redis_;
+    if constexpr (IsPrepare) {
+        // Will throw if we try to use this during preparation
+        redis_ = nullptr;
+    } else {
+        redis_instance = std::make_unique<internal::RedisPoolInstance>(pool_.Checkout());
+        redis_ = redis_instance->redis();
+    }
+
+    PreparedData prepared_data;
     int64_t data_index = 0;
     int64_t samples_written = 0;
+    int64_t original_total_samples_written = total_samples_written_;
     while (samples_written < num_samples) {
         auto samples_remaining = num_samples - samples_written;
         int64_t samples_to_write_in_batch =
@@ -174,6 +263,16 @@ void StreamWriter::WriteBytes(const char *data, int64_t num_samples, const int *
         int stream_key_idx = static_cast<int>(total_samples_written_ / keys_per_redis_stream_);
 
         if (stream_key_idx != last_stream_key_idx_) {
+            if constexpr (IsPrepare) {
+                // If we need to switch to the next key in this stream, then we can't safely Prepare batches, as after
+                // preparation the execution of the SendPrepared() is indeterminate and thus we could end a tombstone
+                // in an incorrect place.
+                // In this case, return nullopt, indicating we failed to prepare properly. Ensure any side effects are
+                // reverted as well.
+                total_samples_written_ = original_total_samples_written;
+                return std::nullopt;
+            }
+
             auto reply = redis_->Xadd(
                 fmt::format("{}-{}", stream_name_, last_stream_key_idx_),
                 {{"tombstone", "1"},
@@ -200,17 +299,20 @@ void StreamWriter::WriteBytes(const char *data, int64_t num_samples, const int *
             // In addition, to reduce network bandwidth, we have a set of functions in a Redis server module (under the
             // library name "river") that is tailored towards our batch use of XADD. In particular, it minimizes the
             // redundant characters sent over the network.
-            int append_argc = (this->has_variable_width_field_ || has_compression) ? 5 : 6;
+            int append_argc;//  = (this->has_variable_width_field_ || has_compression) ? 5 : 6;
+            if (has_compression) {
+                append_argc = 5;
+            } else if (this->has_variable_width_field_) {
+                append_argc = 5;
+            } else {
+                append_argc = 7;
+            }
             std::vector<const char *> append_argv(append_argc);
             std::vector<size_t> append_arglens(append_argc);
 
             const string &stream_key_formatted = fmt::format("{}-{}", stream_name_, stream_key_idx);
             append_argv[1] = stream_key_formatted.c_str();
             append_arglens[1] = strlen(append_argv[1]);
-
-            auto formatted_global_index = fmt::format_int(total_samples_written_);
-            append_argv[2] = formatted_global_index.c_str();
-            append_arglens[2] = strlen(append_argv[2]);
 
             const char *data_to_write;
             int64_t data_to_write_num_bytes;
@@ -219,23 +321,36 @@ void StreamWriter::WriteBytes(const char *data, int64_t num_samples, const int *
             std::vector<char> data_holder;
 
             auto formatted_num_samples = fmt::format_int(samples_to_write_in_batch).str();
+            auto metadata_key = redis_->GetMetadataKey(stream_name_);
+            auto formatted_global_index = fmt::format_int(total_samples_written_);
+            auto formatted_sample_size_bytes = fmt::format_int(sample_size_);
+
             if (has_compression) {
-                data_holder = compressor_->compress(&data[data_index], samples_to_write_in_batch * sample_size_);
+                {
+                    ZoneScopedN("Compression");
+                    data_holder = compressor_->compress(&data[data_index], samples_to_write_in_batch * sample_size_);
+                }
                 data_to_write = data_holder.data();
                 data_to_write_num_bytes = (int64_t) data_holder.size();
 
                 append_argv[0] = "RIVER.batch_xadd_compressed";
                 append_arglens[0] = strlen(append_argv[0]);
 
+                append_argv[2] = formatted_global_index.c_str();
+                append_arglens[2] = strlen(append_argv[2]);
+
                 append_argv[3] = formatted_num_samples.c_str();
                 append_arglens[3] = formatted_num_samples.size();
 
                 // Overwritten later down, doesn't matter now.
                 append_argv[4] = "\0";
-                append_arglens[4] = 1;
+                append_arglens[5] = 1;
             } else if (this->has_variable_width_field_) {
                 append_argv[0] = "RIVER.batch_xadd_variable";
                 append_arglens[0] = strlen(append_argv[0]);
+
+                append_argv[2] = formatted_global_index.c_str();
+                append_arglens[2] = strlen(append_argv[2]);
 
                 // TODO: we end up making a copy of sizes here instead of avoiding a copy like the data; we can
                 // improve this by making sizes zero-copy as well
@@ -255,16 +370,21 @@ void StreamWriter::WriteBytes(const char *data, int64_t num_samples, const int *
                 append_argv[0] = "RIVER.batch_xadd";
                 append_arglens[0] = strlen(append_argv[0]);
 
-                append_argv[3] = formatted_num_samples.c_str();
+                append_argv[2] = metadata_key.c_str();
+                append_arglens[2] = strlen(append_argv[2]);
+
+                append_argv[3] = formatted_global_index.c_str();
                 append_arglens[3] = strlen(append_argv[3]);
 
-                auto formatted_sample_size_bytes = fmt::format_int(sample_size_);
-                append_argv[4] = formatted_sample_size_bytes.c_str();
+                append_argv[4] = formatted_num_samples.c_str();
                 append_arglens[4] = strlen(append_argv[4]);
 
+                append_argv[5] = formatted_sample_size_bytes.c_str();
+                append_arglens[5] = strlen(append_argv[5]);
+
                 // Overwritten later down, doesn't matter now.
-                append_argv[5] = "\0";
-                append_arglens[5] = 1;
+                append_argv[6] = "\0";
+                append_arglens[6] = 1;
 
                 data_to_write = &data[data_index];
                 data_to_write_num_bytes = sample_size_ * samples_to_write_in_batch;
@@ -274,29 +394,47 @@ void StreamWriter::WriteBytes(const char *data, int64_t num_samples, const int *
                 redis_->FormatCommandArgv(append_argc, append_argv.data(), append_arglens.data());
             RedisWriterCommand xadd_redis_command_(formatted_command_str);
 
-            auto commands_to_send = xadd_redis_command_.ReplaceLastBulkStringAndAssemble(
-                data_to_write, data_to_write_num_bytes);
+            if constexpr (IsPrepare) {
+                prepared_data.impls_.push_back(new PreparedDataImpl(
+                    xadd_redis_command_,
+                    data_holder,
+                    data_to_write,
+                    data_to_write_num_bytes,
+                    samples_to_write_in_batch));
+            } else {
+                auto commands_to_send = xadd_redis_command_.ReplaceLastBulkStringAndAssemble(
+                    data_to_write, data_to_write_num_bytes);
 
-            auto bytes_written = redis_->SendCommandPreformatted(commands_to_send);
-            if (bytes_written < 0) {
-                throw StreamWriterException(
-                    fmt::format("Failed to write apprporiate number of bytes! wrote bytes={}", bytes_written));
+                auto bytes_written = redis_->SendCommandPreformatted(commands_to_send);
+                if (bytes_written < 0) {
+                    throw StreamWriterException(
+                        fmt::format("Failed to write apprporiate number of bytes! wrote bytes={}", bytes_written));
+                }
+
+                {
+                    ZoneScopedN("ReceivingResponse");
+                    auto reply = redis_->GetReply();
+                    if (reply->type != REDIS_REPLY_STATUS || reply->len == 0) {
+                        if (reply->type == REDIS_REPLY_ERROR && reply->len > 0) {
+                            throw StreamWriterException(
+                                fmt::format("batch_xadd response was ERROR: {} ", reply->str));
+                        } else {
+                            throw StreamWriterException(
+                                fmt::format("Reply was not of the right type (was {}) and/or had invalid length ({})",
+                                            reply->type, reply->len));
+                        }
+                    }
+                }
             }
 
             data_index += data_to_write_num_bytes;
-
-            auto reply = redis_->GetReply();
-            if (reply->type != REDIS_REPLY_STATUS || reply->len == 0) {
-                if (reply->type == REDIS_REPLY_ERROR && reply->len > 0) {
-                    throw StreamWriterException(
-                        fmt::format("batch_xadd response was ERROR: {} ", reply->str));
-                } else {
-                    throw StreamWriterException(
-                        fmt::format("Reply was not of the right type (was {}) and/or had invalid length ({})",
-                                    reply->type, reply->len));
-                }
-            }
         } else {
+            if (IsPrepare) {
+                // Not safe to prepare without the redis module, since only the redis module allows for
+                throw StreamWriterException(
+                    fmt::format("Cannot prepare packaged data without the redis module installed; install the redis "
+                                "module for River or use Write/WriteBytes solely."));
+            }
             // We preallocate / reuse the command buffer as much as possible, as much of the bottleneck is in the
             // formatting of the command.
             const int append_argc = 7;
@@ -359,6 +497,8 @@ void StreamWriter::WriteBytes(const char *data, int64_t num_samples, const int *
         samples_written += samples_to_write_in_batch;
         total_samples_written_ += samples_to_write_in_batch;
     }
+
+    return prepared_data;
 }
 
 int64_t StreamWriter::initialized_at_us() {
@@ -366,20 +506,23 @@ int64_t StreamWriter::initialized_at_us() {
 }
 
 int64_t StreamWriter::ComputeLocalMinusServerClocks() {
+    auto redis_instance = pool_.Checkout();
+    auto redis_ = redis_instance.redis();
+
     int64_t sum_deltas = 0;
     int num_round_trips = 100;
     for (int i = 0; i < num_round_trips; i++) {
         int64_t before = chrono::duration_cast<std::chrono::microseconds>(
-                chrono::system_clock::now().time_since_epoch()).count();
+            chrono::system_clock::now().time_since_epoch()).count();
         int64_t redis_time = redis_->TimeUs();
         int64_t after = chrono::duration_cast<std::chrono::microseconds>(
-                chrono::system_clock::now().time_since_epoch()).count();
+            chrono::system_clock::now().time_since_epoch()).count();
         int64_t local_time = (after + before) / 2;
         sum_deltas += local_time - redis_time;
     }
 
     auto delta = sum_deltas / num_round_trips;
-    std::stringstream  ss;
+    std::stringstream ss;
     ss << "Relative time (local - server) = " << delta << " us" << endl;
     std::string s = ss.str();
     LOG(INFO) << s;
@@ -391,6 +534,9 @@ void StreamWriter::Stop() {
         return;
     }
 
+    auto redis_instance = pool_.Checkout();
+    auto redis_ = redis_instance.redis();
+
     string stream_key = fmt::format("{}-{}", stream_name_, last_stream_key_idx_);
     redis_->Xadd(stream_key,
                  {{"eof", "1"},
@@ -400,14 +546,44 @@ void StreamWriter::Stop() {
     LOG(INFO) << "Adding eof entry for stream " << stream_name_ << ", idx " << std::to_string(last_stream_key_idx_)
               << " at samples " << std::to_string(total_samples_written_) << endl;
 
+    std::vector<const char *> append_argv(2);
+    std::vector<size_t> append_arglens(2);
+
+    if (has_module_installed_) {
+        // And then call batch_xadd_stop() which cleans up some memory and other resources on the Redis server.
+        append_argv[0] = "RIVER.batch_xadd_stop";
+        append_arglens[0] = strlen(append_argv[0]);
+
+        auto metadata_key = redis_->GetMetadataKey(stream_name_);
+        append_argv[1] = metadata_key.c_str();
+        append_arglens[1] = metadata_key.size();
+
+        redis_->SendCommandArgv(2, append_argv.data(), append_arglens.data());
+
+        auto reply = redis_->GetReply();
+        if (reply->type != REDIS_REPLY_STATUS || reply->len == 0) {
+            if (reply->type == REDIS_REPLY_ERROR && reply->len > 0) {
+                LOG(INFO) << "Could not stop properly: got error:" <<
+                          fmt::format("batch_xadd_stop response was ERROR: {} ", reply->str);
+            } else {
+                throw StreamWriterException(
+                    fmt::format("Reply for batch_xadd_stop was not of the right type "
+                                "(was {}) and/or had invalid length ({})", reply->type, reply->len));
+            }
+        }
+
+    }
+
     is_stopped_ = true;
 }
 
-const string& StreamWriter::stream_name() {
+const string &StreamWriter::stream_name() {
     return stream_name_;
 }
 
 unordered_map<string, string> StreamWriter::Metadata() {
+    auto redis_instance = pool_.Checkout();
+    auto redis_ = redis_instance.redis();
     auto ret = redis_->GetUserMetadata(stream_name_);
     if (!ret) {
         throw StreamWriterException(fmt::format(
@@ -416,11 +592,13 @@ unordered_map<string, string> StreamWriter::Metadata() {
     return *ret;
 }
 
-void StreamWriter::SetMetadata(const unordered_map<string, string>& metadata) {
+void StreamWriter::SetMetadata(const unordered_map<string, string> &metadata) {
     if (stream_name_.empty()) {
         throw StreamWriterException("Must call Initialize() first!");
     }
 
+    auto redis_instance = pool_.Checkout();
+    auto redis_ = redis_instance.redis();
     redis_->SetUserMetadata(stream_name_, metadata);
 }
 
@@ -428,11 +606,20 @@ int64_t StreamWriter::total_samples_written() {
     return total_samples_written_;
 }
 
-const StreamSchema& StreamWriter::schema() {
+const StreamSchema &StreamWriter::schema() {
     if (!schema_) {
         throw StreamWriterException("Schema has not been initialized. Did you call Initialize()?");
     }
     return *this->schema_;
 }
+
+void PreparedData::Destroy() {
+    for (const auto &impl : impls_) {
+        delete impl;
+    }
+    impls_.clear();
+}
+
+PreparedData::~PreparedData() {}
 
 }

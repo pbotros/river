@@ -50,13 +50,13 @@ void StreamReader::Initialize(const std::string &stream_name, int timeout_ms) {
     if (this->current_stream_key_.empty()) {
         throw StreamReaderException("first_stream_key an empty std::string!");
     }
-    const StreamSchema &tmp = StreamSchema::FromJson(metadata["schema"]);
+    auto tmp = StreamSchema::FromJson(metadata["schema"]);
     if (metadata.find("local_minus_server_clock_us") != metadata.end()) {
-        this->local_minus_server_clock_us_ = strtoll(metadata["local_minus_server_clock_us"].c_str(), nullptr, 10);
+        this->local_minus_server_clock_us_ = std::stoll(metadata["local_minus_server_clock_us"], nullptr, 10);
     } else {
         this->local_minus_server_clock_us_ = 0;
     }
-    this->initialized_at_us_ = strtoull(metadata["initialized_at_us"].c_str(), nullptr, 10);
+    this->initialized_at_us_ = std::stoll(metadata["initialized_at_us"], nullptr, 10);
 
     this->schema_ = make_shared<StreamSchema>(tmp);
     this->has_variable_width_field_ = schema_->has_variable_width_field();
@@ -596,8 +596,8 @@ int64_t StreamReader::Seek(const std::string &key) {
  * Polls redis until the metadata key exists. Returns nullptr if the timeout is exceeded (or if only one attempt is
  * requested.
  */
-unique_ptr<unordered_map<std::string, std::string>> StreamReader::RetryablyFetchMetadata(const std::string &stream_name,
-                                                                                    int timeout_ms) {
+unique_ptr<unordered_map<std::string, std::string>> StreamReader::RetryablyFetchMetadata(
+    const std::string &stream_name, int timeout_ms) {
     int64_t start_ms = chrono::duration_cast<std::chrono::milliseconds>(
             chrono::steady_clock::now().time_since_epoch()).count();
     int64_t end_ms = timeout_ms > 0 ? start_ms + timeout_ms : (start_ms - 1);
@@ -610,7 +610,7 @@ unique_ptr<unordered_map<std::string, std::string>> StreamReader::RetryablyFetch
         return maybe_metadata;
     } while (chrono::duration_cast<std::chrono::milliseconds>(
             chrono::steady_clock::now().time_since_epoch()).count() < end_ms);
-    return unique_ptr<unordered_map<std::string, std::string>>();
+    return {};
 }
 
 unordered_map<std::string, std::string> StreamReader::Metadata() {

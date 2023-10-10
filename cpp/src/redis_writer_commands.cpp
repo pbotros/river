@@ -4,8 +4,12 @@
 
 #include "redis_writer_commands.h"
 #include <fmt/format.h>
+#include <tracy/Tracy.hpp>
 
 namespace river {
+
+static const char *DOLLAR_SIGN = "$";
+static const char *NEWLINES = "\r\n";
 
 RedisWriterCommand::RedisWriterCommand(const std::string &formatted_command) {
     if (formatted_command[0] != '*') {
@@ -38,22 +42,23 @@ RedisWriterCommand::RedisWriterCommand(const std::string &formatted_command) {
     command_parts_[0] = formatted_command_prefix_.c_str();
     command_parts_lens_[0] = formatted_command_prefix_.size();
 
-    command_parts_[1] = "$";
+    command_parts_[1] = DOLLAR_SIGN;
     command_parts_lens_[1] = 1;
 
     // Omit #2 which will be the length of the last bulk string
 
-    command_parts_[3] = "\r\n";
+    command_parts_[3] = NEWLINES;
     command_parts_lens_[3] = 2;
 
     // Omit #4 which will be the actual data
 
-    command_parts_[5] = "\r\n";
+    command_parts_[5] = NEWLINES;
     command_parts_lens_[5] = 2;
 }
 
 std::vector<std::pair<const char *, size_t>> RedisWriterCommand::ReplaceLastBulkStringAndAssemble(
     const char *data, size_t data_length) {
+    ZoneScoped;
     // Make sure we hold on to this formatted string so it remains allocated
     formatted_total_size_bytes_ = fmt::format_int(data_length).str();
     command_parts_[2] = formatted_total_size_bytes_.c_str();
@@ -67,5 +72,15 @@ std::vector<std::pair<const char *, size_t>> RedisWriterCommand::ReplaceLastBulk
         ret.emplace_back(command_parts_[i], command_parts_lens_[i]);
     }
     return ret;
+}
+
+RedisWriterCommand::RedisWriterCommand(const RedisWriterCommand &other) {
+    formatted_command_prefix_ = other.formatted_command_prefix_;
+    formatted_total_size_bytes_ = other.formatted_total_size_bytes_;
+    command_parts_= other.command_parts_;
+    command_parts_lens_ = other.command_parts_lens_;
+
+    // Repoint the const char * to the proper place
+    command_parts_[0] = formatted_command_prefix_.c_str();
 }
 }

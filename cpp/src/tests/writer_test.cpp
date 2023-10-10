@@ -21,11 +21,17 @@ protected:
     }
 
     template<class T>
-    shared_ptr<StreamWriter> NewWriter(const unordered_map<string, string>& metadata, FieldDefinition::Type type) {
+    shared_ptr<StreamWriter> NewWriter(const unordered_map<string, string>& metadata, FieldDefinition::Type type,
+                                       int pool_size) {
         stream_name = uuid::generate_uuid_v4();
 
         auto writer = make_shared<StreamWriter>(
-            RedisConnection("127.0.0.1", 6379), int64_t{1LL << 24}, batch_size);
+            StreamWriterParamsBuilder()
+            .connection(RedisConnection("127.0.0.1", 6379))
+            .batch_size(batch_size)
+            .keys_per_redis_stream(int64_t{1LL << 24})
+            .pool_size(pool_size)
+            .build());
 
         vector<FieldDefinition> field_definitions = vector<FieldDefinition>{
                 FieldDefinition("field1", type, sizeof(T))
@@ -48,8 +54,14 @@ protected:
     }
 
     template<class T>
+    shared_ptr<StreamWriter> NewWriter(
+        const unordered_map<string, string>& metadata, FieldDefinition::Type type) {
+        return NewWriter<T>(metadata, type, 1);
+    }
+
+    template<class T>
     shared_ptr<StreamWriter> NewWriter(FieldDefinition::Type type) {
-        return NewWriter<T>(unordered_map<string, string>(), type);
+        return NewWriter<T>({}, type, 1);
     }
 
     void TearDown() override {
@@ -249,4 +261,56 @@ TEST_F(StreamWriterTest, TestStopImmediately) {
   auto writer = make_shared<StreamWriter>(RedisConnection("127.0.0.1", 6379));
   // Ensure no errors; probably could check things in Redis to double check nothing happened, but meh.
   writer->Stop();
+}
+
+TEST_F(StreamWriterTest, TestPrepareSend_Simple) {
+    float data[NUM_ELEMENTS];
+    for (int i = 0; i < NUM_ELEMENTS; i++) {
+        data[i] = i;
+    }
+    auto writer = NewWriter<float>({}, FieldDefinition::FLOAT, 3);
+    auto num_elements1 = NUM_ELEMENTS / 2;
+    auto num_elements2 = NUM_ELEMENTS / 4;
+    auto num_elements3 = NUM_ELEMENTS - num_elements1 - num_elements2;
+
+    auto prepared_data1 = writer->PrepareBytes(
+        reinterpret_cast<const char *>(&data[0]),
+        num_elements1);
+    ASSERT_TRUE(prepared_data1);
+
+    auto prepared_data2 = writer->PrepareBytes(
+        reinterpret_cast<const char *>(&data[num_elements1]),
+        num_elements2);
+    ASSERT_TRUE(prepared_data2);
+
+    auto prepared_data3 = writer->PrepareBytes(
+        reinterpret_cast<const char *>(&data[num_elements1 + num_elements2]),
+        num_elements3);
+    ASSERT_TRUE(prepared_data3);
+
+    std::thread t2([writer, prepared_data2, num_elements2]() mutable {
+        auto num_sent = writer->SendPrepared(prepared_data2.value());
+        ASSERT_EQ(num_sent, num_elements2);
+    });
+    std::thread t3([writer, prepared_data3, num_elements3]() mutable {
+        // Almost guarantee this executes after the other thread, testing out-of-order sends
+        std::this_thread::sleep_for(std::chrono::milliseconds(250));
+        auto num_sent = writer->SendPrepared(prepared_data3.value());
+        ASSERT_EQ(num_sent, num_elements3);
+    });
+    std::thread t1([writer, prepared_data1, num_elements1]() mutable {
+        // Almost guarantee this executes after the other thread, testing out-of-order sends
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        auto num_sent = writer->SendPrepared(prepared_data1.value());
+        ASSERT_EQ(num_sent, num_elements1);
+    });
+
+    t1.join();
+    t2.join();
+    t3.join();
+
+    assert_expected(redis, stream_name, [](int index, const char *val_value, size_t length) {
+        ASSERT_EQ(length, sizeof(float));
+        ASSERT_FLOAT_EQ(*(reinterpret_cast<const float *>(val_value)), (float) index);
+    });
 }

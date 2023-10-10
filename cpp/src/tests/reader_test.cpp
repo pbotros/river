@@ -122,20 +122,26 @@ public:
 public:
     template <class T>
     void set_necessary_metadata(FieldDefinition::Type type) {
+        vector<FieldDefinition> field_definitions;
+        field_definitions.emplace_back("field1", type, sizeof(T));
+        StreamSchema schema(field_definitions);
+        auto schema_str = schema.ToJson();
+
         auto now_us = chrono::duration_cast<std::chrono::microseconds>(
                 chrono::system_clock::now().time_since_epoch()).count();
         redisCommand(redis, "HSET %s-metadata "
                             "first_stream_key %s-0 "
                             "local_minus_server_clock_us 0 "
                             "initialized_at_us %llu "
-                            "user_metadata %s",
-                     stream_name.c_str(), stream_name.c_str(), now_us, "{}");
-
-        vector<FieldDefinition> field_definitions;
-        const FieldDefinition &def = FieldDefinition("field1", type, sizeof(T));
-        field_definitions.push_back(def);
-        StreamSchema schema(field_definitions);
-        redisCommand(redis, "HSET %s-metadata schema %s", stream_name.c_str(), schema.ToJson().c_str());
+                            "total_samples_written %llu "
+                            "user_metadata %s "
+                            "schema %s",
+                     stream_name.c_str(),
+                     stream_name.c_str(),
+                     now_us,
+                     0,
+                     "{}",
+                     schema_str.c_str());
     }
 };
 
@@ -630,6 +636,7 @@ TEST_F(StreamReaderTest, TestInitialize) {
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
         test->set_necessary_metadata<int>(FieldDefinition::Type::INT32);
     }, this);
+
     reader->Initialize(stream_name, 5000);
     writer_thread.join();
     ASSERT_TRUE(reader->is_initialized());
