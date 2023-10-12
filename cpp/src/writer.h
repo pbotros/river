@@ -221,6 +221,10 @@ public:
      */
     void Stop();
 
+    int64_t num_bytes_written_on_socket() const {
+        return num_bytes_written_on_socket_.load();
+    }
+
 private:
     int64_t ComputeLocalMinusServerClocks();
 
@@ -247,6 +251,8 @@ private:
     bool is_initialized_;
     int64_t initialized_at_us_;
     int last_stream_key_idx_;
+
+    std::atomic_int64_t num_bytes_written_on_socket_{0};
 };
 
 class PreparedDataImpl;

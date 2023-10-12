@@ -64,7 +64,7 @@ private:
     RedisModuleBlockedClient *bc_;
 };
 
-struct customLess {
+struct CustomLess {
     bool operator()(QueuedBatchXaddData *l, QueuedBatchXaddData *r) const {
         return l->IndexStart() > r->IndexStart();
     }
@@ -110,11 +110,12 @@ public:
 private:
     std::unordered_map<
         std::string,
-        std::priority_queue<QueuedBatchXaddData *, std::vector<QueuedBatchXaddData *>, customLess>>
+        std::priority_queue<QueuedBatchXaddData *, std::vector<QueuedBatchXaddData *>, CustomLess>>
         queue_by_stream_name_;
 };
 
 static QueuedBatchManager *queued_batch_manager;
+static QueuedBatchManager *queued_batch_manager_compressed;
 
 void free_privdata(RedisModuleCtx *ctx, void *data) {
     RedisModule_Free(data);
@@ -133,7 +134,33 @@ int BatchXaddStopCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc
     return RedisModule_ReplyWithSimpleString(ctx, "OK");
 }
 
-int BatchXaddCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
+typedef int (*BatchXaddParameterExtractorFunc)(
+    int argc,
+    RedisModuleString **argv,
+    RedisModuleCtx *ctx,
+    RedisModuleString **key_str,
+    RedisModuleString **metadata_key_str,
+    RedisModuleString **data_str,
+    long long *index_start,
+    long long *num_samples,
+    long long *sample_size_bytes
+);
+typedef int (*BatchXaddExecutorFunc)(
+    RedisModuleCtx *ctx,
+    RedisModuleKey *key,
+    RedisModuleString *data_str,
+    long long index_start,
+    long long num_samples,
+    long long sample_size_bytes
+);
+
+
+template <RedisModuleCmdFunc Function, BatchXaddParameterExtractorFunc Extractor, BatchXaddExecutorFunc Executor>
+int BatchXaddCommandShared(
+    QueuedBatchManager *manager,
+    RedisModuleCtx *ctx,
+    RedisModuleString **argv,
+    int argc) {
     // batch_xadd <key> <metadata key> <index start> <n samples> <sample size bytes> <data bytes>
     RedisModule_AutoMemory(ctx);
 
@@ -154,17 +181,12 @@ int BatchXaddCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
         num_samples = data_ptr->NumSamples();
         sample_size_bytes = data_ptr->SampleSizeBytes();
     } else {
-        if (argc != 7) {
-            return RedisModule_WrongArity(ctx);
+        int extraction_ret_code = Extractor(
+            argc, argv, ctx,
+            &key_str, &metadata_key_str, &data_str, &index_start, &num_samples, &sample_size_bytes);
+        if (extraction_ret_code != REDISMODULE_OK) {
+            return extraction_ret_code;
         }
-
-        // open the key and make sure it's indeed a STREAM
-        key_str = argv[1];
-        metadata_key_str = argv[2];
-        ASSERT_NOERROR_REDIS_FXN(RedisModule_StringToLongLong(argv[3], &index_start));
-        ASSERT_NOERROR_REDIS_FXN(RedisModule_StringToLongLong(argv[4], &num_samples));
-        ASSERT_NOERROR_REDIS_FXN(RedisModule_StringToLongLong(argv[5], &sample_size_bytes));
-        data_str = argv[6];
     }
 
     RedisModuleKey *key = RedisModule_OpenKey(ctx, key_str, REDISMODULE_READ | REDISMODULE_WRITE);
@@ -200,26 +222,96 @@ int BatchXaddCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
         // assumes that all writers uploading out-of-order data should all be relatively "close" to one another, i.e.
         // all blocked clients should be resolved with 60s.
         RedisModuleBlockedClient *bc =
-            RedisModule_BlockClient(ctx, BatchXaddCommand, BatchXaddCommand, free_privdata, 60000);
-        RedisModule_RetainString(ctx, argv[1]);
-        RedisModule_RetainString(ctx, argv[2]);
+            RedisModule_BlockClient(ctx, Function, Function, free_privdata, 60000);
+        RedisModule_RetainString(ctx, key_str);
+        RedisModule_RetainString(ctx, metadata_key_str);
         auto *queued_data = (QueuedBatchXaddData *) RedisModule_Alloc(sizeof(QueuedBatchXaddData));
         *queued_data = QueuedBatchXaddData{
-            argv[1],
-            argv[2],
+            key_str,
+            metadata_key_str,
             index_start,
             num_samples,
             sample_size_bytes,
-            argv[6],
+            data_str,
             bc};
 
-        queued_batch_manager->push(metadata_key_value, queued_data);
+        manager->push(metadata_key_value, queued_data);
 
         RedisModule_CloseKey(key);
         RedisModule_CloseKey(metadata_key);
         return REDISMODULE_OK;
     }
 
+    int execution_retcode = Executor(
+        ctx,
+        key,
+        data_str,
+        index_start,
+        num_samples,
+        sample_size_bytes);
+    if (execution_retcode != REDISMODULE_OK) {
+        return execution_retcode;
+    }
+
+    // Increment total_samples_written appropriately
+    long new_total_samples_written  = total_samples_written + num_samples;
+    RedisModuleString *new_total_samples_written_str = RedisModule_CreateStringFromLongLong(
+        ctx, new_total_samples_written);
+    int num_fields_updated = RedisModule_HashSet(
+        metadata_key,
+        REDISMODULE_HASH_CFIELDS | REDISMODULE_HASH_XX,
+        "total_samples_written",
+        new_total_samples_written_str,
+        NULL);
+    if (num_fields_updated != 1) {
+        return RedisModule_ReplyWithError(ctx, "ERR HSET failed.");
+    }
+    RedisModule_FreeString(ctx, new_total_samples_written_str);
+
+    // And then dequeue the next pending batch command
+    auto queued_min_index_start = manager->top_index_start(metadata_key_value);
+    if (queued_min_index_start.has_value() && *queued_min_index_start == new_total_samples_written) {
+        auto data = manager->pop(metadata_key_value);
+        RedisModule_UnblockClient(data->Bc(), data);
+    }
+
+    RedisModule_CloseKey(key);
+    RedisModule_CloseKey(metadata_key);
+    return RedisModule_ReplyWithSimpleString(ctx, "OK");
+}
+
+int BatchXaddParameterExtractor(
+    int argc,
+    RedisModuleString **argv,
+    RedisModuleCtx *ctx,
+    RedisModuleString **key_str,
+    RedisModuleString **metadata_key_str,
+    RedisModuleString **data_str,
+    long long *index_start,
+    long long *num_samples,
+    long long *sample_size_bytes) {
+    if (argc != 7) {
+        return RedisModule_WrongArity(ctx);
+    }
+
+    // open the key and make sure it's indeed a STREAM
+    *key_str = argv[1];
+    *metadata_key_str = argv[2];
+    ASSERT_NOERROR_REDIS_FXN(RedisModule_StringToLongLong(argv[3], index_start));
+    ASSERT_NOERROR_REDIS_FXN(RedisModule_StringToLongLong(argv[4], num_samples));
+    ASSERT_NOERROR_REDIS_FXN(RedisModule_StringToLongLong(argv[5], sample_size_bytes));
+    *data_str = argv[6];
+    return REDISMODULE_OK;
+}
+
+int BatchXaddExecutor(
+        RedisModuleCtx *ctx,
+        RedisModuleKey *key,
+        RedisModuleString *data_str,
+        long long index_start,
+        long long num_samples,
+        long long sample_size_bytes
+    ) {
     size_t value_length;
     const char *value = RedisModule_StringPtrLen(data_str, &value_length);
 
@@ -243,59 +335,51 @@ int BatchXaddCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
         for (int j = 0; j < 4; j++) {
             RedisModule_FreeString(ctx, xadd_params[j]);
         }
-     }
+    }
     RedisModule_Free(xadd_params);
-
-    // Increment total_samples_written appropriately
-    long new_total_samples_written  = total_samples_written + num_samples;
-    RedisModuleString *new_total_samples_written_str = RedisModule_CreateStringFromLongLong(
-        ctx, new_total_samples_written);
-    int num_fields_updated = RedisModule_HashSet(
-        metadata_key,
-        REDISMODULE_HASH_CFIELDS | REDISMODULE_HASH_XX,
-        "total_samples_written",
-        new_total_samples_written_str,
-        NULL);
-    if (num_fields_updated != 1) {
-        return RedisModule_ReplyWithError(ctx, "ERR HSET failed.");
-    }
-    RedisModule_FreeString(ctx, new_total_samples_written_str);
-
-    // And then dequeue the next pending batch command
-    auto queued_min_index_start = queued_batch_manager->top_index_start(metadata_key_value);
-    if (queued_min_index_start.has_value() && *queued_min_index_start == new_total_samples_written) {
-        auto data = queued_batch_manager->pop(metadata_key_value);
-        RedisModule_UnblockClient(data->Bc(), data);
-    }
-
-    RedisModule_CloseKey(key);
-    RedisModule_CloseKey(metadata_key);
-    return RedisModule_ReplyWithSimpleString(ctx, "OK");
+    return REDISMODULE_OK;
 }
 
-int BatchXaddCompressedCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
-    // batch_xadd_compressed <key> <index start> <n samples> <value in bytes>
-    if (argc != 5) {
+int BatchXaddCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
+    return BatchXaddCommandShared<
+        BatchXaddCommand,
+        BatchXaddParameterExtractor,
+        BatchXaddExecutor>(queued_batch_manager, ctx, argv, argc);
+}
+
+int BatchXaddCompressedParameterExtractor(
+    int argc,
+    RedisModuleString **argv,
+    RedisModuleCtx *ctx,
+    RedisModuleString **key_str,
+    RedisModuleString **metadata_key_str,
+    RedisModuleString **data_str,
+    long long *index_start,
+    long long *num_samples,
+    long long *sample_size_bytes) {
+    if (argc != 6) {
         return RedisModule_WrongArity(ctx);
     }
-    RedisModule_AutoMemory(ctx);
 
-    // open the key and make sure it's indeed a STREAM
-    RedisModuleKey *key =
-        RedisModule_OpenKey(ctx, argv[1], REDISMODULE_READ | REDISMODULE_WRITE);
-    if (RedisModule_KeyType(key) != REDISMODULE_KEYTYPE_STREAM &&
-        RedisModule_KeyType(key) != REDISMODULE_KEYTYPE_EMPTY) {
-        return RedisModule_ReplyWithError(ctx, REDISMODULE_ERRORMSG_WRONGTYPE);
-    }
+    *key_str = argv[1];
+    *metadata_key_str = argv[2];
+    ASSERT_NOERROR_REDIS_FXN(RedisModule_StringToLongLong(argv[3], index_start));
+    ASSERT_NOERROR_REDIS_FXN(RedisModule_StringToLongLong(argv[4], num_samples));
+    *sample_size_bytes = -1;
+    *data_str = argv[5];
+    return REDISMODULE_OK;
+}
 
-    long long index_start;
-    ASSERT_NOERROR_REDIS_FXN(RedisModule_StringToLongLong(argv[2], &index_start));
-
-    long long num_samples;
-    ASSERT_NOERROR_REDIS_FXN(RedisModule_StringToLongLong(argv[3], &num_samples));
-
+int BatchXaddCompressedExecutor(
+    RedisModuleCtx *ctx,
+    RedisModuleKey *key,
+    RedisModuleString *data_str,
+    long long index_start,
+    long long num_samples,
+    long long
+) {
     size_t value_length;
-    const char *value = RedisModule_StringPtrLen(argv[4], &value_length);
+    const char *value = RedisModule_StringPtrLen(data_str, &value_length);
 
     RedisModuleString **xadd_params = (RedisModuleString **) RedisModule_Alloc(sizeof(RedisModuleString *) * 4);
 
@@ -340,8 +424,85 @@ int BatchXaddCompressedCommand(RedisModuleCtx *ctx, RedisModuleString **argv, in
     }
 
     RedisModule_Free(xadd_params);
-    return RedisModule_ReplyWithSimpleString(ctx, "OK");
+    return REDISMODULE_OK;
 }
+
+int BatchXaddCompressedCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
+    return BatchXaddCommandShared<
+        BatchXaddCompressedCommand,
+        BatchXaddCompressedParameterExtractor,
+        BatchXaddCompressedExecutor>(queued_batch_manager_compressed, ctx, argv, argc);
+}
+
+//int BatchXaddCompressedCommandFoo(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
+//    // batch_xadd_compressed <key> <index start> <n samples> <value in bytes>
+//    if (argc != 5) {
+//        return RedisModule_WrongArity(ctx);
+//    }
+//    RedisModule_AutoMemory(ctx);
+//
+//    // open the key and make sure it's indeed a STREAM
+//    RedisModuleKey *key =
+//        RedisModule_OpenKey(ctx, argv[1], REDISMODULE_READ | REDISMODULE_WRITE);
+//    if (RedisModule_KeyType(key) != REDISMODULE_KEYTYPE_STREAM &&
+//        RedisModule_KeyType(key) != REDISMODULE_KEYTYPE_EMPTY) {
+//        return RedisModule_ReplyWithError(ctx, REDISMODULE_ERRORMSG_WRONGTYPE);
+//    }
+//
+//    long long index_start;
+//    ASSERT_NOERROR_REDIS_FXN(RedisModule_StringToLongLong(argv[2], &index_start));
+//
+//    long long num_samples;
+//    ASSERT_NOERROR_REDIS_FXN(RedisModule_StringToLongLong(argv[3], &num_samples));
+//
+//    size_t value_length;
+//    const char *value = RedisModule_StringPtrLen(argv[4], &value_length);
+//
+//    RedisModuleString **xadd_params = (RedisModuleString **) RedisModule_Alloc(sizeof(RedisModuleString *) * 4);
+//
+//    const char *i_str = "i";
+//    xadd_params[0] = RedisModule_CreateString(ctx, i_str, strlen(i_str));
+//    xadd_params[1] = RedisModule_CreateStringFromLongLong(ctx, index_start);
+//
+//    const char *val_str = "val";
+//    xadd_params[2] = RedisModule_CreateString(ctx, val_str, strlen(val_str));
+//    xadd_params[3] = RedisModule_CreateString(ctx, value, value_length);
+//
+//    RedisModuleStreamID reference_id;
+//    int stream_add_resp = RedisModule_StreamAdd(key, REDISMODULE_STREAM_ADD_AUTOID, &reference_id, xadd_params, 2);
+//    if (stream_add_resp != REDISMODULE_OK) {
+//        return RedisModule_ReplyWithError(ctx, "ERR Xadd failed.");
+//    }
+//    for (int i = 0; i < 4; i++) {
+//        RedisModule_FreeString(ctx, xadd_params[i]);
+//    }
+//
+//    const char *reference = "reference";
+//    RedisModuleString *reference_str = RedisModule_CreateString(ctx, reference, strlen(reference));
+//
+//    RedisModuleString *reference_id_str = RedisModule_CreateStringFromStreamID(ctx, &reference_id);
+//    size_t reference_id_str_len;
+//    RedisModule_StringPtrLen(reference_id_str, &reference_id_str_len);
+//    for (int sample_idx = 1; sample_idx < num_samples; sample_idx++) {
+//        xadd_params[0] = RedisModule_CreateString(ctx, i_str, strlen(i_str));
+//        xadd_params[1] = RedisModule_CreateStringFromLongLong(ctx, index_start + sample_idx);
+//
+//        xadd_params[2] = reference_str;
+//        xadd_params[3] = reference_id_str;
+//
+//        stream_add_resp = RedisModule_StreamAdd(key, REDISMODULE_STREAM_ADD_AUTOID, NULL, xadd_params, 2);
+//        if (stream_add_resp != REDISMODULE_OK) {
+//            return RedisModule_ReplyWithError(ctx, "ERR Xadd failed.");
+//        }
+//
+//        for (int i = 0; i < 2; i++) {
+//            RedisModule_FreeString(ctx, xadd_params[i]);
+//        }
+//    }
+//
+//    RedisModule_Free(xadd_params);
+//    return RedisModule_ReplyWithSimpleString(ctx, "OK");
+//}
 
 int BatchXaddVariableCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
     // batch_xadd_variable <key> <index start> <sizes in ints> <value in bytes>
@@ -403,6 +564,7 @@ EXTERNC int RedisModule_OnLoad(RedisModuleCtx *ctx) {
     }
 
     queued_batch_manager = new QueuedBatchManager();
+    queued_batch_manager_compressed = new QueuedBatchManager();
 
     // register example.hgetset - using the shortened utility registration macro
     RMUtil_RegisterWriteCmd(ctx, "river.batch_xadd", BatchXaddCommand);

@@ -229,8 +229,10 @@ int main(int argc, char **argv) {
     long long int us = chrono::duration_cast<chrono::microseconds>(end_time - start_time).count();
     double throughput = num_samples / (us / 1e6);
     cout << fmt::format(
-        "Put {} elements in {:.3f} ms ({:.3f} items/sec, {:.3f} MB/sec) for stream {}",
-        num_written, us / 1000.0f, throughput, throughput * sample_size / 1024 / 1024, stream_name)
+        "Put {} elements in {:.3f} ms ({:.3f} items/sec, {:.3f} MB/sec) for stream {}  >> [{:.3f} MB data => {:.3f} MB network]",
+        num_written, us / 1000.0f, throughput, throughput * sample_size / 1000.0 / 1000.0, stream_name,
+        num_samples * sample_size / 1000.0 / 1000.0,
+        writer.num_bytes_written_on_socket() / 1000.0 / 1000.0)
          << endl;
 
     reader.Initialize(stream_name);

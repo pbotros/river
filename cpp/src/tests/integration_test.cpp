@@ -357,3 +357,11 @@ TEST_F(IntegrationTest, Test_ParallelSend) {
     writing_pool_size = 4;
     run();
 }
+
+TEST_F(IntegrationTest, Test_ParallelSend_Compressed) {
+    compression_type = StreamCompression::Type::DUMMY;
+    compression_params = {
+    };
+    writing_pool_size = 4;
+    run();
+}

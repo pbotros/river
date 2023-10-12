@@ -8,6 +8,7 @@
 #include <iostream>
 #include <glog/logging.h>
 #include <cassert>
+#include <tracy/Tracy.hpp>
 
 
 namespace river {
@@ -65,10 +66,13 @@ ZfpCompressor<DataTypeT>::~ZfpCompressor() noexcept {
 
 template <class DataTypeT>
 std::vector<char> ZfpCompressor<DataTypeT>::compress(const char *data, size_t length) {
+    ZoneScopedN("ZFP");
+
     assert(length % (sizeof(DataTypeT) * num_cols_) == 0);
     auto num_rows = (int) (length / sizeof(DataTypeT) / num_cols_);
 
     if (impl_ == nullptr || impl_->num_rows_ != num_rows) {
+        ZoneScopedN("ZFP_Reallocate");
         // We lazily instantiate the internal data structure within this compressor to minimize the number of
         // initializations we do. This paradigm leverages the fact that most StreamWriter's will likely call Write()
         // with the same number of rows of data every time.
@@ -115,6 +119,8 @@ std::vector<char> ZfpCompressor<DataTypeT>::compress(const char *data, size_t le
     // Needs promotion explicitly since ZFP only supports int32's. We copy the logic from the zfp_promote* functions
     // here.
     if constexpr (std::is_same_v<DataTypeT, int16_t>) {
+        ZoneScopedN("ZFP_IntPromotion");
+
         auto data_int16 = (int16_t *) data;
         for (size_t i = 0; i < impl_->data_promoted->size(); i++) {
             // Promote it properly
@@ -130,7 +136,11 @@ std::vector<char> ZfpCompressor<DataTypeT>::compress(const char *data, size_t le
 
     // compress array
     size_t zfpheadersize = zfp_write_header(impl_->zfp_, impl_->field_, ZFP_HEADER_FULL);
-    size_t zfpsize = zfp_compress(impl_->zfp_, impl_->field_);                // return value is byte size of compressed stream
+    size_t zfpsize;
+    {
+        ZoneScopedN("ZFP_DoCompress");
+        zfpsize = zfp_compress(impl_->zfp_, impl_->field_);                // return value is byte size of compressed stream
+    }
 
     const char *ret_start = impl_->buffer_.data();
     return {ret_start, ret_start + zfpheadersize + zfpsize};

@@ -20,12 +20,12 @@ namespace river {
 class PreparedDataImpl {
 public:
     PreparedDataImpl(const RedisWriterCommand& writer_command,
-                     const vector<char> &data_holder,
+                     std::vector<char> &&data_holder,
                      const char *data_to_write,
                      int64_t data_to_write_num_bytes,
                      int64_t num_samples)
         : writer_command_(writer_command),
-          data_holder_(data_holder),
+          data_holder_(std::move(data_holder)),
           data_to_write_(data_to_write),
           data_to_write_num_bytes_(data_to_write_num_bytes),
           num_samples_(num_samples) {}
@@ -34,7 +34,7 @@ public:
 private:
     friend StreamWriter;
     RedisWriterCommand writer_command_;
-    const std::vector<char> data_holder_;
+    std::vector<char> data_holder_;
     const char *data_to_write_;
     int64_t data_to_write_num_bytes_;
     int64_t num_samples_;
@@ -200,6 +200,7 @@ int64_t StreamWriter::SendPrepared(PreparedData &prepared_data) {
             throw StreamWriterException(
                 fmt::format("Failed to write apprporiate number of bytes! wrote bytes={}", bytes_written));
         }
+        num_bytes_written_on_socket_.fetch_add(bytes_written);
 
         {
             ZoneScopedN("ReceivingResponse");
@@ -301,7 +302,7 @@ std::optional<PreparedData> StreamWriter::WriteOrPrepareBytes(const char *data, 
             // redundant characters sent over the network.
             int append_argc;//  = (this->has_variable_width_field_ || has_compression) ? 5 : 6;
             if (has_compression) {
-                append_argc = 5;
+                append_argc = 6;
             } else if (this->has_variable_width_field_) {
                 append_argc = 5;
             } else {
@@ -336,14 +337,17 @@ std::optional<PreparedData> StreamWriter::WriteOrPrepareBytes(const char *data, 
                 append_argv[0] = "RIVER.batch_xadd_compressed";
                 append_arglens[0] = strlen(append_argv[0]);
 
-                append_argv[2] = formatted_global_index.c_str();
+                append_argv[2] = metadata_key.c_str();
                 append_arglens[2] = strlen(append_argv[2]);
 
-                append_argv[3] = formatted_num_samples.c_str();
-                append_arglens[3] = formatted_num_samples.size();
+                append_argv[3] = formatted_global_index.c_str();
+                append_arglens[3] = strlen(append_argv[3]);
+
+                append_argv[4] = formatted_num_samples.c_str();
+                append_arglens[4] = formatted_num_samples.size();
 
                 // Overwritten later down, doesn't matter now.
-                append_argv[4] = "\0";
+                append_argv[5] = "\0";
                 append_arglens[5] = 1;
             } else if (this->has_variable_width_field_) {
                 append_argv[0] = "RIVER.batch_xadd_variable";
@@ -397,7 +401,9 @@ std::optional<PreparedData> StreamWriter::WriteOrPrepareBytes(const char *data, 
             if constexpr (IsPrepare) {
                 prepared_data.impls_.push_back(new PreparedDataImpl(
                     xadd_redis_command_,
-                    data_holder,
+                    // Ensure to move it to (a) prevent unnecessary copying and (b) ensure data_to_write pointer
+                    // stays valid.
+                    std::move(data_holder),
                     data_to_write,
                     data_to_write_num_bytes,
                     samples_to_write_in_batch));
