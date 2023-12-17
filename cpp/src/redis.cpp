@@ -7,8 +7,8 @@
 #include <iostream>
 #include <nlohmann/json.hpp>
 #include <regex>
-#include <glog/logging.h>
-#include <fmt/format.h>
+#include <spdlog/fmt/fmt.h>
+#include <spdlog/spdlog.h>
 
 #include "net/sockcompat.h"
 #if defined(_WIN32) || defined(_WIN64)
@@ -51,7 +51,8 @@ unique_ptr<Redis> Redis::Create(const RedisConnection &connection) {
           throw RedisException(msg);
         }
 
-        LOG(INFO) << "AUTH response: " << reply->str << std::endl;
+        std::string reply_str = reply->str;
+        spdlog::info("AUTH response: {}", reply_str);
         freeReplyObject(reply);
     }
 

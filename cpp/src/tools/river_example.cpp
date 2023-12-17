@@ -1,12 +1,8 @@
 #include <random>
 #include <sstream>
-#include <glog/logging.h>
 #include "../river.h"
 
 int main(int, char **) {
-    // River uses GLOG for logging.
-    google::InitGoogleLogging("river");
-
     // Generate a random stream name
     std::random_device rd;
     std::mt19937 gen(rd());

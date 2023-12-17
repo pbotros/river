@@ -62,7 +62,7 @@ void tail_data(shared_ptr<StreamReader> reader) {
     while (reader) {
         int num_skipped = reader->Tail(&element);
         if (num_skipped < 0) {
-            LOG(INFO) << "Tail terminating." << endl;
+            spdlog::info("Tail terminating.");
             return;
         }
         ASSERT_GE(element, 0);

@@ -2,8 +2,8 @@
 #include "../river.h"
 #include <thread>
 #include <chrono>
-#include <fmt/format.h>
-#include <glog/logging.h>
+#include <spdlog/fmt/fmt.h>
+#include <spdlog/spdlog.h>
 #include "../tools/uuid.h"
 
 using namespace std;
@@ -417,7 +417,7 @@ TEST_F(StreamReaderTest, DISABLED_TestTimeout_Precision) {
 
     // Check for <= 1ms jitter in timeout.
     for (int timeout = 1; timeout < 30; timeout += 2) {
-        LOG(INFO) << "Testing timeout " << timeout << "ms..." << endl;
+        spdlog::info("Testing timeout {} ms...", timeout);
         int missed = 0;
         int num_reps = 20;
         for (int j = 0; j < num_reps; j++) {
@@ -431,7 +431,7 @@ TEST_F(StreamReaderTest, DISABLED_TestTimeout_Precision) {
     }
 
     for (int timeout = 100; timeout <= 600; timeout += 100) {
-        LOG(INFO) << "Testing timeout " << timeout << "ms..." << endl;
+        spdlog::info("Testing timeout {} ms...", timeout);
         int missed = 0;
         for (int j = 0; j < 5; j++) {
             float t = test_timeout(reader_, timeout);

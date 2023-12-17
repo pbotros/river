@@ -7,7 +7,7 @@
 #include <optional>
 #include <filesystem>
 #include <utility>
-#include <glog/logging.h>
+#include <spdlog/spdlog.h>
 
 using json = nlohmann::json;
 
@@ -160,7 +160,7 @@ std::optional<json> IngesterHttpServer::GetStreamJson(const std::string &stream_
         metadata["local_minus_server_clock_us"] = std::stoll((std::string) metadata["local_minus_server_clock_us"]);
         return metadata;
     } catch (json::exception &e) {
-        LOG(INFO) << "Failed to parse metadata for stream " << stream_name;
+        spdlog::info("Failed to parse metadata for stream {}", stream_name);
         return std::nullopt;
     }
 }

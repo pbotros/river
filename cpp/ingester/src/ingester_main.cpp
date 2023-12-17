@@ -4,7 +4,7 @@
 #include <thread>
 #include <fstream>
 #include <boost/program_options.hpp>
-#include <glog/logging.h>
+#include <spdlog/spdlog.h>
 #include <filesystem>
 #include "ingester_http_server.h"
 
@@ -14,13 +14,11 @@ namespace po = boost::program_options;
 bool terminated = false;
 
 void signal_handler(int) {
-    LOG(INFO) << "SIGINT/SIGTERM received. Gracefully stopping..." << endl;
+    spdlog::info("SIGINT/SIGTERM received. Gracefully stopping...");
     terminated = true;
 }
 
 int main(int argc, char **argv) {
-    google::InitGoogleLogging("river");
-
     string redis_hostname;
     int redis_port;
     string redis_password;
@@ -71,7 +69,7 @@ int main(int argc, char **argv) {
 
     std::unique_ptr<river::IngesterHttpServer> maybe_server;
     if (http_server_port > 0) {
-        LOG(INFO) << "Starting HTTP server..." << endl;
+        spdlog::info("Starting HTTP server...");
         maybe_server = std::make_unique<river::IngesterHttpServer>(output_directory, http_server_port);
         maybe_server->Start();
     }
@@ -94,16 +92,16 @@ int main(int argc, char **argv) {
                 output_directory,
                 &terminated,
                 settings_by_stream);
-        LOG(INFO) << "Beginning ingestion forever." << endl;
+        spdlog::info("Beginning ingestion forever...");
         while (!terminated) {
             ingester.Ingest();
             this_thread::sleep_for(chrono::seconds(1));
         }
     }
-    LOG(INFO) << "Ingestion terminated." << endl;
+    spdlog::info("Ingestion terminated.");
     if (maybe_server) {
         maybe_server->Stop();
-        LOG(INFO) << "HTTP server terminated." << endl;
+        spdlog::info("HTTP server terminated.");
     }
     return 0;
 }

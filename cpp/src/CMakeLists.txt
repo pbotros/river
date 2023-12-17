@@ -13,11 +13,6 @@ endif()
 include(FetchContent)
 
 FetchContent_Declare(
-  fmt
-  GIT_REPOSITORY    https://github.com/fmtlib/fmt.git
-  GIT_TAG           6.2.0
-)
-FetchContent_Declare(
   hiredis
   GIT_REPOSITORY    https://github.com/redis/hiredis.git
   GIT_TAG           b484021859c2b395f13163caaa9b877b5284ab07
@@ -34,10 +29,10 @@ FetchContent_Declare(
 )
 
 set(FMT_INSTALL OFF)
-FetchContent_MakeAvailable(fmt hiredis json cxxopts)
+FetchContent_MakeAvailable(hiredis json cxxopts)
 
-# ===== External Dependency: glog
-find_package(glog REQUIRED)
+# ===== External Dependency: spdlog
+find_package(spdlog REQUIRED)
 
 set(RIVER_HEADERS_PUBLIC
         writer.h
@@ -80,13 +75,12 @@ else()
 endif()
 
 set(LIBRARIES_TO_LINK
-        "fmt::fmt-header-only"
         "hiredis"
-        "glog::glog"
+        "spdlog::spdlog"
         "nlohmann_json::nlohmann_json"
         "cxxopts"
         ${ADDITIONAL_LIBRARIES})
-set(LIBRARIES_TO_LINK_PKGCONFIG_OPTIONS "-lglog -lhiredis")
+set(LIBRARIES_TO_LINK_PKGCONFIG_OPTIONS "-lspdlog -lhiredis")
 
 
 add_library(river SHARED ${RIVER_HEADERS_ALL} ${RIVER_SOURCES})
@@ -157,7 +151,7 @@ if (RIVER_INSTALL)
 
   #########################################
   # Handle .cmake and pkg-config .pc files
-  # Below copied from fmt and from glog
+  # Below copied from fmt
   ########################################
   set(version_config ${PROJECT_BINARY_DIR}/river-config-version.cmake)
   set(project_config ${PROJECT_BINARY_DIR}/river-config.cmake)

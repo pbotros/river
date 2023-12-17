@@ -4,9 +4,6 @@
 
 #include "compressor.h"
 #include <zfp.hpp>
-#include <sstream>
-#include <iostream>
-#include <glog/logging.h>
 #include <cassert>
 
 

@@ -1,6 +1,5 @@
 #include <chrono>
-#include <glog/logging.h>
-#include <fmt/format.h>
+#include <spdlog/fmt/fmt.h>
 #include <fstream>
 #include <cxxopts.hpp>
 #include "uuid.h"
@@ -12,8 +11,6 @@ using json = nlohmann::json;
 using namespace std;
 
 int main(int argc, char **argv) {
-  google::InitGoogleLogging("river");
-
   cxxopts::Options options("RiverBenchmark", "Benchmarks river readers and writers.");
   options.add_options()
       ("help",

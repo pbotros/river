@@ -3,7 +3,7 @@
 //
 
 #include "redis_writer_commands.h"
-#include <fmt/format.h>
+#include <spdlog/fmt/fmt.h>
 
 namespace river {
 

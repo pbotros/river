@@ -14,8 +14,8 @@ else()
     add_compile_definitions(BOOST_ASIO_DISABLE_STD_ALIGNED_ALLOC)
 endif()
 
-# ===== External Dependency: glog
-find_package(glog REQUIRED)
+# ===== External Dependency: spdlog, arrow (for Parquet support)
+find_package(spdlog REQUIRED)
 find_package(Arrow REQUIRED)
 
 # This should work on Arrow 10.0+. Not Required though?
@@ -60,12 +60,11 @@ set(INCLUDE_DIRS
 )
 set(LIBRARIES_TO_LINK
         "river"
-        "fmt"
         "Boost::filesystem"
         "Boost::program_options"
         "Boost::system"
         "Boost::thread"
-        "glog::glog"
+        "spdlog::spdlog"
         "hiredis"
         "nlohmann_json::nlohmann_json"
         arrow_shared

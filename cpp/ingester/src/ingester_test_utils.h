@@ -18,7 +18,8 @@
 #include <boost/uuid/uuid_io.hpp>         // streaming operators etc.
 #include <chrono>
 #include <cstdlib>
-#include <fmt/format.h>
+#include <spdlog/fmt/fmt.h>
+#include <spdlog/spdlog.h>
 #include <parquet/api/reader.h>
 #include <parquet/api/writer.h>
 #include <parquet/api/writer.h>
@@ -28,7 +29,6 @@
 #include <parquet/file_writer.h>
 #include <parquet/properties.h>
 #include <utility>
-#include <glog/logging.h>
 
 #include "river.h"
 #include "ingester.h"
@@ -65,10 +65,9 @@ inline shared_ptr<arrow::Table> read_data_file(const string &directory, const st
             parquet::arrow::OpenFile(infile, arrow::default_memory_pool(), &reader));
     PARQUET_THROW_NOT_OK(reader->ReadTable(&table));
 
-    std::stringstream ss;
-    ss << "Loaded " << table->num_rows() << " rows in " << table->num_columns()
-       << " columns. [filename " << data_filename << "]." << std::endl;
-    LOG(INFO) << ss.str();
+    spdlog::info("Loaded {} rows in {} columns. [filename {}].",
+                 table->num_rows(), table->num_columns(),
+                 data_filename);
     return table;
 }
 }
