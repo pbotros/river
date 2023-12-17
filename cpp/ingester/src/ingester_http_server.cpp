@@ -152,25 +152,17 @@ std::optional<json> IngesterHttpServer::GetStreamJson(const std::string &stream_
         return std::nullopt;
     }
 
-    json ret;
-
-    json metadata;
-    {
-        std::ifstream metadata_f(metadata_filename);
-        metadata = json::parse(metadata_f);
-    }
-
+    std::ifstream metadata_f(metadata_filename);
     try {
-        ret["stream_name"] = metadata["stream_name"];
-        ret["ingestion_status"] = metadata["ingestion_status"];
-        ret["initialized_at_us"] = std::stoull((std::string) metadata["initialized_at_us"]);
-        ret["local_minus_server_clock_us"] = std::stoll((std::string) metadata["local_minus_server_clock_us"]);
+        json metadata;
+        metadata = json::parse(metadata_f);
+        metadata["initialized_at_us"] = std::stoull((std::string) metadata["initialized_at_us"]);
+        metadata["local_minus_server_clock_us"] = std::stoll((std::string) metadata["local_minus_server_clock_us"]);
+        return metadata;
     } catch (json::exception &e) {
         LOG(INFO) << "Failed to parse metadata for stream " << stream_name;
         return std::nullopt;
     }
-
-    return ret;
 }
 
 }
