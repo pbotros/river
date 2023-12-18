@@ -2,12 +2,12 @@
 
 #include <iostream>
 #include <cstring>
-#include <fmt/format.h>
+#include <spdlog/fmt/fmt.h>
 #include <chrono>
 #include "writer.h"
 #include "redis_writer_commands.h"
-#include <glog/logging.h>
 #include "compression/compressor.h"
+#include <spdlog/spdlog.h>
 #include <nlohmann/json.hpp>
 
 using json = nlohmann::json;
@@ -108,16 +108,16 @@ void StreamWriter::Initialize(const string &stream_name,
         throw StreamWriterException(fmt::format("HGETALL failed. stream_name={}", stream_name));
     }
 
-    LOG(INFO) << "Stream metadata:" << endl;
+    spdlog::info("Stream metadata");
     for (const auto& pair : *metadata) {
         // Truncate for very long metadatas/schemas:
         std::stringstream ss;
         ss << "=> " << pair.first << ": " << pair.second;
         std::string ss_str = ss.str();
         if (ss_str.length() >= 120) {
-            LOG(INFO) << (ss_str.substr(0, 120 - 3) + "...") << endl;
+            spdlog::info(ss_str.substr(0, 120 - 3) + "...");
         } else {
-            LOG(INFO) << ss_str << endl;
+            spdlog::info(ss_str);
         }
     }
 
@@ -135,7 +135,7 @@ void StreamWriter::Initialize(const string &stream_name,
 
     auto installed_modules = redis_->GetInstalledModules();
     if (std::find(installed_modules.begin(), installed_modules.end(), "river") != installed_modules.end()) {
-        LOG(INFO) << "Found river module installed. Utilizing it for performance.";
+        spdlog::info("Found river module installed. Utilizing it for performance.");
         this->has_module_installed_ = true;
     } else {
         this->has_module_installed_ = false;
@@ -181,12 +181,9 @@ void StreamWriter::WriteBytes(const char *data, int64_t num_samples, const int *
                  {"sample_index", fmt::format_int(
                      total_samples_written_ == 0 ? total_samples_written_ : total_samples_written_ - 1).str()}});
 
-            std::stringstream ss;
-            ss << "Adding tombstone entry for stream " << stream_name_ << ", key idx "
-               << std::to_string(last_stream_key_idx_) << " at samples "
-               << std::to_string(total_samples_written_)
-               << " | Response : " << std::to_string(reply->type);
-            LOG(INFO) << ss.str() << std::endl;
+            spdlog::info(
+                "Adding tombstone entry for stream {}, key idx {} at samples {} | Response : {}",
+                stream_name_, last_stream_key_idx_, total_samples_written_, std::to_string(reply->type));
 
             last_stream_key_idx_ = stream_key_idx;
         }
@@ -379,10 +376,7 @@ int64_t StreamWriter::ComputeLocalMinusServerClocks() {
     }
 
     auto delta = sum_deltas / num_round_trips;
-    std::stringstream  ss;
-    ss << "Relative time (local - server) = " << delta << " us" << endl;
-    std::string s = ss.str();
-    LOG(INFO) << s;
+    spdlog::info("Relative time (local - server) = {} us", delta);
     return delta;
 }
 
@@ -397,8 +391,8 @@ void StreamWriter::Stop() {
                   {"sample_index",
                    fmt::format_int(total_samples_written_ == 0 ? 0 : total_samples_written_ - 1).str()}});
 
-    LOG(INFO) << "Adding eof entry for stream " << stream_name_ << ", idx " << std::to_string(last_stream_key_idx_)
-              << " at samples " << std::to_string(total_samples_written_) << endl;
+    spdlog::info("Adding eof entry for stream {}, idx {} at samples {}",
+                 stream_name_, last_stream_key_idx_, total_samples_written_);
 
     is_stopped_ = true;
 }

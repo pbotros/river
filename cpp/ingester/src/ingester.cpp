@@ -12,13 +12,13 @@
 #include <parquet/arrow/writer.h>
 #include <parquet/properties.h>
 #include <parquet/exception.h>
-#include <fmt/format.h>
+#include <spdlog/fmt/fmt.h>
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <memory>
 #include <boost/bind/bind.hpp>
-#include <glog/logging.h>
+#include <spdlog/spdlog.h>
 
 #include <utility>
 
@@ -59,7 +59,7 @@ void StreamIngester::Ingest() {
     auto stream_names = _redis->ListStreamNames();
 
     if (stream_names.empty()) {
-        LOG(INFO) << "No streams found to persist." << endl;
+        spdlog::info("No streams found to persist.");
         return;
     }
 
@@ -73,7 +73,7 @@ void StreamIngester::Ingest() {
         }
 
         if (!should_include) {
-            LOG(INFO) << "Stream " << stream_name << " did not match any settings. Skipping." << endl;
+            spdlog::info("Stream {} did not match any settings. Skipping.", stream_name);
             continue;
         }
 
@@ -81,7 +81,7 @@ void StreamIngester::Ingest() {
         {
             lock_guard<mutex> lock(_streams_in_progress_mtx);
             if (_streams_in_progress.find(stream_name) == _streams_in_progress.end()) {
-                LOG(INFO) << "Stream " << stream_name << " enqueued." << endl;
+                spdlog::info("Stream {} enqueued.", stream_name);
                 _streams_in_progress.insert(stream_name);
                 did_enqueue = true;
             }
@@ -104,7 +104,8 @@ StreamIngester::GetResult(const string &stream_name) {
     bool present = _pool->visit_result(stream_name,
                                        [&](const exception &e) {
                                            ret = e;
-                                           LOG(ERROR) << "Exception thrown! " << e.what() << endl;
+
+                                           spdlog::error("Exception thrown! {}", e.what());
                                        },
                                        [&](const StreamIngestionResult &r) {
                                            ret = r;
@@ -121,8 +122,7 @@ StreamIngestionResult StreamIngester::ingest_single(string stream_name) {
         return StreamIngestionResult::IN_PROGRESS;
     }
 
-    LOG(INFO) << "Starting ingestion of stream " << stream_name << " [output directory " << _output_directory << "]."
-         << endl;
+    spdlog::info("Starting ingestion of stream {} [output directory {}]", stream_name, _output_directory);
 
     StreamIngestionSettings settings;
     for (const auto& pair : stream_settings_by_name_glob_) {
@@ -235,15 +235,21 @@ StreamIngestionResult SingleStreamIngester::Ingest() {
     }
 
     StreamIngestionResult ingestion_status = StreamIngestionResult::IN_PROGRESS;
+    int log_idx = 0;
     while (should_ingest && !(*_terminated)) {
-        LOG_EVERY_N(INFO, 10) << "New loop for stream " << stream_name_;
+        if (log_idx % 10 == 0) {
+            spdlog::info("New loop for stream {}", stream_name_);
+        }
+        log_idx++;
+
         int64_t row_group_size = 0;
+        int log_idx2 = 0;
         string eof_key;
         while (should_ingest && !(*_terminated) && row_group_size < samples_per_row_group) {
-            std::stringstream ss;
-            ss << "Fetching new samples. Size " << row_group_size
-               << " for stream " << stream_name_;
-            LOG_EVERY_N(INFO, 500) << ss.str();
+            if (log_idx2 % 500 == 0) {
+                spdlog::info("Fetching new samples. Size {} for stream {}", row_group_size, stream_name_);
+            }
+            log_idx2++;
             int64_t remaining_samples_in_row_group = samples_per_row_group - row_group_size;
             auto samples_to_read = remaining_samples_in_row_group > samples_per_read
                                    ? samples_per_read
@@ -257,17 +263,15 @@ StreamIngestionResult SingleStreamIngester::Ingest() {
                                                  &keys_ptr,
                                                  static_cast<int>(_stalled_timeout_ms));
             if (num_read == 0) {
-                LOG(INFO) << fmt::format("Stream {} has stalled; no responses after {} ms [file index {}].",
-                                         stream_name_, _stalled_timeout_ms, file_data_index);
+                spdlog::info("Stream {} has stalled; no responses after {} ms [file index {}].",
+                             stream_name_, _stalled_timeout_ms, file_data_index);
                 should_ingest = false;
                 break;
             } else if (num_read < 0) {
                 should_ingest = false;
                 ingestion_status = StreamIngestionResult::COMPLETED;
                 eof_key = reader->eof_key();
-                LOG(INFO) << fmt::format("EOF encountered in stream {}, num_read=0, global_offset={}",
-                                         stream_name_,
-                                         global_offset);
+                spdlog::info("EOF encountered in stream {}, num_read=0, global_offset={}", stream_name_, global_offset);
                 break;
             }
 
@@ -282,14 +286,12 @@ StreamIngestionResult SingleStreamIngester::Ingest() {
         if (row_group_size > 0) {
             const string &this_data_filepath = data_filepath(file_data_index);
             if (boost::filesystem::exists(this_data_filepath)) {
-                LOG(INFO) << "Filepath " << this_data_filepath << " already exists. Refusing to overwrite any files.";
+                spdlog::info("Filepath {} already exists. Refusing to overwrite any files.", this_data_filepath);
                 throw StreamIngesterException(
                         fmt::format("Data file already exists; we will not overwrite. File={}", this_data_filepath));
             }
 
-            std::stringstream ss;
-            ss << "Creating batch of length " << row_group_size << ". Total offset is now " << global_offset;
-            LOG(INFO) << ss.str();
+            spdlog::info("Creating batch of length {}. Total offset is now {}", row_group_size, global_offset);
 
             std::vector<std::shared_ptr<arrow::Array>> arrays;
 
@@ -300,7 +302,7 @@ StreamIngestionResult SingleStreamIngester::Ingest() {
             PARQUET_THROW_NOT_OK(sample_idx_builder.Finish(&sample_idx_array));
             arrays.push_back(sample_idx_array);
 
-            LOG(INFO) << "Successfully created sample_indices.";
+            spdlog::info("Successfully created sample_indices.");
 
             // 2. Write keys
             arrow::StringBuilder keys_builder;
@@ -310,7 +312,7 @@ StreamIngestionResult SingleStreamIngester::Ingest() {
             std::shared_ptr<arrow::Array> keys_array;
             PARQUET_THROW_NOT_OK(keys_builder.Finish(&keys_array));
             arrays.push_back(keys_array);
-            LOG(INFO) << "Successfully created keys.";
+            spdlog::info("Successfully created keys.");
 
             // 3. Write timestamp_ms (derived from keys)
             arrow::Int64Builder timestamps_builder;
@@ -321,7 +323,7 @@ StreamIngestionResult SingleStreamIngester::Ingest() {
             std::shared_ptr<arrow::Array> timestamps_array;
             PARQUET_THROW_NOT_OK(timestamps_builder.Finish(&timestamps_array));
             arrays.push_back(timestamps_array);
-            LOG(INFO) << "Successfully created timestamps.";
+            spdlog::info("Successfully created timestamps.");
 
             // 4. All the data fields given in the schema, but filtered according to settings.
             int within_sample_offset = 0;
@@ -384,20 +386,20 @@ StreamIngestionResult SingleStreamIngester::Ingest() {
 
                 within_sample_offset += field.size;
                 arrays.push_back(column_array);
-                LOG(INFO) << "Successfully created column array for field " << field.name;
+                spdlog::info("Successfully created column array for field {}", field.name);
             }
 
             auto arrow_schema = to_arrow(field_definitions_filtered);
             shared_ptr<arrow::Table> table = arrow::Table::Make(arrow_schema, arrays);
 
             boost::filesystem::path temp = parent_directory / boost::filesystem::unique_path();
-            LOG(INFO) << "Writing file to temp filepath " << temp << "...";
+            spdlog::info("Writing file to temp filepath {}...", temp.make_preferred().string());
             write_parquet_file(temp.make_preferred().string(), *table);
-            LOG(INFO) << fmt::format("Successfully wrote to file path. Renaming temporary file {} to final path: {}",
-                                     temp.make_preferred().string(), this_data_filepath);
+            spdlog::info("Successfully wrote to file path. Renaming temporary file {} to final path: {}",
+                         temp.make_preferred().string(), this_data_filepath);
             boost::filesystem::rename(temp, this_data_filepath);
-            LOG(INFO) << fmt::format("Successfully moved temporary file {} to final path: {}",
-                                     temp.make_preferred().string(), this_data_filepath);
+            spdlog::info("Successfully moved temporary file {} to final path: {}",
+                         temp.make_preferred().string(), this_data_filepath);
             file_data_index++;
         }
 
@@ -450,7 +452,7 @@ void SingleStreamIngester::delete_up_to(const string& last_key_persisted) {
     }
 
     if (stream_keys_to_delete.empty()) {
-        LOG(INFO) << fmt::format("Nothing to delete for stream {} up to key {}", stream_name_, last_key_persisted);
+        spdlog::info("Nothing to delete for stream {} up to key {}", stream_name_, last_key_persisted);
         return;
     }
 
@@ -459,7 +461,7 @@ void SingleStreamIngester::delete_up_to(const string& last_key_persisted) {
     if (elapsed_seconds.count() > settings_.minimum_age_seconds_before_deletion) {
         long long to_sleep = settings_.minimum_age_seconds_before_deletion - elapsed_seconds.count() + 1;
         if (to_sleep > 0) {
-            LOG(INFO) << fmt::format(
+            spdlog::info(
                     "Sleeping for {} seconds until we can delete up to this key.", to_sleep);
             std::this_thread::sleep_for(chrono::seconds(to_sleep));
         }
@@ -474,16 +476,16 @@ void SingleStreamIngester::delete_up_to(const string& last_key_persisted) {
             // Change the first_stream_key in the metadata to the one after this, so we always have an intact readable
             // stream.
             redis->SetMetadata(stream_name_, {{"first_stream_key", stream_key_following}});
-            LOG(INFO) << "First_stream_key changed to " << stream_key_following << "." << endl;
+            spdlog::info("First_stream_key changed to {}.", stream_key_following);
         }
 
         redis->Unlink(stream_key_to_del);
-        LOG(INFO) << "Stream key " << stream_key_to_del << " deleted." << endl;
+        spdlog::info("Stream key {} deleted.", stream_key_to_del);
     }
 
     if (is_eof) {
         redis->DeleteMetadata(stream_name_);
-        LOG(INFO) << "Stream metadata for " << stream_name_ << " deleted." << endl;
+        spdlog::info("Stream metadata for {} deleted.", stream_name_);
     }
 }
 
@@ -515,8 +517,8 @@ void SingleStreamIngester::add_eof_if_necessary() {
 
     if (num_read == 0) {
         // We timed out OR we've consumed everything; can't tell.
-        LOG(INFO) << "No elements read; cannot differentiate between an empty stream and repeated timeouts, so not doing "
-                "anything with stream " << stream_name_ << endl;
+        spdlog::info("No elements read; cannot differentiate between an empty stream and repeated timeouts, so not "
+                     "doing anything with stream {}", stream_name_);
         return;
     }
 
@@ -531,8 +533,8 @@ void SingleStreamIngester::add_eof_if_necessary() {
         auto reply = redis->Xadd(listener->last_stream_key, {
             {"eof", "1",},
             {"sample_index", fmt::format_int(sample_index).str()}});
-        LOG(INFO) << fmt::format("Forcibly added an EOF to stream {} at key {} [stream was {} seconds old]",
-                                 stream_name_, reply->str, elapsed_us / 1000000.0) << endl;
+        spdlog::info("Forcibly added an EOF to stream {} at key {} [stream was {} seconds old]",
+                     stream_name_, reply->str, elapsed_us / 1000000.0);
     }
 }
 
@@ -554,14 +556,14 @@ void SingleStreamIngester::combine_all_files() {
     vector<boost::filesystem::path> p = this->list_existing_files();
 
     if (p.empty()) {
-        LOG(INFO) << fmt::format("No previous files found in directory {}. Nothing to do.",
-                                 parent_directory.make_preferred().string()) << endl;
+        spdlog::info("No previous files found in directory {}. Nothing to do.",
+                     parent_directory.make_preferred().string());
         return;
     }
 
     const string &this_data_filepath = combined_data_filepath();
     if (boost::filesystem::exists(this_data_filepath)) {
-        LOG(INFO) << "Combined filepath " << this_data_filepath << " already exists. Refusing to overwrite any files.";
+        spdlog::info("Combined filepath {} already exists. Refusing to overwrite any files.", this_data_filepath);
         throw StreamIngesterException(
                 fmt::format("Combined file already exists; we will not overwrite. File={}", this_data_filepath));
     }
@@ -583,7 +585,7 @@ void SingleStreamIngester::combine_all_files() {
     builder.compression(parquet::Compression::SNAPPY);
     shared_ptr<parquet::WriterProperties> props = builder.build();
 
-    LOG(INFO) << "Beginning combining of files to temp file " << temp_filepath << endl;
+    spdlog::info("Beginning combining of files to temp file {}", temp_filepath);
 
     // Sort ascending order
     sort(p.begin(), p.end(), less<>());
@@ -623,32 +625,24 @@ void SingleStreamIngester::combine_all_files() {
 
         // And then write this table to the existing file
         int64_t num_rows = table->num_rows();
-        {
-            std::stringstream ss;
-            ss << "Writing contents of " << path
-               << " to combined data filepath (" << num_rows << " rows)" << endl;
-            LOG(INFO) << ss.str();
-        }
+        spdlog::info("Writing contents of {} to combined data filepath ({} rows)",
+                     path.make_preferred().string(), num_rows);
         PARQUET_THROW_NOT_OK(writer->WriteTable(*table.get(), num_rows));
-        {
-            std::stringstream ss;
-            ss << "Done writing " << num_rows << " rows." << endl;
-            LOG(INFO) << ss.str();
-        }
+        spdlog::info("Done writing {} rows.", num_rows);
     }
 
     PARQUET_THROW_NOT_OK(writer->Close());
 
-    LOG(INFO) << fmt::format("Renaming temporary file {} to final path: {}",
+    spdlog::info("Renaming temporary file {} to final path: {}",
                              temp_filepath, this_data_filepath);
     boost::filesystem::rename(temp_filepath, this_data_filepath);
-    LOG(INFO) << fmt::format("Successfully moved temporary file {} to final path: {}",
+    spdlog::info("Successfully moved temporary file {} to final path: {}",
                              temp_filepath, this_data_filepath);
 
     // And then we can remove all old files
     for (auto &path : p) {
         boost::filesystem::remove(path);
-        LOG(INFO) << fmt::format("Removed file {}", path);
+        spdlog::info("Removed file {}", path.make_preferred().string());
     }
 }
 
@@ -659,8 +653,8 @@ void SingleStreamIngester::read_existing_files(int *next_data_filepath_index, st
         *next_data_filepath_index = 0;
         *last_key = "0-0";
         *global_index = 0;
-        LOG(INFO) << fmt::format("No previous files found in directory {}. Starting from the start.",
-                            parent_directory.make_preferred().string()) << endl;
+        spdlog::info("No previous files found in directory {}. Starting from the start.",
+                     parent_directory.make_preferred().string());
         return;
     }
 
@@ -699,7 +693,7 @@ void SingleStreamIngester::read_existing_files(int *next_data_filepath_index, st
     auto sample_index_array = get_last<arrow::Int64Array>(table, "sample_index", &sample_index_idx);
 
     if (!key_array || !sample_index_array) {
-        LOG(INFO) << fmt::format("No data found in the loaded table from file {}.", last_path.make_preferred().string());
+        spdlog::info("No data found in the loaded table from file {}.", last_path.make_preferred().string());
         *last_key = "0-0";
         *global_index = 0;
         return;
@@ -708,12 +702,12 @@ void SingleStreamIngester::read_existing_files(int *next_data_filepath_index, st
     *last_key = key_array->GetString(key_idx);
     *global_index = sample_index_array->Value(sample_index_idx) + 1;
 
-    LOG(INFO) << fmt::format("Starting from existing files. last_key={}, global_index={}, found in filename {}. "
-                        "new data file index {}",
-                        *last_key,
-                        *global_index,
-                        last_path.make_preferred().string(),
-                        *next_data_filepath_index) << endl;
+    spdlog::info("Starting from existing files. last_key={}, global_index={}, found in filename {}. "
+                 "new data file index {}",
+                 *last_key,
+                 *global_index,
+                 last_path.make_preferred().string(),
+                 *next_data_filepath_index);
 }
 
 template<class ArrayT>
@@ -830,8 +824,8 @@ void SingleStreamIngester::write_parquet_file(const string &filepath, const arro
     shared_ptr<parquet::WriterProperties> props = builder.build();
 
     PARQUET_THROW_NOT_OK(
-            parquet::arrow::WriteTable(table, arrow::default_memory_pool(), sink, 1024 * 1024 * 4, props));
-    LOG(INFO) << "Successfully wrote table to file. filepath = " << filepath << endl;
+        parquet::arrow::WriteTable(table, arrow::default_memory_pool(), sink, 1024 * 1024 * 4, props));
+    spdlog::info("Successfully wrote table to file. filepath = {}", filepath);
 }
 }
 }

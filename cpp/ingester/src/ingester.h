@@ -23,7 +23,7 @@
 #include <parquet/properties.h>
 #include <parquet/exception.h>
 #include <parquet/api/writer.h>
-#include <fmt/format.h>
+#include <spdlog/fmt/fmt.h>
 #include <utility>
 #include <chrono>
 #include "ingester_settings.h"

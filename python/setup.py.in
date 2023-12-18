@@ -21,7 +21,7 @@ setup(
             libraries=[
                 'river',
                 'hiredis',
-                'glog'],
+                'spdlog'],
             include_dirs=filter_empty([
                 np.get_include(),
             ] + '${RIVER_INCLUDE_DIRS}'.split(';')),

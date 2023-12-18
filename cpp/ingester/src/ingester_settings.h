@@ -12,7 +12,7 @@
 #include <algorithm>
 #include <river.h>
 #include <nlohmann/json.hpp>
-#include <glog/logging.h>
+#include <spdlog/spdlog.h>
 #include <fstream>
 
 using json = nlohmann::json;
@@ -95,8 +95,7 @@ static std::vector<std::pair<std::regex, StreamIngestionSettings>> ParseStreamSe
 
     std::vector<std::pair<std::regex, StreamIngestionSettings>> ret;
     if (!settings_json.contains("stream_settings")) {
-        LOG(WARNING) << "Warning: stream settings was empty. Was that intentional to not consume any streams?"
-                     << std::endl;
+        spdlog::warn("Warning: stream settings was empty. Was that intentional to not consume any streams?");
         return ret;
     }
 

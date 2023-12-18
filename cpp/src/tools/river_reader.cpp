@@ -1,7 +1,6 @@
 #include <chrono>
 #include <fstream>
-#include <glog/logging.h>
-#include <fmt/format.h>
+#include <spdlog/fmt/fmt.h>
 #include <cxxopts.hpp>
 
 #include "../river.h"
@@ -10,8 +9,6 @@ using namespace river;
 using namespace std;
 
 int main(int argc, char **argv) {
-  google::InitGoogleLogging("river");
-
   cxxopts::Options options
       ("RiverReader", "Reads raw data from a River stream via a StreamReader from STDIN. Reads until STDIN is closed.");
   options.add_options()

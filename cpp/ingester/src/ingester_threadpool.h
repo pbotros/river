@@ -13,9 +13,9 @@
 #include <utility>
 #include <unordered_map>
 #include <boost/variant.hpp>
-#include <fmt/format.h>
+#include <spdlog/fmt/fmt.h>
 #include <fmt/printf.h>
-#include <glog/logging.h>
+#include <spdlog/spdlog.h>
 
 #ifndef _MSC_VER
 #include <boost/stacktrace.hpp>
@@ -72,7 +72,7 @@ public:
         try {
             threads_.join_all();
         } catch (const std::exception &e) {
-            LOG(INFO) << "Exception received while joining threads. " << e.what() << endl;
+            spdlog::info("Exception received while joining threads. {}", e.what());
         }
     }
 
@@ -136,10 +136,12 @@ private:
         } catch (const std::exception &e) {
             v = e;
 #ifdef _MSC_VER
-            LOG(INFO) << fmt::format("[Stream {}] Exception while executing task: {}", stream_name, e.what());
+            spdlog::info("[Stream {}] Exception while executing task: {}", stream_name, e.what());
 #else
-            LOG(INFO) << fmt::format("[Stream {}] Exception while executing task: {}", stream_name, e.what())
-                      << endl << boost::stacktrace::stacktrace();
+            std:stringstream ss;
+            ss << boost::stacktrace::stacktrace();
+            spdlog::info("[Stream {}] Exception while executing task: {}\nStacktrace: {}",
+                         stream_name, e.what(), ss.str());
 #endif
         }
 

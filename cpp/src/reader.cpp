@@ -2,8 +2,8 @@
 #include "redis.h"
 #include <thread>
 #include <algorithm>
-#include <fmt/format.h>
-#include <glog/logging.h>
+#include <spdlog/fmt/fmt.h>
+#include <spdlog/spdlog.h>
 #include "compression/compressor.h"
 #include <nlohmann/json.hpp>
 
@@ -85,14 +85,14 @@ int64_t StreamReader::ReadBytes(
         std::string **keys,
         int timeout_ms) {
     if (this->has_variable_width_field_ && sizes == nullptr) {
-        LOG(INFO) << "Schema has a variable width field, so sizes must be given." << endl;
+        spdlog::info("Schema has a variable width field, so sizes must be given.");
         return -1;
     }
 
     auto good_err_msg = ErrorMsgIfNotGood();
     if (!good_err_msg.empty()) {
-      LOG(INFO) << good_err_msg << endl;
-      return -1;
+        spdlog::info(good_err_msg);
+        return -1;
     }
 
     int64_t samples_fetched = 0;
@@ -249,12 +249,8 @@ int64_t StreamReader::ReadBytes(
 
             int64_t last_sample_index = strtoll(sample_index_str, nullptr, 10);
 
-            // NB: For some reason on M1 Macs, LOG(INFO) with a number (int64_t here) causes a SIGBUS / EXC_BAD_ACCESS
-            // error to be thrown. Putting it through a stringstream seems to work. Glog 0.6.0 and C++14/17.
-            std::stringstream ss;
-            ss << "EOF received! Ending stream with " << samples_fetched << " elements at sample "
-               << last_sample_index << endl;
-            LOG(INFO) << ss.str();
+            spdlog::info("EOF received! Ending stream with {} elements at sample {}",
+                         samples_fetched, last_sample_index);
             FireStreamKeyChange(current_stream_key_, "");
             is_eof_ = true;
             eof_key_ = std::string(last_element->element[0]->str);
@@ -276,10 +272,8 @@ int64_t StreamReader::ReadBytes(
             if (sample_index_str == nullptr) {
                 throw StreamReaderException("Tombstone entry found without a sample_index_str key.");
             }
-            LOG(INFO) << "Tombstone received! Changing streams from " << current_stream_key_ << " to "
-                      << next_stream_str
-                      << endl;
-            const std::string &s = std::string(next_stream_str);
+            spdlog::info("Tombstone received! Changing streams from {} to {}", current_stream_key_, next_stream_str);
+            std::string s = std::string(next_stream_str);
             FireStreamKeyChange(current_stream_key_, s);
             current_stream_key_ = s;
             cursor_.left = 0;
@@ -342,7 +336,7 @@ void StreamReader::ReloadLookaheadCache(const char *val_str, int val_str_len, co
 int64_t StreamReader::TailBytes(char *buffer, int timeout_ms, char *key, int64_t *sample_index) {
     auto good_err_msg = ErrorMsgIfNotGood();
     if (!good_err_msg.empty()) {
-        LOG(INFO) << good_err_msg << endl;
+        spdlog::info(good_err_msg);
         return -1;
     }
 
@@ -482,9 +476,8 @@ int64_t StreamReader::TailBytes(char *buffer, int timeout_ms, char *key, int64_t
         if (sample_index_str == nullptr) {
             throw StreamReaderException("Tombstone entry found without a sample_index_str key.");
         }
-        LOG(INFO) << "Tombstone received! Changing streams from " << current_stream_key_ << " to " << next_stream_str
-                  << endl;
-        const std::string &s = std::string(next_stream_str);
+        spdlog::info("Tombstone received! Changing streams from {} to {}", current_stream_key_, next_stream_str);
+        std::string s = std::string(next_stream_str);
         FireStreamKeyChange(current_stream_key_, s);
         current_stream_key_ = s;
         cursor_.left = 0ULL;
@@ -514,7 +507,7 @@ std::string StreamReader::ErrorMsgIfNotGood() {
 int64_t StreamReader::Seek(const std::string &key) {
     auto err = ErrorMsgIfNotGood();
     if (!err.empty()) {
-        LOG(INFO) << err << endl;
+        spdlog::info(err);
         return -1;
     }
 
@@ -533,7 +526,7 @@ int64_t StreamReader::Seek(const std::string &key) {
             // No elements found *before* the target key in this stream. This could be due to the fact that the key is
             // actually "in the past" -- i.e. already consumed -- or that the stream itself is empty. In either case, the
             // right action is to not change the current cursor.
-            LOG(INFO) << "No elements found before this key. Not changing cursor." << endl;
+            spdlog::info("No elements found before this key. Not changing cursor.");
             return 0;
         }
 
@@ -543,8 +536,7 @@ int64_t StreamReader::Seek(const std::string &key) {
         if (eof != nullptr) {
             // EOF was found *before* the target key, meaning the target key is past the end of this stream, i.e. it's a
             // bogus key.
-            const std::string &msg = fmt::format("Key {} exceeded EOF of the stream (EOF key {}).", key, last_key);
-            LOG(INFO) << msg << endl;
+            spdlog::info("Key {} exceeded EOF of the stream (EOF key {}).", key, last_key);
             return -1;
         }
 
@@ -556,10 +548,8 @@ int64_t StreamReader::Seek(const std::string &key) {
             int64_t old_sample_index = current_sample_idx_;
             current_sample_idx_ = GetSampleIndexOrThrow(data_reply->element[1]);
             int64_t ret = current_sample_idx_ - old_sample_index;
-            LOG(INFO) << fmt::format("Seeked successfully; skipped {} elements. New cursor {}-{}",
-                                     ret,
-                                     cursor_.left,
-                                     cursor_.right) << endl;
+            spdlog::info("Seeked successfully; skipped {} elements. New cursor {}-{}",
+                         ret, cursor_.left, cursor_.right);
 
             // Need to load the proper lookahead as well
             auto *values = data_reply->element[1];
@@ -583,8 +573,8 @@ int64_t StreamReader::Seek(const std::string &key) {
         int64_t last_sample_index = strtoll(sample_index_str, nullptr, 10);
         const std::string &s = std::string(next_stream_str);
 
-        LOG(INFO) << fmt::format("Tombstone received during seek. Changing streams from {} to {} [sample_index {}]",
-                                 current_stream_key_, next_stream_str, last_sample_index) << endl;
+        spdlog::info("Tombstone received during seek. Changing streams from {} to {} [sample_index {}]",
+                     current_stream_key_, next_stream_str, last_sample_index);
         FireStreamKeyChange(current_stream_key_, s);
         current_stream_key_ = s;
         cursor_.left = 0ULL;
