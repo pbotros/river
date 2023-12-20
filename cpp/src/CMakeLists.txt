@@ -133,10 +133,10 @@ else()
     set(MY_CXX_RELEASE_OPTIONS ${MY_CXX_RELEASE_OPTIONS} -Wall -Wextra -pedantic)
 endif()
 
-target_compile_options(river PUBLIC "$<$<CONFIG:DEBUG>:${MY_CXX_DEBUG_OPTIONS}>")
-target_compile_options(river PUBLIC "$<$<CONFIG:RELEASE>:${MY_CXX_RELEASE_OPTIONS}>")
-target_compile_options(river_benchmark PUBLIC "$<$<CONFIG:DEBUG>:${MY_CXX_DEBUG_OPTIONS}>")
-target_compile_options(river_benchmark PUBLIC "$<$<CONFIG:RELEASE>:${MY_CXX_RELEASE_OPTIONS}>")
+target_compile_options(river PRIVATE "$<$<CONFIG:DEBUG>:${MY_CXX_DEBUG_OPTIONS}>")
+target_compile_options(river PRIVATE "$<$<CONFIG:RELEASE>:${MY_CXX_RELEASE_OPTIONS}>")
+target_compile_options(river_benchmark PRIVATE "$<$<CONFIG:DEBUG>:${MY_CXX_DEBUG_OPTIONS}>")
+target_compile_options(river_benchmark PRIVATE "$<$<CONFIG:RELEASE>:${MY_CXX_RELEASE_OPTIONS}>")
 
 ################
 ### Installs ###
@@ -220,8 +220,8 @@ if (RIVER_BUILD_TESTS)
   target_compile_features(river_test PRIVATE cxx_std_17)
   target_link_libraries(river_test PRIVATE river ${LIBRARIES_TO_LINK} gtest gtest_main)
   add_test(NAME river_test COMMAND river_test)
-  target_compile_options(river_test PUBLIC "$<$<CONFIG:DEBUG>:${MY_CXX_DEBUG_OPTIONS}>")
-  target_compile_options(river_test PUBLIC "$<$<CONFIG:RELEASE>:${MY_CXX_RELEASE_OPTIONS}>")
+  target_compile_options(river_test PRIVATE "$<$<CONFIG:DEBUG>:${MY_CXX_DEBUG_OPTIONS}>")
+  target_compile_options(river_test PRIVATE "$<$<CONFIG:RELEASE>:${MY_CXX_RELEASE_OPTIONS}>")
 endif()
 
 if (RIVER_BUILD_REDIS_MODULE)
